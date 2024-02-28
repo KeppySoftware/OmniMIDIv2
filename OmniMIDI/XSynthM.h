@@ -28,7 +28,6 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "NtFuncs.h"
 #include "EvBuf_t.h"
 #include "SynthMain.h"
 #include "SoundFontSystem.h"
@@ -36,20 +35,17 @@
 namespace OmniMIDI {
 	class XSynthSettings : public SynthSettings {
 	private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-		ErrorSystem::WinErr SetErr;
-#pragma clang diagnostic pop
+		ErrorSystem::Logger SetErr;
 
 	public:
 		double BufSize = 5.0;
 
 		XSynthSettings() {
 			// When you initialize Settings(), load OM's own settings by default
-			Utils::SysPath Utils;
+			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
 
-			if (Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
 				LoadJSON(OMPath);
 			}
@@ -103,7 +99,7 @@ namespace OmniMIDI {
 
 	class XSynth : public SynthModule {
 	private:
-		ErrorSystem::WinErr SynErr;
+		ErrorSystem::Logger SynErr;
 
 		Lib* XLib = nullptr;
 

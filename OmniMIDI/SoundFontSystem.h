@@ -32,8 +32,8 @@ namespace OmniMIDI {
 
 	class SoundFontSystem {
 	private:
-		ErrorSystem::WinErr SfErr;
-		Utils::SysPath Utils;
+		ErrorSystem::Logger SfErr;
+		OMShared::SysPath Utils;
 		std::vector<SoundFont> SoundFonts;
 
 	public:

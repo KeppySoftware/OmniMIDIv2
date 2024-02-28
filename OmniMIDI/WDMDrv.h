@@ -45,7 +45,7 @@ namespace WinDriver {
 		unsigned short Technology = MOD_SWSYNTH;
 		unsigned short Support = MIDICAPS_VOLUME | MIDICAPS_STREAM;
 
-		ErrorSystem::WinErr MaskErr;
+		ErrorSystem::Logger MaskErr;
 
 	public:
 		// Change settings
@@ -57,10 +57,11 @@ namespace WinDriver {
 
 	private:
 		Callback* pCallback = nullptr;
-		ErrorSystem::WinErr CallbackErr;
+		ErrorSystem::Logger CallbackErr;
 
 	public:
 		// Callbacks
+		bool IsCallbackReady();
 		bool PrepareCallbackFunction(MIDIOPENDESC*, DWORD);
 		bool ClearCallbackFunction();
 		void CallbackFunction(DWORD, DWORD_PTR, DWORD_PTR);
@@ -73,7 +74,7 @@ namespace WinDriver {
 		HDRVR DrvHandle = nullptr;
 		HMODULE LibHandle = nullptr;
 
-		ErrorSystem::WinErr DrvErr;
+		ErrorSystem::Logger DrvErr;
 
 	public:
 

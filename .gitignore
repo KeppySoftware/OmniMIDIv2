@@ -28,11 +28,13 @@
 
 # Executables
 *.exe
+*.dll
 *.out
 *.app
 
 # Ignore output
-OmniMIDI/packages
-OmniMIDI/bin
-OmniMIDI/Debug
-OmniMIDI/Release*
+*/packages
+*/bin
+*/Debug
+*/Release*
+*/.vs

@@ -12,7 +12,7 @@
 typedef OmniMIDI::SynthModule* (*rInitModule)();
 typedef void(*rStopModule)();
 
-static ErrorSystem::WinErr WDMErr;
+static ErrorSystem::Logger WDMErr;
 static WinDriver::DriverCallback* fDriverCallback = nullptr;
 static WinDriver::DriverComponent* DriverComponent = nullptr;
 static WinDriver::DriverMask* DriverMask = nullptr;
@@ -20,11 +20,8 @@ static OmniMIDI::StreamPlayer* StreamPlayer = nullptr;
 static OmniMIDI::WDMSettings* WDMSettings = nullptr;
 static OmniMIDI::SynthModule* SynthModule = nullptr;
 static HMODULE extModule = nullptr;
-#ifdef _DEBUG
-static FILE* dummy;
-#endif
 
-static NT::Funcs NTFuncs;
+static OMShared::Funcs NTFuncs;
 static signed long long TickStart = 0;
 
 int WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
@@ -35,6 +32,7 @@ int WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
 	case DLL_PROCESS_ATTACH:
 #ifdef _DEBUG
 		if (AllocConsole()) {
+			FILE* dummy;
 			freopen_s(&dummy, "CONOUT$", "w", stdout);
 			freopen_s(&dummy, "CONOUT$", "w", stderr);
 			freopen_s(&dummy, "CONIN$", "r", stdin);
@@ -132,41 +130,84 @@ long WINAPI DriverProc(DWORD DriverIdentifier, HDRVR DriverHandle, UINT Message,
 	return r;
 }
 
-void freeAudioRender() {
+void freeAudioRenderer() {
 	if (extModule != nullptr) {
 		if (SynthModule) {
 			auto fM = (rStopModule)GetProcAddress(extModule, "freeModule");
 			fM();
+			LOG(WDMErr, "Called freeModule() from custom external synth module. ADDR:%x", extModule);
 		}
 
 		FreeLibrary(extModule);
 		extModule = nullptr;
 		SynthModule = nullptr;
+
+		LOG(WDMErr, "Custom SynthModule freed.");
 	}
 
 	if (SynthModule != nullptr)
 	{
 		delete SynthModule;
 		SynthModule = nullptr;
+		LOG(WDMErr, "SynthModule freed.");
 	}
 
 	if (WDMSettings != nullptr)
 	{
 		delete WDMSettings;
 		WDMSettings = nullptr;
+		LOG(WDMErr, "WDMSettings freed.");
 	}
 
 	SynthModule = new OmniMIDI::SynthModule;
 }
 
-bool getAudioRender() {
+bool stopAudioRenderer() {
+	if (StreamPlayer) {
+		delete StreamPlayer;
+		LOG(WDMErr, "StreamPlayer deleted.");
+	}
+
+	if (SynthModule->StopSynthModule()) {
+		LOG(WDMErr, "::StopSynthModule() called.");
+
+		if (SynthModule->UnloadSynthModule()) {
+			LOG(WDMErr, "::UnloadSynthModule() called.");
+
+			fDriverCallback->CallbackFunction(MOM_CLOSE, 0, 0);
+			fDriverCallback->ClearCallbackFunction();
+			LOG(WDMErr, "Callback system has been freed.");
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool startAudioRenderer() {
+	if (SynthModule->LoadSynthModule()) {
+		if (SynthModule->StartSynthModule()) {
+			LOG(WDMErr, "Synth ID: %x", SynthModule->SynthID());
+			return true;
+		}
+		else NERROR(WDMErr, "::StartSynthModule() failed! The driver will not output audio.", true);
+
+		if (!SynthModule->StopSynthModule())
+			FNERROR(WDMErr, "::StopSynthModule() failed!!!");
+	}
+
+	if (!SynthModule->UnloadSynthModule())
+		FNERROR(WDMErr, "::UnloadSynthModule() failed!!!");
+
+	freeAudioRenderer();
+	return false;
+}
+
+bool getAudioRenderer() {
 	bool good = true;
 
-	if (WDMSettings != nullptr)
-		delete WDMSettings;
-
-	if (SynthModule != nullptr)
-		delete SynthModule;
+	freeAudioRenderer();
 
 	WDMSettings = new OmniMIDI::WDMSettings;
 	switch (WDMSettings->Renderer) {
@@ -208,15 +249,15 @@ bool getAudioRender() {
 		break;
 
 	case TINYSF:
-		SynthModule = new OmniMIDI::TinySFSynth;
-		break;
 	default:
-		good = false;
+		SynthModule = new OmniMIDI::TinySFSynth;
 		break;
 	}
 
-	if (!good) freeAudioRender();
-	else LOG(WDMErr, "Renderer: %d - Custom renderer: %s",
+	if (WDMSettings->Renderer == EXTERNAL && !good) 
+		freeAudioRenderer();
+
+	LOG(WDMErr, "Renderer: %d - Custom renderer: %s",
 		WDMSettings->Renderer,
 		WDMSettings->CustomRenderer.c_str());
 
@@ -335,50 +376,30 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 		LPMIDIOPENDESC midiOpenDesc = reinterpret_cast<LPMIDIOPENDESC>(Param1);
 		DWORD callbackMode = (DWORD)Param2;
 
-		freeAudioRender();
-		if (getAudioRender()) {
-			if (!SynthModule->LoadSynthModule()) {
-				NERROR(WDMErr, "Unable to initialize the synthesizer module!Press OK to continue without audio.", true);
+		freeAudioRenderer();
+		if (getAudioRenderer()) {
+			if (startAudioRenderer()) {
+				if (fDriverCallback->PrepareCallbackFunction(midiOpenDesc, callbackMode)) {
+					LOG(WDMErr, "PrepareCallbackFunction done.");
 
-				if (!SynthModule->UnloadSynthModule())
-					FNERROR(WDMErr, "UnloadSynthModule failed in MODM_OPEN!ABORT!!!");
+					if (callbackMode & MIDI_IO_COOKED) {
+						StreamPlayer = new OmniMIDI::StreamPlayer(SynthModule, fDriverCallback);
+						LOG(WDMErr, "StreamPlayer allocated.");
 
-				freeAudioRender();
-				return MMSYSERR_NOMEM;
-			}
+						if (!StreamPlayer)
+						{
+							freeAudioRenderer();
+							return MMSYSERR_NOMEM;
+						}
 
-			if (!SynthModule->StartSynthModule()) {
-				NERROR(WDMErr, "Unable to start up the synthesizer module!Press OK to continue without audio.", true);
-
-				if (!SynthModule->UnloadSynthModule())
-					FNERROR(WDMErr, "UnloadSynthModule failed in MODM_OPEN!ABORT!!!");
-
-				freeAudioRender();
-				return MMSYSERR_NOTENABLED;
-			}
-
-			LOG(WDMErr, "Synth ID: %x", SynthModule->SynthID());
-
-			if (fDriverCallback->PrepareCallbackFunction(midiOpenDesc, callbackMode)) {
-				LOG(WDMErr, "PrepareCallbackFunction done.");
-
-				if (callbackMode & MIDI_IO_COOKED) {
-					StreamPlayer = new OmniMIDI::StreamPlayer(SynthModule, fDriverCallback);
-					LOG(WDMErr, "CookedPlayer allocated.");
-
-					if (!StreamPlayer)
-					{
-						freeAudioRender();
-						return MMSYSERR_NOMEM;
+						LOG(WDMErr, "StreamPlayer address: %x", StreamPlayer);
 					}
 
-					LOG(WDMErr, "CookedPlayer address: %x", StreamPlayer);
+					fDriverCallback->CallbackFunction(MOM_OPEN, 0, 0);
 				}
 
-				fDriverCallback->CallbackFunction(MOM_OPEN, 0, 0);
+				return MMSYSERR_NOERROR;
 			}
-
-			return MMSYSERR_NOERROR;
 		}
 
 		NERROR(WDMErr, "Failed to initialize synthesizer.", true);
@@ -387,13 +408,9 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 
 	case MODM_CLOSE:
-		if (SynthModule->StopSynthModule()) {
-			if (SynthModule->UnloadSynthModule()) {
-				fDriverCallback->CallbackFunction(MOM_CLOSE, 0, 0);
-				fDriverCallback->ClearCallbackFunction();
-				freeAudioRender();
-				return MMSYSERR_NOERROR;
-			}
+		if (stopAudioRenderer()) {
+			freeAudioRenderer();
+			return MMSYSERR_NOERROR;
 		}
 
 		LOG(WDMErr, "Failed to free synthesizer.");
@@ -504,41 +521,20 @@ int WINAPI IsKDMAPIAvailable() {
 }
 
 int WINAPI InitializeKDMAPIStream() {
-	freeAudioRender();
-	if (getAudioRender()) {
-		if (!SynthModule->LoadSynthModule()) {
-			NERROR(WDMErr, "Unable to initialize the synthesizer module!Press OK to continue without audio.", true);
-
-			if (!SynthModule->UnloadSynthModule())
-				FNERROR(WDMErr, "UnloadSynthModule failed in MODM_OPEN!ABORT!!!");
-
-			freeAudioRender();
-			return 0;
+	freeAudioRenderer();
+	if (getAudioRenderer()) {
+		if (startAudioRenderer()) {
+			return 1;
 		}
-
-		if (!SynthModule->StartSynthModule()) {
-			NERROR(WDMErr, "Unable to start up the synthesizer module!Press OK to continue without audio.", true);
-			freeAudioRender();
-			return 0;
-		}
-
-		LOG(WDMErr, "Synth ID: %x", SynthModule->SynthID());
-
-		return 1;
 	}
 
-	NERROR(WDMErr, "Failed to initialize synthesizer.", true);
 	return 0;
 }
 
 int WINAPI TerminateKDMAPIStream() {
-	if (SynthModule->StopSynthModule()) {
-		if (SynthModule->UnloadSynthModule()) {
-			fDriverCallback->CallbackFunction(MOM_CLOSE, 0, 0);
-			fDriverCallback->ClearCallbackFunction();
-			freeAudioRender();
-			return 1;
-		}
+	if (stopAudioRenderer()) {
+		freeAudioRenderer();
+		return 1;
 	}
 
 	LOG(WDMErr, "TerminateKDMAPIStream failed.");
@@ -565,7 +561,7 @@ unsigned int WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 
 unsigned int WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 	// Unsupported, forward to SendDirectLongData
-	SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
+	return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
 }
 
 unsigned int WINAPI PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
@@ -613,6 +609,21 @@ int WINAPI SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int par
 }
 
 int WINAPI DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+	if (setting == KDMAPI_STREAM) {
+		if (fDriverCallback->IsCallbackReady()) {
+			StreamPlayer = new OmniMIDI::StreamPlayer(SynthModule, fDriverCallback);
+			LOG(WDMErr, "StreamPlayer allocated.");
+
+			if (!StreamPlayer)
+			{
+				freeAudioRenderer();
+				return -1;
+			}
+
+			LOG(WDMErr, "StreamPlayer address: %x", StreamPlayer);
+		}
+	}
+
 	return SynthModule->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
 }
 

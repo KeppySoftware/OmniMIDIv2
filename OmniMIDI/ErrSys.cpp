@@ -8,16 +8,16 @@
 
 #include "ErrSys.h"
 
-void ErrorSystem::WinErr::Log(const char* Message, const OmniMIDI::source_location& location, int dummy, ...) {
+void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
 #if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
-	va_start(vl, dummy);
+	va_start(vl, Line);
 
 	char* cBuf = new char[SZBufSize];
 	char* tBuf = new char[SZBufSize];
 	
 	vsprintf_s(tBuf, SZBufSize, Message, vl);
-	sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", location.function_name(), location.file_name(), location.line(), tBuf);
+	sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
 	std::cout << cBuf << std::endl;
 
 	delete[] cBuf;
@@ -27,10 +27,10 @@ void ErrorSystem::WinErr::Log(const char* Message, const OmniMIDI::source_locati
 #endif
 }
 
-void ErrorSystem::WinErr::ThrowError(const char* Error, const OmniMIDI::source_location& location, bool IsSeriousError, int dummy, ...) {
+void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...) {
 #if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
-	va_start(vl, dummy);
+	va_start(vl, Line);
 
 	int GLE = GetLastError();
 	char* Buf = nullptr;
@@ -59,22 +59,21 @@ void ErrorSystem::WinErr::ThrowError(const char* Error, const OmniMIDI::source_l
 		cBuf = new char[SZBufSize];
 
 		vsprintf_s(tBuf, SZBufSize, Error, vl);
+		MessageBoxA(NULL, tBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 
 #ifdef _DEBUG
-		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error:%s", 
-			location.function_name(), location.file_name(), location.line(), tBuf);
+		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s", 
+			Func, File, Line, tBuf);
 #else
 		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! Error: %s", 
-			location.function_name(), tBuf);
+			Func, tBuf);
 #endif
-		sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", location.function_name(), location.file_name(), location.line(), tBuf);
+		sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
 		std::async([&cBuf]() { std::cout << cBuf << std::endl; });
 		delete[] cBuf;
-
 		delete[] tBuf;
 
 		MessageBoxA(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
-
 		delete[] Buf;
 	}
 
@@ -82,17 +81,16 @@ void ErrorSystem::WinErr::ThrowError(const char* Error, const OmniMIDI::source_l
 #endif
 }
 
-void ErrorSystem::WinErr::ThrowFatalError(const char* Error, const OmniMIDI::source_location& location) {
+void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line) {
 #if defined(_WIN32) && !defined(_M_ARM)
 	char* Buf = new char[SZBufSize];
-	int GLE = GetLastError();
 
 #ifdef _DEBUG
 	sprintf_s(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
-		location.function_name(), location.file_name(), location.line(), Error);
+		Func, File, Line, Error);
 #else
 	sprintf_s(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 
-		location.function_name(), Error);
+		Func, Error);
 #endif
 
 	MessageBoxA(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);

@@ -7,7 +7,6 @@
 
 */
 
-
 #ifndef _EVBUF_T_H
 #define _EVBUF_T_H
 

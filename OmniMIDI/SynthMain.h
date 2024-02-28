@@ -98,7 +98,7 @@ namespace OmniMIDI {
 		void SetName(const char* pfuncname) { funcname = pfuncname; }
 		const char* GetName() { return funcname; }
 
-		bool SetPtr(HMODULE module = nullptr, const char* ptrname = nullptr){
+		bool SetPtr(void* module = nullptr, const char* ptrname = nullptr){
 			void* ptr = (void*)-1;
 
 			if (module == nullptr || ptrname == nullptr)
@@ -107,7 +107,7 @@ namespace OmniMIDI {
 				return true;
 			}
 
-			ptr = (void*)GetProcAddress(module, ptrname);
+			ptr = (void*)getAddr(module, ptrname);
 
 			if (!ptr)
 				return false;
@@ -124,14 +124,14 @@ namespace OmniMIDI {
 	class Lib {
 	private:
 		const wchar_t* Name;
-		HMODULE Library = nullptr;
+		void* Library = nullptr;
 		bool Initialized = false;
 		bool LoadFailed = false;
 		bool AppSelfHosted = false;
-		ErrorSystem::WinErr LibErr;
+		ErrorSystem::Logger LibErr;
 
 	public:
-		HMODULE Ptr() { return Library; }
+		void* Ptr() { return Library; }
 		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
 
 		Lib(const wchar_t* pName) {
@@ -139,7 +139,7 @@ namespace OmniMIDI {
 		}
 
 		bool LoadLib(wchar_t* CustomPath = nullptr) {
-			Utils::SysPath Utils;
+			OMShared::SysPath Utils;
 
 			char CName[MAX_PATH] = { 0 };
 			wchar_t SysDir[MAX_PATH] = { 0 };
@@ -159,7 +159,7 @@ namespace OmniMIDI {
 						assert(swp != -1);
 
 						if (swp != -1) {
-							Library = LoadLibrary(DLLPath);
+							Library = loadLibW(DLLPath);
 
 							if (!Library)
 								return false;
@@ -167,19 +167,19 @@ namespace OmniMIDI {
 						else return false;
 					}
 					else {
-						if (Utils.GetFolderPath(Utils::FIDs::System, SysDir, sizeof(SysDir))) {
+						if (Utils.GetFolderPath(OMShared::FIDs::System, SysDir, sizeof(SysDir))) {
 							swp = swprintf_s(DLLPath, MAX_PATH, L"%s.dll\0", Name);
 							assert(swp != -1);
 
 							if (swp != -1) {
-								Library = LoadLibrary(DLLPath);
+								Library = loadLibW(DLLPath);
 
 								if (!Library)
 								{
 									swp = swprintf_s(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s.dll\0", SysDir, Name);
 									assert(swp != -1);
 									if (swp != -1) {
-										Library = LoadLibrary(DLLPath);
+										Library = loadLibW(DLLPath);
 										assert(Library != 0);
 
 										if (!Library) {
@@ -213,7 +213,7 @@ namespace OmniMIDI {
 					AppSelfHosted = false;
 				}
 				else {
-					bool r = FreeLibrary(Library);
+					bool r = freeLib(Library);
 					assert(r == true);
 					if (!r) {
 						throw;

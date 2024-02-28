@@ -8,7 +8,7 @@
 
 #include "Utils.h"
 
-bool Utils::SysPath::GetFolderPath(const FIDs FolderID, wchar_t* P, size_t PS) {
+bool OMShared::SysPath::GetFolderPath(const FIDs FolderID, wchar_t* P, size_t PS) {
 #ifdef _WIN32 
 	GUID id = GUID_NULL;
 

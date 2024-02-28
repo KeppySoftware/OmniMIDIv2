@@ -178,8 +178,6 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 }
 
 bool OmniMIDI::BASSSynth::LoadFuncs() {
-	void* ptr = nullptr;
-
 	// Load required libs
 	if (!BAudLib->LoadLib())
 		return false;
@@ -327,13 +325,16 @@ bool OmniMIDI::BASSSynth::UnloadSynthModule() {
 
 bool OmniMIDI::BASSSynth::StartSynthModule() {
 	// SF path
-	Utils::SysPath Utils;
+	OMShared::SysPath Utils;
 	wchar_t OMPath[MAX_PATH] = { 0 };
 
 	// BASS stream flags
 	const char* dev = Settings->ASIODevice.c_str();
 	BASS_ASIO_DEVICEINFO devinfo = BASS_ASIO_DEVICEINFO();
 
+	bool nofreqchange = false;
+	double devfreq = 0.0;
+	unsigned int asiofreq = (double)Settings->AudioFrequency;
 	unsigned int lchv = 0, rchv = 1;
 	const char* lch = Settings->ASIOLCh.c_str();
 	const char* rch = Settings->ASIORCh.c_str();
@@ -415,19 +416,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	case ASIO:
 		StreamFlags |= BASS_STREAM_DECODE;
 
-		if (!BASS_Init(0, Settings->AudioFrequency, BASS_DEVICE_STEREO, nullptr, nullptr)) {
-			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
-			Fail = true;
-			return false;
-		}
-
-		AudioStream = BASS_MIDI_StreamCreate(16, StreamFlags, 0);
-		if (!AudioStream) {
-			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
-			Fail = true;
-			return false;
-		}
-
 		// Get the amount of ASIO devices available
 		for (; BASS_ASIO_GetDeviceInfo(ASIOCount, &devinfo); ASIOCount++) {
 			// Return the correct ID when found
@@ -450,12 +438,13 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-		if (!BASS_ASIO_SetRate(Settings->AudioFrequency)) {
-			LOG(SynErr, "BASS_ASIO_SetRate failed, falling back to BASS_ASIO_ChannelSetRate...BASSERR: %d", BASS_ErrorGetCode());
-			if (!BASS_ASIO_ChannelSetRate(0, 0, Settings->AudioFrequency)) {
-				NERROR(SynErr, "BASS_ASIO_ChannelSetRate failed to set the frequency with error 0x%x.Is %dHz supported?", true, BASS_ErrorGetCode(), Settings->AudioFrequency);
-				Fail = true;
-				return false;
+		if (BASS_ASIO_CheckRate(asiofreq)) {
+			if (!BASS_ASIO_SetRate(asiofreq)) {
+				LOG(SynErr, "BASS_ASIO_SetRate failed, falling back to BASS_ASIO_ChannelSetRate... BASSERR: %d", BASS_ErrorGetCode());
+				if (!BASS_ASIO_ChannelSetRate(0, 0, asiofreq)) {
+					LOG(SynErr, "BASS_ASIO_ChannelSetRate failed as well, BASSERR: %d... This ASIO device does not want OmniMIDI to change its output frequency.", BASS_ErrorGetCode());
+					nofreqchange = true;
+				}
 			}
 		}
 
@@ -463,24 +452,64 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			// Return the correct ID when found
 			if (strcmp(lch, chinfo.name) == 0) {
 				lchv = ASIOCh;
+				LOG(SynErr, "lchv = %d", lchv);
 			}
 			else if (strcmp(rch, chinfo.name) == 0) {
 				rchv = ASIOCh;
+				LOG(SynErr, "rchv = %d", lchv);
 			}
 		}
 
-		BASS_ASIO_SetRate(Settings->AudioFrequency);
-		BASS_ASIO_ChannelEnable(0, lchv, nullptr, nullptr);
-		BASS_ASIO_ChannelSetFormat(0, lchv, BASS_ASIO_FORMAT_FLOAT);
-		BASS_ASIO_ChannelEnableBASS(0, lchv, AudioStream, true);
+		if (nofreqchange) {
+			devfreq = BASS_ASIO_GetRate();
+			LOG(SynErr, "BASS_ASIO_GetRate = %dHz", devfreq);
+			if (devfreq != -1) {
+				asiofreq = devfreq;
+			}
+			else {
+				NERROR(SynErr, "BASS_ASIO_GetRate failed to get the device's frequency, with error 0x%x.", true, BASS_ErrorGetCode());
+				Fail = true;
+				return false;
+			}
+		}
 
-		if (!BASS_ASIO_Start(0, std::thread::hardware_concurrency())) {
-			NERROR(SynErr, "BASS_ASIO_Start failed with error 0x%x.", true, BASS_ErrorGetCode());
+		if (!BASS_Init(0, asiofreq, BASS_DEVICE_STEREO, nullptr, nullptr)) {
+			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			Fail = true;
 			return false;
 		}
 
-		break;
+		AudioStream = BASS_MIDI_StreamCreate(16, StreamFlags, 0);
+		if (!AudioStream) {
+			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
+			Fail = true;
+			return false;
+		}
+
+		if (!nofreqchange) BASS_ASIO_SetRate(asiofreq);
+
+		if (BASS_ASIO_ChannelEnable(0, lchv, nullptr, nullptr)) {
+			LOG(SynErr, "BASS_ASIO_ChannelEnable called on channel %d.", lchv);
+
+			BASS_ASIO_ChannelSetFormat(0, lchv, BASS_ASIO_FORMAT_FLOAT);
+			BASS_ASIO_ChannelSetRate(0, lchv, asiofreq);
+			BASS_ASIO_ChannelEnableBASS(0, lchv, AudioStream, false);
+			LOG(SynErr, "Channel %d set to %dHz and enabled.", lchv, asiofreq);
+
+			if (BASS_ASIO_ChannelEnable(0, rchv, nullptr, nullptr)) {
+				LOG(SynErr, "BASS_ASIO_ChannelEnable called on channel %d.", rchv);
+				BASS_ASIO_ChannelJoin(0, rchv, lchv);
+				LOG(SynErr, "Channel %d joined to %d.", rchv, lchv);
+
+				if (!BASS_ASIO_Start(0, 0)) {
+					NERROR(SynErr, "BASS_ASIO_Start failed with error 0x%x. If the code is zero, that means the device encountered an error and aborted the initialization process.", true, BASS_ErrorGetCode());
+				}
+				else break;
+			}
+		}
+
+		Fail = true;
+		return false;
 
 	case INVALID_ENGINE:
 	default:
@@ -523,7 +552,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	// Sorry ARM users!
 #if defined(_M_AMD64) || defined(_M_IX86)
-	if (Settings->LoudMax && Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath)))
+	if (Settings->LoudMax && Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath)))
 	{
 #if defined(_M_AMD64)
 		swprintf_s(OMPath, L"%s\\OmniMIDI\\LoudMax\\LoudMax64.dll", OMPath);
@@ -537,39 +566,38 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #endif
 
 	StreamSettings(false);
-
 	return true;
 }
 
 bool OmniMIDI::BASSSynth::StopSynthModule() {
+	switch (Settings->AudioEngine) {
+	case WASAPI:
+		BASS_WASAPI_Stop(true);
+		BASS_WASAPI_Free();
+
+		// why do I have to do it myself
+		BASS_WASAPI_SetNotify(nullptr, nullptr);
+		break;
+
+	case ASIO:
+		BASS_ASIO_Stop();
+		BASS_ASIO_Free();
+		NTFuncs.uSleep(-500000);
+		break;
+
+	case BASS_INTERNAL:
+	default:
+		break;
+	}
+
 	if (AudioStream) {
 		SFSystem.ClearList();
 
 		BASS_StreamFree(AudioStream);
 		AudioStream = 0;
-
-		switch (Settings->AudioEngine) {
-		case WASAPI:
-			BASS_WASAPI_Stop(true);
-			BASS_WASAPI_Free();
-
-			// why do I have to do it myself
-			BASS_WASAPI_SetNotify(nullptr, nullptr);
-			break;
-
-		case ASIO:
-			if (BASS_ASIO_IsStarted()) {
-				BASS_ASIO_Stop();
-				BASS_ASIO_Free();
-			}
-
-		case BASS_INTERNAL:
-		default:
-			break;
-		}
-
-		BASS_Free();
 	}
+
+	BASS_Free();
 
 	Fail = false;
 	return true;

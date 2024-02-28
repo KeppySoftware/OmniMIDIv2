@@ -26,7 +26,6 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "NtFuncs.h"
 #include "EvBuf_t.h"
 #include "ErrSys.h"
 #include "SynthMain.h"
@@ -43,7 +42,7 @@
 namespace OmniMIDI {
 	class BASSSettings : public SynthSettings {
 	private:
-		ErrorSystem::WinErr SetErr;
+		ErrorSystem::Logger SetErr;
 
 	public:
 		// Global settings
@@ -64,10 +63,10 @@ namespace OmniMIDI {
 
 		BASSSettings() {
 			// When you initialize Settings(), load OM's own settings by default
-			Utils::SysPath Utils;
+			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
 
-			if (Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
 				LoadJSON(OMPath);
 			}
@@ -137,8 +136,8 @@ namespace OmniMIDI {
 
 	class BASSSynth : public SynthModule {
 	private:
-		ErrorSystem::WinErr SynErr;
-		NT::Funcs NTFuncs;
+		ErrorSystem::Logger SynErr;
+		OMShared::Funcs NTFuncs;
 
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;

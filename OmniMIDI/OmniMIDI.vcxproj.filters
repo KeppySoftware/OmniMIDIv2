@@ -75,17 +75,11 @@
     <ClInclude Include="BASSSynth.h">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="SrcLoc.h">
-      <Filter>Header Files\Extensions</Filter>
-    </ClInclude>
     <ClInclude Include="FluidSynth.h">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
     <ClInclude Include="EvBuf_t.h">
       <Filter>Header Files\Extensions</Filter>
-    </ClInclude>
-    <ClInclude Include="NtFuncs.h">
-      <Filter>Header Files\Mandatory</Filter>
     </ClInclude>
     <ClInclude Include="XSynthM.h">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
@@ -161,5 +155,8 @@
       <Filter>Header Files\WDM</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="OMExports.def">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

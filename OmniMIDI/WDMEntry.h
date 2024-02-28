@@ -64,10 +64,7 @@ const wchar_t MIDI_REGISTRY_ENTRY_TEMPLATE[] = L"midi%d";
 namespace OmniMIDI {
 	class WDMSettings : public SynthSettings {
 	private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-		ErrorSystem::WinErr SetErr;
-#pragma clang diagnostic pop
+		ErrorSystem::Logger SetErr;
 
 	public:
 		// Global settings
@@ -78,16 +75,17 @@ namespace OmniMIDI {
 
 		WDMSettings() {
 			// When you initialize Settings(), load OM's own settings by default
-			Utils::SysPath Utils;
+			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
 			wchar_t OMBPath[MAX_PATH] = { 0 };
 			wchar_t OMDBPath[MAX_PATH] = { 0 };
 
-			if (Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				wcscpy_s(OMBPath, OMPath);
+				wcscpy_s(OMDBPath, OMPath);
 				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				swprintf_s(OMBPath, L"%s\\OmniMIDI\\defblacklist.json\0", OMBPath);
 				swprintf_s(OMBPath, L"%s\\OmniMIDI\\blacklist.json\0", OMBPath);
+				swprintf_s(OMDBPath, L"%s\\OmniMIDI\\defblacklist.json\0", OMBPath);
 				LoadJSON(OMPath);
 				LoadBlacklist(OMBPath);
 			}
@@ -100,7 +98,8 @@ namespace OmniMIDI {
 				nlohmann::json defset = {
 					{ "WDMInit", {
 						JSONGetVal(Renderer),
-						JSONGetVal(CustomRenderer)
+						JSONGetVal(CustomRenderer),
+						JSONGetVal(KDMAPIEnabled)
 					}}
 				};
 

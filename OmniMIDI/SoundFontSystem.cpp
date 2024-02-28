@@ -10,11 +10,12 @@
 
 std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstring list) {
 	wchar_t OMPath[MAX_PATH] = { 0 };
+	const char* path = nullptr;
 
 	if (SoundFonts.size() > 0)
 		return &SoundFonts;
 
-	if (Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 		swprintf_s(OMPath, L"%s\\OmniMIDI\\lists\\OmniMIDI_A.json\0", OMPath);
 
 		std::fstream sfs;
@@ -39,8 +40,9 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 							if (subitem != nullptr) {
 								SF.path = subitem["path"].is_null() ? "\0" : subitem["path"];
 								SF.enabled = subitem["enabled"].is_null() ? SF.enabled : (bool)subitem["enabled"];
+								path = SF.path.c_str();
 
-								if (GetFileAttributesA(SF.path.c_str()) != INVALID_FILE_ATTRIBUTES) {
+								if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
 									SF.xgdrums = subitem["xgdrums"].is_null() ? SF.xgdrums : (bool)subitem["xgdrums"];
 									SF.linattmod = subitem["linattmod"].is_null() ? SF.linattmod : (bool)subitem["linattmod"];
 									SF.lindecvol = subitem["lindecvol"].is_null() ? SF.lindecvol : (bool)subitem["lindecvol"];
@@ -56,7 +58,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 
 									SoundFonts.push_back(SF);
 								}
-								else NERROR(SfErr, "The SoundFont \"%s\" could not be found!", false, SF.path.c_str());
+								else NERROR(SfErr, "The SoundFont \"%s\" could not be found!", false, path);
 							}
 
 							// If it's not, then let's loop until the end of the JSON struct

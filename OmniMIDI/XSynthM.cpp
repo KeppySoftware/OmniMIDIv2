@@ -24,7 +24,6 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	if (!XLib->LoadLib())
 		return false;
 
-	void* ptr = nullptr;
 	for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
 		if (FLibImports[i].SetPtr(XLib->Ptr(), FLibImports[i].GetName()))
 			continue;
@@ -44,9 +43,6 @@ bool OmniMIDI::XSynth::UnloadSynthModule() {
 }
 
 bool OmniMIDI::XSynth::StartSynthModule() {
-	Utils::SysPath Utils;
-	wchar_t OMPath[MAX_PATH] = { 0 };
-
 	if (Running)
 		return true;
 

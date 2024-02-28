@@ -120,7 +120,6 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 		if (!FluiLib->LoadLib())
 			return false;
 
-		void* ptr = nullptr;
 		for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
 			if (FLibImports[i].SetPtr(FluiLib->Ptr(), FLibImports[i].GetName()))
 				continue;
@@ -164,9 +163,6 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 }
 
 bool OmniMIDI::FluidSynth::StartSynthModule() {
-	Utils::SysPath Utils;
-	wchar_t OMPath[MAX_PATH] = { 0 };
-
 	if (fSet && Settings) {
 		if (Settings->ThreadsCount < 1 || Settings->ThreadsCount > std::thread::hardware_concurrency())
 			Settings->ThreadsCount = 1;
@@ -213,6 +209,7 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 			}
 		}
 
+		LOG(SynErr, "fSyn and fDrv are operational. FluidSynth is now working.");
 		return true;
 	}
 
@@ -234,6 +231,7 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 		fSyn = nullptr;
 	}
 
+	LOG(SynErr, "fSyn and fDrv have been freed. FluidSynth is now asleep.");
 	return true;
 }
 

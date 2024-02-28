@@ -30,7 +30,6 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "NtFuncs.h"
 #include "EvBuf_t.h"
 #include "SynthMain.h"
 #include "SoundFontSystem.h"
@@ -40,7 +39,7 @@ namespace OmniMIDI {
 	private:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-private-field"
-		ErrorSystem::WinErr SetErr;
+		ErrorSystem::Logger SetErr;
 #pragma clang diagnostic pop
 
 	public:
@@ -52,10 +51,10 @@ namespace OmniMIDI {
 
 		TinySFSettings() {
 			// When you initialize Settings(), load OM's own settings by default
-			Utils::SysPath Utils;
+			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
 
-			if (Utils.GetFolderPath(Utils::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
 				LoadJSON(OMPath);
 			}
@@ -117,8 +116,8 @@ namespace OmniMIDI {
 
 	class TinySFSynth : public SynthModule {
 	private:
-		ErrorSystem::WinErr SynErr;
-		NT::Funcs NTFuncs;
+		ErrorSystem::Logger SynErr;
+		OMShared::Funcs NTFuncs;
 
 		std::jthread _EvtThread;
 		EvBuf* Events = nullptr;
@@ -128,12 +127,26 @@ namespace OmniMIDI {
 		tsf* g_TinySoundFont = nullptr;
 
 		// A Mutex so we don't call note_on/note_off while rendering audio samples
-		SDL_AudioDeviceID dev = 0;
 		SDL_mutex* g_Mutex = nullptr;
 
 		SoundFontSystem SFSystem;
 		TinySFSettings* Settings = nullptr;
 		bool Running = false;
+
+		const static constexpr unsigned char MinimalSoundFont[] =
+		{
+			#define TEN0 0,0,0,0,0,0,0,0,0,0
+			'R','I','F','F',220,1,0,0,'s','f','b','k',
+			'L','I','S','T',88,1,0,0,'p','d','t','a',
+			'p','h','d','r',76,TEN0,TEN0,TEN0,TEN0,0,0,0,0,TEN0,0,0,0,0,0,0,0,255,0,255,0,1,TEN0,0,0,0,
+			'p','b','a','g',8,0,0,0,0,0,0,0,1,0,0,0,'p','m','o','d',10,TEN0,0,0,0,'p','g','e','n',8,0,0,0,41,0,0,0,0,0,0,0,
+			'i','n','s','t',44,TEN0,TEN0,0,0,0,0,0,0,0,0,TEN0,0,0,0,0,0,0,0,1,0,
+			'i','b','a','g',8,0,0,0,0,0,0,0,2,0,0,0,'i','m','o','d',10,TEN0,0,0,0,
+			'i','g','e','n',12,0,0,0,54,0,1,0,53,0,0,0,0,0,0,0,
+			's','h','d','r',92,TEN0,TEN0,0,0,0,0,0,0,0,50,0,0,0,0,0,0,0,49,0,0,0,34,86,0,0,60,0,0,0,1,TEN0,TEN0,TEN0,TEN0,0,0,0,0,0,0,0,
+			'L','I','S','T',112,0,0,0,'s','d','t','a','s','m','p','l',100,0,0,0,86,0,119,3,31,7,147,10,43,14,169,17,58,21,189,24,73,28,204,31,73,35,249,38,46,42,71,46,250,48,150,53,242,55,126,60,151,63,108,66,126,72,207,
+				70,86,83,100,72,74,100,163,39,241,163,59,175,59,179,9,179,134,187,6,186,2,194,5,194,15,200,6,202,96,206,159,209,35,213,213,216,45,220,221,223,76,227,221,230,91,234,242,237,105,241,8,245,118,248,32,252
+		};
 
 		static void cCallback(void* data, Uint8* stream, int len) {
 			static_cast<TinySFSynth*>(data)->Callback(reinterpret_cast<float*>(stream), len);

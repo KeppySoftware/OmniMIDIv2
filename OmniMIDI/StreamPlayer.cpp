@@ -23,6 +23,7 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 	bool noMoreDelta = false;
 
 	LOG(StrmErr, "PlayerThread is ready.");
+	NTFuncs.querySystemTime(&startTime);
 	
 	while (!goToBed) {
 		while (paused || !mhdrQueue)
@@ -58,25 +59,32 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 			}
 
 			MIDIEVENT* event = (MIDIEVENT*)(hdr->lpData + hdr->dwOffset);
+			curSongPtr = event->dwEvent;
 
 			if (event->dwEvent & MEVT_F_CALLBACK) {
 				drvCallback->CallbackFunction(MOM_POSITIONCB, (DWORD_PTR)hdr, 0);
 				LOG(StrmErr, "MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
 			}
-
-			if (!noMoreDelta && event->dwDeltaTime) {
+			
+			if (!smpte && !noMoreDelta && event->dwDeltaTime) {
 				unsigned int deltaTicks = event->dwDeltaTime;
-				unsigned long long deltaMicroseconds = (tempo * deltaTicks / ticksPerQN) * 10;
+				unsigned long long deltaMicroseconds = (tempo * deltaTicks / ticksPerQN);
 
-				timeAcc += deltaMicroseconds;
 				tickAcc += deltaTicks;
 
-				NTFuncs.uSleep(((signed long long)deltaMicroseconds) * -1);
+				NTFuncs.uSleep(((signed long long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
 
 				noMoreDelta = true;
 				break;
 			}
+			else if (smpte) {
+				frameAcc++;
+				unsigned int smpteDelta = -1000000000 / smpteval;
+				NTFuncs.uSleep(smpteDelta);
+			}
 
+			NTFuncs.querySystemTime(&curTime);
+			timeAcc = curTime - startTime;
 			noMoreDelta = false;
 
 			switch (MEVT_EVENTTYPE(event->dwEvent)) {
@@ -115,6 +123,18 @@ void OmniMIDI::StreamPlayer::SetTempo(unsigned int ntempo) {
 }
 
 void OmniMIDI::StreamPlayer::SetTicksPerQN(unsigned int nTicksPerQN) {
+	bool tsmpte = (nTicksPerQN & 0x4000) >> 12;
+	unsigned int tsmpteval = (nTicksPerQN & 0x7F00) >> 8;
+
+	if (tsmpte) {
+		smpte = true;
+		smpteval = tsmpteval;
+		LOG(StrmErr, "Received new SMPTE setting. (framerate: %dFPS)", smpteval);
+		return;
+	}
+
+	smpte = false;
+	smpteval = -30;
 	ticksPerQN = nTicksPerQN & 0x7FFF;
 	LOG(StrmErr, "Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
@@ -159,6 +179,10 @@ bool OmniMIDI::StreamPlayer::EmptyQueue() {
 	tickAcc = 0;
 	timeAcc = 0;
 	byteAcc = 0;
+	frameAcc = 0;
+	startTime = 0;
+	curTime = 0;
+	curSongPtr = 0;
 
 	return true;
 }
@@ -170,6 +194,20 @@ void OmniMIDI::StreamPlayer::GetPosition(MMTIME* mmtime) {
 
 	case TIME_MS:
 		mmtime->u.ms = timeAcc / 10000;
+
+	case TIME_SMPTE:
+	{
+		int totalseconds = curTime - startTime / 1000000000;
+
+		mmtime->u.smpte.fps = smpteval * -1;
+		mmtime->u.smpte.frame = frameAcc % smpteval;
+		mmtime->u.smpte.sec = totalseconds % 60;
+		mmtime->u.smpte.min = (totalseconds / 60) % 60;
+		mmtime->u.smpte.hour = totalseconds / 3600;
+	}
+
+	case TIME_MIDI:
+		mmtime->u.midi.songptrpos = curSongPtr;
 
 	case TIME_TICKS:
 	default:
