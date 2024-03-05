@@ -57,40 +57,40 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ErrSys.h">
+    <ClInclude Include="ErrSys.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="WDMDrv.h">
+    <ClInclude Include="WDMDrv.hpp">
       <Filter>Header Files\WDM</Filter>
     </ClInclude>
-    <ClInclude Include="SynthMain.h">
+    <ClInclude Include="SynthMain.hpp">
       <Filter>Header Files\Synthesizer</Filter>
     </ClInclude>
-    <ClInclude Include="Utils.h">
+    <ClInclude Include="Utils.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="KDMAPI.h">
+    <ClInclude Include="KDMAPI.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="BASSSynth.h">
+    <ClInclude Include="BASSSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="FluidSynth.h">
+    <ClInclude Include="FluidSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="EvBuf_t.h">
+    <ClInclude Include="EvBuf_t.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="XSynthM.h">
+    <ClInclude Include="XSynthM.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="TSFSynth.h">
+    <ClInclude Include="TSFSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="SoundFontSystem.h">
+    <ClInclude Include="SoundFontSystem.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="StreamPlayer.h">
+    <ClInclude Include="StreamPlayer.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
   </ItemGroup>
@@ -151,7 +151,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="WDMEntry.h">
+    <None Include="WDMEntry.hpp">
       <Filter>Header Files\WDM</Filter>
     </None>
     <None Include="packages.config" />

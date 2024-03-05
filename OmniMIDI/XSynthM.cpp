@@ -9,7 +9,7 @@
 
 #ifndef _M_ARM
 
-#include "XSynthM.h"
+#include "XSynthM.hpp"
 
 bool OmniMIDI::XSynth::LoadSynthModule() {
 	if (!Settings)
@@ -24,9 +24,10 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	if (!XLib->LoadLib())
 		return false;
 
-	for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
-		if (FLibImports[i].SetPtr(XLib->Ptr(), FLibImports[i].GetName()))
-			continue;
+	for (int i = 0; i < sizeof(XLibImports) / sizeof(XLibImports[0]); i++) {
+		LoadPtr(XLib, XLibImports[i]);
+		
+		throw;
 	}
 
 	return true;
@@ -35,6 +36,9 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 bool OmniMIDI::XSynth::UnloadSynthModule() {
 	if (!XLib)
 		return true;
+
+	for (int i = 0; i < sizeof(XLibImports) / sizeof(XLibImports[0]); i++)
+		ClearPtr(XLibImports[i]);
 
 	if (!XLib->UnloadLib())
 		return false;
@@ -78,23 +82,24 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 	return false;
 }
 
-SynthResult OmniMIDI::XSynth::PlayShortEvent(unsigned int ev) {
+OmniMIDI::SynthResult OmniMIDI::XSynth::PlayShortEvent(unsigned int ev) {
 	return UPlayShortEvent(ev);
 }
 
-SynthResult OmniMIDI::XSynth::UPlayShortEvent(unsigned int ev) {
-	if (XLib->IsOnline()) 
-		SendData(ev);
+OmniMIDI::SynthResult OmniMIDI::XSynth::UPlayShortEvent(unsigned int ev) {
+	if (XLib->IsOnline())
+		if (SendData(ev))
+			return InvalidParameter;
 
-	return SYNTH_OK;
+	return Ok;
 }
 
-SynthResult OmniMIDI::XSynth::PlayLongEvent(char* ev, unsigned int size) {
-	return SYNTH_OK;
+OmniMIDI::SynthResult OmniMIDI::XSynth::PlayLongEvent(char* ev, unsigned int size) {
+	return Ok;
 }
 
-SynthResult OmniMIDI::XSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	return SYNTH_OK;
+OmniMIDI::SynthResult OmniMIDI::XSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	return Ok;
 }
 
 #endif

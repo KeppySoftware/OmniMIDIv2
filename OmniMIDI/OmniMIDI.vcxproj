@@ -635,18 +635,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="BASSSynth.h" />
-    <ClInclude Include="StreamPlayer.h" />
-    <ClInclude Include="ErrSys.h" />
-    <ClInclude Include="EvBuf_t.h" />
-    <ClInclude Include="FluidSynth.h" />
-    <ClInclude Include="KDMAPI.h" />
-    <ClInclude Include="SoundFontSystem.h" />
-    <ClInclude Include="SynthMain.h" />
-    <ClInclude Include="TSFSynth.h" />
-    <ClInclude Include="Utils.h" />
-    <ClInclude Include="WDMDrv.h" />
-    <ClInclude Include="XSynthM.h" />
+    <ClInclude Include="BASSSynth.hpp" />
+    <ClInclude Include="StreamPlayer.hpp" />
+    <ClInclude Include="ErrSys.hpp" />
+    <ClInclude Include="EvBuf_t.hpp" />
+    <ClInclude Include="FluidSynth.hpp" />
+    <ClInclude Include="KDMAPI.hpp" />
+    <ClInclude Include="SoundFontSystem.hpp" />
+    <ClInclude Include="SynthMain.hpp" />
+    <ClInclude Include="TSFSynth.hpp" />
+    <ClInclude Include="Utils.hpp" />
+    <ClInclude Include="WDMDrv.hpp" />
+    <ClInclude Include="XSynthM.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bass.cpp" />
@@ -671,7 +671,7 @@
   <ItemGroup>
     <None Include="OMExports.def" />
     <None Include="packages.config" />
-    <None Include="WDMEntry.h" />
+    <None Include="WDMEntry.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

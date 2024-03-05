@@ -8,7 +8,7 @@
 */
 
 #define TSF_IMPLEMENTATION
-#include "TSFSynth.h"
+#include "TSFSynth.hpp"
 
 void OmniMIDI::TinySFSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
@@ -27,14 +27,14 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	if (!Events->Pop(&tev) || !IsSynthInitialized())
 		return false;
 
-	if (CHKLRS(GETSTATUS(tev)) != 0) LastRunningStatus = GETSTATUS(tev);
+	if (CheckRunningStatus(GetStatus(tev)) != 0) LastRunningStatus = GetStatus(tev);
 	else tev = tev << 8 | LastRunningStatus;
 
-	unsigned char status = GETSTATUS(tev);
-	unsigned char cmd = GETCMD(tev);
-	unsigned char ch = GETCHANNEL(tev);
-	unsigned char param1 = GETFP(tev);
-	unsigned char param2 = GETSP(tev);
+	unsigned char status = GetStatus(tev);
+	unsigned char cmd = GetCommand(tev);
+	unsigned char ch = GetChannel(tev);
+	unsigned char param1 = GetFirstParam(tev);
+	unsigned char param2 = GetSecondParam(tev);
 
 	SDL_LockMutex(g_Mutex);
 
@@ -175,21 +175,21 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 	return true;
 }
 
-SynthResult OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
+OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
 	if (!Events || !IsSynthInitialized())
-		return SYNTH_NOTINIT;
+		return NotInitialized;
 
 	return UPlayShortEvent(ev);
 }
 
-SynthResult OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
-	return Events->Push(ev) ? SYNTH_OK : SYNTH_INVALPARAM;
+OmniMIDI::SynthResult OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
+	return Events->Push(ev) ? Ok : InvalidParameter;
 }
 
-SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
-	return SYNTH_OK;
+OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
+	return Ok;
 }
 
-SynthResult OmniMIDI::TinySFSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	return SYNTH_OK;
+OmniMIDI::SynthResult OmniMIDI::TinySFSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	return Ok;
 }

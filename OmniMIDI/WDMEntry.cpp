@@ -7,7 +7,7 @@
 
 */
 
-#include "WDMEntry.h"
+#include "WDMEntry.hpp"
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();
 typedef void(*rStopModule)();
@@ -164,6 +164,7 @@ void freeAudioRenderer() {
 
 bool stopAudioRenderer() {
 	if (StreamPlayer) {
+		StreamPlayer->EmptyQueue();
 		delete StreamPlayer;
 		LOG(WDMErr, "StreamPlayer deleted.");
 	}
@@ -270,10 +271,50 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 		return (SynthModule->PlayShortEvent((DWORD)Param1) == SYNTH_OK) ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 
 	case MODM_LONGDATA:
-		fDriverCallback->CallbackFunction(MOM_DONE, (DWORD)Param1, 0);
-		return (SynthModule->PlayLongEvent(((LPMIDIHDR)Param1)->lpData, ((LPMIDIHDR)Param1)->dwBytesRecorded) == SYNTH_OK) ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
+	{				
+		LOG(WDMErr, "HOYYYYYYY! LONG DATA");
 
-	case MODM_STRMDATA: {
+		MIDIHDR* mhdr = (MIDIHDR*)Param1;
+		DWORD hdrLen = (DWORD)Param2;
+
+		if (hdrLen < offsetof(MIDIHDR, dwOffset) ||
+			!mhdr || !mhdr->lpData ||
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
+			mhdr->dwBytesRecorded % 4)
+		{
+			return MMSYSERR_INVALPARAM;
+		}
+
+		if (!(mhdr->dwFlags & MHDR_PREPARED))
+		{
+			fDriverCallback->CallbackFunction(0, 0, 0xFEEDF00D);
+			return MIDIERR_UNPREPARED;
+		}
+
+		if (!(mhdr->dwFlags & MHDR_DONE))
+		{
+			if (mhdr->dwFlags & MHDR_INQUEUE)
+				return MIDIERR_STILLPLAYING;
+		}
+
+		auto ret = SynthModule->PlayLongEvent(mhdr->lpData, mhdr->dwBufferLength);
+		if (ret) {
+			switch (ret) {
+			case SYNTH_INVALPARAM:
+				LOG(WDMErr, "Invalid buffer. (SynthResult = %d, bufsize = %d)", ret, mhdr->dwBufferLength);
+				return MMSYSERR_INVALPARAM;
+			default:
+				return MMSYSERR_ERROR;
+			}
+		}
+
+		LOG(WDMErr, "HDR %x - %x", mhdr->dwFlags, mhdr->lpData);
+		fDriverCallback->CallbackFunction(MOM_DONE, 0, (DWORD)mhdr);
+		return MMSYSERR_NOERROR;
+	}
+
+	case MODM_STRMDATA: 
+	{
 		MIDIHDR* mhdr = (MIDIHDR*)Param1;
 		DWORD hdrLen = (DWORD)Param2;
 
@@ -288,8 +329,10 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 			return MMSYSERR_INVALPARAM;
 		}
 
-		if (!(mhdr->dwFlags & MHDR_PREPARED))
+		if (!(mhdr->dwFlags & MHDR_PREPARED)) {
+			fDriverCallback->CallbackFunction(0, 0, 0xFEEDF00D);
 			return MIDIERR_UNPREPARED;
+		}
 
 		if (!(mhdr->dwFlags & MHDR_DONE))
 		{
@@ -316,14 +359,13 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 		if (!mhdr)
 			return MMSYSERR_INVALPARAM;
 
-		if (mhdrSize != sizeof(MIDIHDR))
+		if (mhdrSize < offsetof(MIDIHDR, dwOffset) ||
+			!mhdr || !mhdr->lpData ||
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
+			mhdr->dwBytesRecorded % 4)
+		{
 			return MMSYSERR_INVALPARAM;
-
-		if (mhdr->dwBufferLength < 1 || mhdr->dwBufferLength > 65535)
-			return MMSYSERR_INVALPARAM;
-
-		if (mhdr->dwBufferLength < 1)
-			return MMSYSERR_INVALPARAM;
+		}
 
 		if (!(mhdr->dwFlags & MHDR_PREPARED))
 		{
@@ -343,14 +385,13 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 		if (!mhdr)
 			return MMSYSERR_INVALPARAM;
 
-		if (mhdrSize != sizeof(MIDIHDR))
+		if (mhdrSize < offsetof(MIDIHDR, dwOffset) ||
+			!mhdr || !mhdr->lpData ||
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
+			mhdr->dwBytesRecorded % 4)
+		{
 			return MMSYSERR_INVALPARAM;
-
-		if (mhdr->dwBufferLength < 1 || mhdr->dwBufferLength > 65535)
-			return MMSYSERR_INVALPARAM;
-
-		if (mhdr->dwBufferLength < 1)
-			return MMSYSERR_INVALPARAM;
+		}
 
 		if (!(mhdr->dwFlags & MHDR_INQUEUE))
 		{
@@ -369,10 +410,15 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 	}
 
 	case MODM_RESET:
+		if (StreamPlayer)
+			StreamPlayer->ResetQueue();
+
 		return (SynthModule->PlayShortEvent(0x0101FF) == SYNTH_OK) ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 
 	case MODM_OPEN:
-	{
+	{		
+		LOG(WDMErr, "HOYYYYYYY! OPEN");
+
 		LPMIDIOPENDESC midiOpenDesc = reinterpret_cast<LPMIDIOPENDESC>(Param1);
 		DWORD callbackMode = (DWORD)Param2;
 
@@ -394,8 +440,6 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 						LOG(WDMErr, "StreamPlayer address: %x", StreamPlayer);
 					}
-
-					fDriverCallback->CallbackFunction(MOM_OPEN, 0, 0);
 				}
 
 				return MMSYSERR_NOERROR;
@@ -464,6 +508,9 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 			return MIDIERR_NOTREADY;
 
 		if (!Param1)
+			return MMSYSERR_INVALPARAM;
+
+		if (Param2 != sizeof(MMTIME))
 			return MMSYSERR_INVALPARAM;
 
 		StreamPlayer->GetPosition((MMTIME*)Param1);

@@ -18,14 +18,14 @@
 #include <newdev.h>
 #include <regstr.h>
 #include <setupapi.h>
-#include "ErrSys.h"
-#include "WDMDrv.h"
-#include "KDMAPI.h"
-#include "BASSSynth.h"
-#include "FluidSynth.h"
-#include "XSynthM.h"
-#include "TSFSynth.h"
-#include "StreamPlayer.h"
+#include "ErrSys.hpp"
+#include "WDMDrv.hpp"
+#include "KDMAPI.hpp"
+#include "BASSSynth.hpp"
+#include "FluidSynth.hpp"
+#include "XSynthM.hpp"
+#include "TSFSynth.hpp"
+#include "StreamPlayer.hpp"
 
 #ifdef DEFINE_DEVPROPKEY
 #undef DEFINE_DEVPROPKEY

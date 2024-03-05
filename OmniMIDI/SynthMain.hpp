@@ -15,15 +15,6 @@
 // Uncomment this if you want stats to be shown once the synth is closed
 // #define _STATSDEV
 
-typedef	unsigned int SynthResult;
-
-#define CHKLRS(f)			(f & 0x80)
-#define GETSTATUS(f)		(f & 0xFF)
-#define GETCMD(f)			(f & 0xF0)
-#define GETCHANNEL(f)		(f & 0xF)
-#define GETFP(f)			((f >> 8) & 0xFF)
-#define GETSP(f)			((f >> 16) & 0xFF)
-
 //
 #define MIDI_NOTEOFF		0x80
 #define MIDI_NOTEON			0x90
@@ -48,6 +39,7 @@ typedef	unsigned int SynthResult;
 #define SYNTH_INITERR		0x02
 #define SYNTH_LIBOFFLINE	0x03
 #define SYNTH_INVALPARAM	0x04
+#define SYNTH_INVALBUF		0x05
 
 // Renderers
 #define EXTERNAL			-1
@@ -69,17 +61,39 @@ typedef	unsigned int SynthResult;
 		else setting = *(type*)var; \
 		break;
 
+#define LoadPtr(lib, func) \
+		if (lib->IsOnline()) \
+			if (func.SetLib(lib->Ptr())) \
+				if (func.SetPtr(func.GetName())) \
+					continue;
+
+#define ClearPtr(func) \
+		if (func.SetLib()) \
+			if (func.SetPtr()) \
+				continue;
+
 #define EMPTYMODULE			0xDEADBEEF
 
-#include "ErrSys.h"
-#include "Utils.h"
-#include "KDMAPI.h"
+#include "ErrSys.hpp"
+#include "Utils.hpp"
+#include "KDMAPI.hpp"
 #include <nlohmann\json.hpp>
 
 namespace OmniMIDI {
+	enum SynthResult {
+		Unknown = -1,
+		Ok,
+		NotInitialized,
+		InitializationError,
+		LibrariesOffline,
+		InvalidParameter,
+		InvalidBuffer
+	};
+
 	class LibImport
 	{
 	private:
+		void* lib = nullptr;
 		void** funcptr = nullptr;
 		const char* funcname = nullptr;
 
@@ -91,23 +105,35 @@ namespace OmniMIDI {
 
 		~LibImport() {
 			*(funcptr) = nullptr;
-			funcptr = nullptr;
-			funcname = nullptr;
 		}
 
 		void SetName(const char* pfuncname) { funcname = pfuncname; }
 		const char* GetName() { return funcname; }
 
-		bool SetPtr(void* module = nullptr, const char* ptrname = nullptr){
+		bool SetLib(void* tlib = nullptr) {
+			if (lib != nullptr && tlib != nullptr && lib != tlib)
+				return false;
+
+			if (tlib != nullptr)
+			{
+				lib = tlib;
+				return true;
+			}
+
+			lib = nullptr;
+			return true;
+		}
+
+		bool SetPtr(const char* ptrname = nullptr){
 			void* ptr = (void*)-1;
 
-			if (module == nullptr || ptrname == nullptr)
+			if (lib == nullptr || ptrname == nullptr)
 			{
 				*(funcptr) = nullptr;
 				return true;
 			}
 
-			ptr = (void*)getAddr(module, ptrname);
+			ptr = (void*)getAddr(lib, ptrname);
 
 			if (!ptr)
 				return false;
@@ -234,23 +260,31 @@ namespace OmniMIDI {
 
 	class SynthModule {
 	public:
+		constexpr unsigned int CheckRunningStatus(unsigned int ev) { return (ev & 0x80); }
+		constexpr unsigned int GetStatus(unsigned int ev) { return (ev & 0xFF); }
+		constexpr unsigned int GetCommand(unsigned int ev) { return (ev & 0xF0); }
+		constexpr unsigned int GetChannel(unsigned int ev) { return (ev & 0xF); }
+		constexpr unsigned int GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
+		constexpr unsigned int GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
+
 		virtual ~SynthModule() {}
 		virtual bool LoadSynthModule() { return true; }
 		virtual bool UnloadSynthModule() { return true; }
-		virtual bool StartSynthModule() { return true; }
-		virtual bool StopSynthModule() { return true; }
+		virtual bool StartSynthModule() { return false; }
+		virtual bool StopSynthModule() { return false; }
 		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return true; }
-		virtual bool IsSynthInitialized() { return true; }
+		virtual unsigned int GetSampleRate() { return 0; }
+		virtual bool IsSynthInitialized() { return false; }
 		virtual int SynthID() { return EMPTYMODULE; }
 
 		// Event handling system
-		virtual SynthResult PlayShortEvent(unsigned int ev) { return 0; }
-		virtual SynthResult UPlayShortEvent(unsigned int ev) { return 0; }
+		virtual SynthResult PlayShortEvent(unsigned int ev) { return NotInitialized; }
+		virtual SynthResult UPlayShortEvent(unsigned int ev) { return NotInitialized; }
 
-		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return 0; }
-		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return 0; }
+		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return NotInitialized; }
+		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return NotInitialized; }
 
-		virtual int TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return 0; }
+		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return NotInitialized; }
 	};
 }
 

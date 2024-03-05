@@ -6,7 +6,7 @@
 
 */
 
-#include "SoundFontSystem.h"
+#include "SoundFontSystem.hpp"
 
 std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstring list) {
 	wchar_t OMPath[MAX_PATH] = { 0 };

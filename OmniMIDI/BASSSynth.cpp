@@ -1,4 +1,4 @@
-#include "BASSSynth.h"
+#include "BASSSynth.hpp"
 
 void OmniMIDI::BASSSynth::AudioThread() {
 	while (IsSynthInitialized()) {
@@ -66,11 +66,11 @@ bool OmniMIDI::BASSSynth::ProcessEvent(unsigned int tev) {
 
 	unsigned int evt = MIDI_SYSTEM_DEFAULT;
 	unsigned int ev = 0;
-	unsigned char status = GETSTATUS(tev);
-	unsigned char cmd = GETCMD(tev);
-	unsigned char ch = GETCHANNEL(tev);
-	unsigned char param1 = GETFP(tev);
-	unsigned char param2 = GETSP(tev);
+	unsigned char status = GetStatus(tev);
+	unsigned char cmd = GetCommand(tev);
+	unsigned char ch = GetChannel(tev);
+	unsigned char param1 = GetFirstParam(tev);
+	unsigned char param2 = GetSecondParam(tev);
 
 	unsigned int len = 3;
 
@@ -110,10 +110,10 @@ bool OmniMIDI::BASSSynth::ProcessEvent(unsigned int tev) {
 			LOG(SynErr, "SysEx Begin: %x", sysev);
 			BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 2);
 
-			while (GETSTATUS(sysev) != MIDI_SYSEXEND) {
+			while (GetStatus(sysev) != MIDI_SYSEXEND) {
 				Events->Peek(&sysev);
 
-				if (GETSTATUS(sysev) != MIDI_SYSEXEND) {
+				if (GetStatus(sysev) != MIDI_SYSEXEND) {
 					Events->Pop(&sysev);
 					LOG(SynErr, "SysEx Ev: %x", sysev);
 					BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 3);
@@ -140,7 +140,7 @@ bool OmniMIDI::BASSSynth::ProcessEvent(unsigned int tev) {
 			if (!((tev - 0xC0) & 0xE0)) len = 2;
 			else if (cmd == 0xF0)
 			{
-				switch (GETCHANNEL(tev))
+				switch (GetChannel(tev))
 				{
 				case 0x3:
 					// This is 0xF3, which is a system reset.
@@ -171,7 +171,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 	if (!Events->Pop(&tev) || !AudioStream)
 		return false;
 
-	if (CHKLRS(GETSTATUS(tev)) != 0) LastRunningStatus = GETSTATUS(tev);
+	if (CheckRunningStatus(GetStatus(tev)) != 0) LastRunningStatus = GetStatus(tev);
 	else tev = tev << 8 | LastRunningStatus;
 
 	return ProcessEvent(tev);
@@ -197,7 +197,7 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 		break;
 	}
 
-#if defined(_M_AMD64) || defined(_M_IX86)
+#if !defined(_M_ARM) && !defined(_M_ARM64)
 	if (Settings->LoudMax)
 	{
 		if (!BVstLib->LoadLib())
@@ -207,33 +207,22 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 
 	for (int i = 0; i < sizeof(BLibImports) / sizeof(BLibImports[0]); i++)
 	{
-		if (BLibImports[i].SetPtr(BAudLib->Ptr(), BLibImports[i].GetName()))
-			continue;
+		LoadPtr(BAudLib, BLibImports[i]);
+		LoadPtr(BMidLib, BLibImports[i]);
+		LoadPtr(BWasLib, BLibImports[i]);
+		LoadPtr(BAsiLib, BLibImports[i]);
+		LoadPtr(BVstLib, BLibImports[i]);
 
-		if (BLibImports[i].SetPtr(BMidLib->Ptr(), BLibImports[i].GetName()))
-			continue;
-
-		switch (Settings->AudioEngine) {
-		case WASAPI:
-			if (BLibImports[i].SetPtr(BWasLib->Ptr(), BLibImports[i].GetName()))
-				continue;
-			break;
-
-		case ASIO:
-			if (BLibImports[i].SetPtr(BAsiLib->Ptr(), BLibImports[i].GetName()))
-				continue;
-			break;
-		}
-
-		if (BVstLib->IsOnline())
-			if (BLibImports[i].SetPtr(BVstLib->Ptr(), BLibImports[i].GetName()))
-				continue;
+		throw;
 	}
 
 	return true;
 }
 
 bool OmniMIDI::BASSSynth::UnloadFuncs() {
+	for (int i = 0; i < sizeof(BLibImports) / sizeof(BLibImports[0]); i++)
+		ClearPtr(BLibImports[i]);
+
 	if (!BAsiLib->UnloadLib())
 		return false;
 
@@ -248,9 +237,6 @@ bool OmniMIDI::BASSSynth::UnloadFuncs() {
 
 	if (!BVstLib->UnloadLib())
 		return false;
-
-	for (int i = 0; i < sizeof(BLibImports) / sizeof(BLibImports[0]); i++)
-		BLibImports[i].SetPtr();
 
 	return true;
 }
@@ -648,39 +634,39 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 	return true;
 }
 
-SynthResult OmniMIDI::BASSSynth::UPlayShortEvent(unsigned int ev) {
-	return Events->Push(ev) ? SYNTH_OK : SYNTH_INVALPARAM;
-}
-
-SynthResult OmniMIDI::BASSSynth::PlayShortEvent(unsigned int ev) {
+OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayShortEvent(unsigned int ev) {
 	if (!Events)
-		return SYNTH_NOTINIT;
+		return NotInitialized;
 
 	return UPlayShortEvent(ev);
 }
 
-SynthResult OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	unsigned int r = BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, ev, size);
-	return (r != -1) ? SYNTH_OK : SYNTH_INVALPARAM;
+OmniMIDI::SynthResult OmniMIDI::BASSSynth::UPlayShortEvent(unsigned int ev) {
+	return Events->Push(ev) ? Ok : InvalidParameter;
 }
 
-SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {
+OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!BMidLib || !BMidLib->IsOnline())
-		return SYNTH_LIBOFFLINE;
+		return LibrariesOffline;
 
 	// The size has to be between 1B and 64KB!
 	if (size < 1 || size > 65536)
-		return SYNTH_INVALPARAM;
+		return InvalidParameter;
 
 	return UPlayLongEvent(ev, size);
 }
 
-int OmniMIDI::BASSSynth::TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) {
+OmniMIDI::SynthResult OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	unsigned int r = BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, ev, size);
+	return (r != -1) ? Ok : InvalidBuffer;
+}
+
+OmniMIDI::SynthResult OmniMIDI::BASSSynth::TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) {
 	if (!BMidLib || !BMidLib->IsOnline())
-		return 0;
+		return LibrariesOffline;
 
 	if (!evt && !chan)
-		return ProcessEvent(param) ? SYNTH_OK : SYNTH_INVALPARAM;
+		return ProcessEvent(param) ? Ok : InvalidParameter;
 
-	return BASS_MIDI_StreamEvent(AudioStream, chan, evt, param);
+	return BASS_MIDI_StreamEvent(AudioStream, chan, evt, param) ? Ok : InvalidParameter;
 }

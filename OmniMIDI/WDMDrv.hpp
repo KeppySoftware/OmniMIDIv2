@@ -20,7 +20,7 @@
 #include <cmmddk.h>
 #include <mmeapi.h>
 #include <assert.h>
-#include "ErrSys.h"
+#include "ErrSys.hpp"
 
 namespace WinDriver {
 	typedef void(CALLBACK* midiOutProc)(HMIDIOUT hmOut, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR Param1, DWORD_PTR Param2);
@@ -28,7 +28,7 @@ namespace WinDriver {
 	struct Callback {
 		HMIDIOUT Handle = nullptr;
 		DWORD Mode = 0;
-		midiOutProc Func = 0;
+		midiOutProc funcPtr = nullptr;
 		DWORD_PTR Instance = 0;
 	};
 
@@ -58,6 +58,12 @@ namespace WinDriver {
 	private:
 		Callback* pCallback = nullptr;
 		ErrorSystem::Logger CallbackErr;
+
+#ifdef _DEBUG
+		const bool StreamTest = true;
+#else
+		const bool StreamTest = false;
+#endif
 
 	public:
 		// Callbacks

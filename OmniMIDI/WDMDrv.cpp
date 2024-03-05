@@ -7,7 +7,7 @@
 
 */
 
-#include "WDMDrv.h"
+#include "WDMDrv.hpp"
 
 #ifdef _WIN32
 
@@ -114,31 +114,28 @@ bool WinDriver::DriverCallback::IsCallbackReady() {
 }
 
 bool WinDriver::DriverCallback::PrepareCallbackFunction(MIDIOPENDESC* OpInfStruct, DWORD CallbackMode) {
+	unsigned int cMode = CallbackMode & CALLBACK_TYPEMASK;
+
 	if (pCallback) {
 		NERROR(CallbackErr, "A callback has already been allocated!", false);
 		return false;
 	}
 
 	// Check if the app wants the driver to do callbacks
-	if (CallbackMode != CALLBACK_NULL) {
-		if (OpInfStruct->dwCallback != 0) {
-			pCallback = new Callback{
-				.Handle = (HMIDIOUT)OpInfStruct->hMidi,
-				.Mode = CallbackMode,
-				.Func = reinterpret_cast<midiOutProc>(OpInfStruct->dwCallback),
-				.Instance = OpInfStruct->dwInstance
-			};
+	if (cMode != CALLBACK_NULL) {
+		pCallback = new Callback{
+			.Handle = (HMIDIOUT)OpInfStruct->hMidi,
+			.Mode = cMode,
+			.funcPtr = OpInfStruct->dwCallback != 0 ? reinterpret_cast<midiOutProc>(OpInfStruct->dwCallback) : nullptr,
+			.Instance = (cMode != CALLBACK_WINDOW && cMode != CALLBACK_THREAD) ? OpInfStruct->dwInstance : 0
+		};
+
+
+		CallbackFunction(MOM_OPEN, 0, 0);
 
 #ifdef _DEBUG
-			LOG(CallbackErr, ".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, pCallback->Func, pCallback->Instance);
+		LOG(CallbackErr, ".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, *pCallback->funcPtr, pCallback->Instance);
 #endif
-		}
-
-		// If callback mode is specified but no callback address is specified, abort the initialization
-		else {
-			NERROR(CallbackErr, "No memory address has been specified for the callback function.", false);
-			return false;
-		}
 	}
 
 	return true;
@@ -163,19 +160,20 @@ void WinDriver::DriverCallback::CallbackFunction(DWORD Message, DWORD_PTR Arg1, 
 
 	case CALLBACK_FUNCTION:	// Use a custom function to notify the app
 		// Use the app's custom function to send the callback
-		pCallback->Func(pCallback->Handle, Message, pCallback->Instance, Arg1, Arg2);
+		if (*pCallback->funcPtr)
+			pCallback->funcPtr(pCallback->Handle, Message, pCallback->Instance, Arg1, Arg2);
 		break;
 
 	case CALLBACK_EVENT:	// Set an event to notify the app
-		SetEvent((HANDLE)(*pCallback->Func));
+		SetEvent((HANDLE)(*pCallback->funcPtr));
 		break;
 
 	case CALLBACK_TASK:		// Send a message to a thread to notify the app
-		PostThreadMessageA((DWORD_PTR)(*pCallback->Func), Message, Arg1, Arg2);
+		PostThreadMessage((DWORD_PTR)(*pCallback->funcPtr), Message, Arg1, Arg2);
 		break;
 
 	case CALLBACK_WINDOW:	// Send a message to the app's main window
-		PostMessageA((HWND)(*pCallback->Func), Message, Arg1, Arg2);
+		PostMessage((HWND)(*pCallback->funcPtr), Message, Arg1, Arg2);
 		break;
 
 	default:				// stub

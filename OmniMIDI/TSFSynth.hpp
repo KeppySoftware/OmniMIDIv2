@@ -30,9 +30,9 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "EvBuf_t.h"
-#include "SynthMain.h"
-#include "SoundFontSystem.h"
+#include "EvBuf_t.hpp"
+#include "SynthMain.hpp"
+#include "SoundFontSystem.hpp"
 
 namespace OmniMIDI {
 	class TinySFSettings : public SynthSettings {
@@ -169,6 +169,7 @@ namespace OmniMIDI {
 		bool StartSynthModule();
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
+		unsigned int GetSampleRate() { return Settings->AudioFrequency; }
 		bool IsSynthInitialized() { return (g_TinySoundFont != nullptr); }
 		int SynthID() { return 0xA0A0A0A0; }
 
@@ -180,7 +181,7 @@ namespace OmniMIDI {
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);
 
 		// Not supported in XSynth
-		int TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return 0; }
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};
 }
 

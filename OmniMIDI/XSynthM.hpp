@@ -28,9 +28,9 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "EvBuf_t.h"
-#include "SynthMain.h"
-#include "SoundFontSystem.h"
+#include "EvBuf_t.hpp"
+#include "SynthMain.hpp"
+#include "SoundFontSystem.hpp"
 
 namespace OmniMIDI {
 	class XSynthSettings : public SynthSettings {
@@ -103,7 +103,7 @@ namespace OmniMIDI {
 
 		Lib* XLib = nullptr;
 
-		LibImport FLibImports[5] = {
+		LibImport XLibImports[5] = {
 			// BASS
 			ImpFunc(StartModule),
 			ImpFunc(StopModule),
@@ -122,6 +122,7 @@ namespace OmniMIDI {
 		bool StartSynthModule();
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
+		unsigned int GetSampleRate() { return 48000; }
 		bool IsSynthInitialized() { return 0; }
 		int SynthID() { return 0x9AF3812A; }
 
@@ -133,7 +134,7 @@ namespace OmniMIDI {
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);
 
 		// Not supported in XSynth
-		int TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return 0; }
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};
 }
 

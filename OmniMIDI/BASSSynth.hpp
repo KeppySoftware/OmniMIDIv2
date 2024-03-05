@@ -26,10 +26,10 @@
 #include <codecvt>
 #include <locale>
 #include <future>
-#include "EvBuf_t.h"
-#include "ErrSys.h"
-#include "SynthMain.h"
-#include "SoundFontSystem.h"
+#include "EvBuf_t.hpp"
+#include "ErrSys.hpp"
+#include "SynthMain.hpp"
+#include "SoundFontSystem.hpp"
 
 // Engines
 #define INVALID_ENGINE		-1
@@ -254,6 +254,7 @@ namespace OmniMIDI {
 		bool StartSynthModule();
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size);
+		unsigned int GetSampleRate() { return Settings->AudioFrequency; }
 		bool IsSynthInitialized() { return (AudioStream != 0 && Fail != true); }
 		int SynthID() { return 0x1411BA55; }
 
@@ -264,7 +265,7 @@ namespace OmniMIDI {
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);
 
-		int TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param);
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param);
 	};
 }
 

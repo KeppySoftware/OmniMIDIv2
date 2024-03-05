@@ -9,7 +9,7 @@
 
 // Not supported on ARM Thumb-2!
 
-#include "FluidSynth.h"
+#include "FluidSynth.hpp"
 
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
@@ -33,14 +33,14 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	if (!Events->Pop(&tgtev) || !fDrv)
 		return false;
 
-	if (CHKLRS(GETSTATUS(tgtev)) != 0) LastRunningStatus = GETSTATUS(tgtev);
+	if (CheckRunningStatus(GetStatus(tgtev)) != 0) LastRunningStatus = GetStatus(tgtev);
 	else tgtev = tgtev << 8 | LastRunningStatus;
 
-	unsigned char st = GETSTATUS(tgtev);
-	unsigned char cmd = GETCMD(tgtev);
-	unsigned char ch = GETCHANNEL(tgtev);
-	unsigned char param1 = GETFP(tgtev);
-	unsigned char param2 = GETSP(tgtev);
+	unsigned char st = GetStatus(tgtev);
+	unsigned char cmd = GetCommand(tgtev);
+	unsigned char ch = GetChannel(tgtev);
+	unsigned char param1 = GetFirstParam(tgtev);
+	unsigned char param2 = GetSecondParam(tgtev);
 
 	switch (cmd) {
 	case MIDI_NOTEON:
@@ -83,10 +83,10 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 			LOG(SynErr, "SysEx Begin: %x", sysev);
 			fluid_synth_sysex(fSyn, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
-			while (GETSTATUS(sysev) != MIDI_SYSEXEND) {
+			while (GetStatus(sysev) != MIDI_SYSEXEND) {
 				Events->Peek(&sysev);
 
-				if (GETSTATUS(sysev) != MIDI_SYSEXEND) {
+				if (GetStatus(sysev) != MIDI_SYSEXEND) {
 					Events->Pop(&sysev);
 					LOG(SynErr, "SysEx Ev: %x", sysev);
 					fluid_synth_sysex(fSyn, (const char*)&sysev, 3, 0, &len, &handled, 0);
@@ -121,13 +121,10 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 			return false;
 
 		for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
-			if (FLibImports[i].SetPtr(FluiLib->Ptr(), FLibImports[i].GetName()))
-				continue;
+			if (FLibImports[i].SetLib(FluiLib->Ptr()))
+				if (FLibImports[i].SetPtr(FLibImports[i].GetName()))
+					continue;
 		}
-
-		fSet = new_fluid_settings();
-		if (!fSet)
-			NERROR(SynErr, "new_fluid_settings failed to allocate memory for its settings!", true);
 
 		Events = new EvBuf(Settings->EvBufSize);
 		_EvtThread = std::jthread(&FluidSynth::EventsThread, this);
@@ -149,6 +146,13 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 
 		delete Events;
 
+		for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
+
+			ClearPtr(FLibImports[i]);
+
+			throw;
+		}
+
 		if (!FluiLib->UnloadLib())
 		{
 			FNERROR(SynErr, "FluiLib->UnloadLib FAILED!!!");
@@ -163,6 +167,10 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 }
 
 bool OmniMIDI::FluidSynth::StartSynthModule() {
+	fSet = new_fluid_settings();
+	if (!fSet)
+		NERROR(SynErr, "new_fluid_settings failed to allocate memory for its settings!", true);
+
 	if (fSet && Settings) {
 		if (Settings->ThreadsCount < 1 || Settings->ThreadsCount > std::thread::hardware_concurrency())
 			Settings->ThreadsCount = 1;
@@ -235,36 +243,35 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	return true;
 }
 
-SynthResult OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
-	return Events->Push(ev) ? SYNTH_OK : SYNTH_INVALPARAM;
-}
-
-SynthResult OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
+OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
 	if (!Events || !IsSynthInitialized())
-		return SYNTH_NOTINIT;
+		return NotInitialized;
 
 	return UPlayShortEvent(ev);
 }
 
-SynthResult OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	int len = 0;
-	int handled = 0;
-
-	int r = fluid_synth_sysex(fSyn, ev, size, 0, &len, &handled, 0);
-
-	return (r != -1 && handled) ? SYNTH_OK : SYNTH_INVALPARAM;
+OmniMIDI::SynthResult OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
+	return Events->Push(ev) ? Ok : InvalidParameter;
 }
 
-SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
+OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!FluiLib || !FluiLib->IsOnline())
-		return SYNTH_LIBOFFLINE;
+		return LibrariesOffline;
 
 	if (!IsSynthInitialized())
-		return SYNTH_NOTINIT;
+		return NotInitialized;
 
 	// The size has to be between 1B and 64KB!
 	if (size < 1 || size > 65536)
-		return SYNTH_INVALPARAM;
+		return InvalidParameter;
 
 	return UPlayLongEvent(ev, size);
+}
+
+OmniMIDI::SynthResult OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	int handled = 0;
+
+	fluid_synth_sysex(fSyn, ev, size, 0, 0, &handled, 0);
+
+	return handled ? Ok : InvalidParameter;
 }

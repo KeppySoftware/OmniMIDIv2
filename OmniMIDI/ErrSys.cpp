@@ -6,7 +6,7 @@
 
 */
 
-#include "ErrSys.h"
+#include "ErrSys.hpp"
 
 void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
 #if defined(_WIN32) && !defined(_M_ARM)

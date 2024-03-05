@@ -3,8 +3,8 @@
 #ifndef _SOUNDFONTSYSTEM_H
 #define _SOUNDFONTSYSTEM_H
 
-#include "ErrSys.h"
-#include "Utils.h"
+#include "ErrSys.hpp"
+#include "Utils.hpp"
 #include <nlohmann\json.hpp>
 #include <fstream>
 #include <future>

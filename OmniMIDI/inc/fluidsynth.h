@@ -21,6 +21,9 @@
 #ifndef _FLUIDSYNTH_H
 #define _FLUIDSYNTH_H
 
+#ifdef WIN32
+#include <Windows.h>
+#endif
 #include <stdio.h>
 
 #define BUILD_SHARED_LIBS 1
