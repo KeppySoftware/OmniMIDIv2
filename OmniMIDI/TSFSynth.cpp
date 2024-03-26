@@ -13,11 +13,11 @@
 void OmniMIDI::TinySFSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!IsSynthInitialized())
-		NTFuncs.uSleep(-1);
+		MiscFuncs.uSleep(-1);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			NTFuncs.uSleep(-1);
+			MiscFuncs.uSleep(-1);
 	}
 }
 
@@ -39,24 +39,24 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	SDL_LockMutex(g_Mutex);
 
 	switch (cmd) {
-	case MIDI_NOTEON:
+	case NoteOn:
 		tsf_channel_note_on(g_TinySoundFont, ch, param1, ((float)param2) / 127.0f);
 		break;
-	case MIDI_NOTEOFF:
+	case NoteOff:
 		tsf_channel_note_off(g_TinySoundFont, ch, param1);
 		break;
-	case MIDI_PROGCHAN:
+	case PatchChange:
 		tsf_channel_set_presetnumber(g_TinySoundFont, ch, param1, (ch == 9));
 		break;
-	case MIDI_CMC:
+	case CC:
 		tsf_channel_midi_control(g_TinySoundFont, ch, param1, param2);
 		break;
-	case MIDI_PITCHWHEEL:
+	case PitchBend:
 		tsf_channel_set_pitchwheel(g_TinySoundFont, ch, param2 << 7 | param1);
 		break;
 	default:
 		switch (status) {
-		case MIDI_SYSRESET:
+		case SystemReset:
 			for (int i = 0; i < 16; i++)
 				tsf_channel_sounds_off_all(g_TinySoundFont, i);
 		}
@@ -96,10 +96,8 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 		return false;
 
 	// Define the desired audio output format we request
-	SDL_AudioSpec OutputAudioSpec;
-	SDL_AudioSpec FinalAudioSpec;
-	memset(&OutputAudioSpec, 0, sizeof(OutputAudioSpec));
-	memset(&FinalAudioSpec, 0, sizeof(FinalAudioSpec));
+	SDL_AudioSpec OutputAudioSpec = { 0 };
+	SDL_AudioSpec FinalAudioSpec = { 0 };
 	OutputAudioSpec.freq = Settings->AudioFrequency;
 	OutputAudioSpec.format = AUDIO_F32;
 	OutputAudioSpec.channels = Settings->StereoRendering ? 2 : 1;

@@ -19,10 +19,15 @@ static WinDriver::DriverMask* DriverMask = nullptr;
 static OmniMIDI::StreamPlayer* StreamPlayer = nullptr;
 static OmniMIDI::WDMSettings* WDMSettings = nullptr;
 static OmniMIDI::SynthModule* SynthModule = nullptr;
+static char* lpDataBuf = new char[65536]();
 static HMODULE extModule = nullptr;
 
-static OMShared::Funcs NTFuncs;
+static OMShared::Funcs MiscFuncs;
 static signed long long TickStart = 0;
+
+#ifdef _WIN64
+#define WINAPI
+#endif
 
 int WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
 {
@@ -44,7 +49,7 @@ int WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
 #endif
 
 		if (!TickStart) {
-			if (!(NTFuncs.querySystemTime(&TickStart) == 0)) {
+			if (!(MiscFuncs.querySystemTime(&TickStart) == 0)) {
 				LOG(WDMErr, "Failed to parse starting tick through NtQuerySystemTime! OmniMIDI will not load.");
 				return FALSE;
 			}
@@ -60,8 +65,6 @@ int WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
 
 				// Allocate a generic dummy synth for now
 				SynthModule = new OmniMIDI::SynthModule;
-
-				LOG(WDMErr, "I'm here!");
 			}
 		}
 
@@ -272,44 +275,55 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 	case MODM_LONGDATA:
 	{				
-		LOG(WDMErr, "HOYYYYYYY! LONG DATA");
-
 		MIDIHDR* mhdr = (MIDIHDR*)Param1;
 		DWORD hdrLen = (DWORD)Param2;
 
 		if (hdrLen < offsetof(MIDIHDR, dwOffset) ||
 			!mhdr || !mhdr->lpData ||
-			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
-			mhdr->dwBytesRecorded % 4)
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded)
 		{
+			LOG(WDMErr, "SysEx event 0x%08x is invalid. (lpData: 0x%08x, dwBL: %d, dwBR: %d, dwBR4: %d, cbSize: 0x%08x)", 
+				*(mhdr->lpData), mhdr->dwBufferLength, mhdr->dwBytesRecorded, mhdr->dwBytesRecorded % 4, Param1, Param2);
 			return MMSYSERR_INVALPARAM;
 		}
 
 		if (!(mhdr->dwFlags & MHDR_PREPARED))
 		{
 			fDriverCallback->CallbackFunction(0, 0, 0xFEEDF00D);
+			LOG(WDMErr, "Stream data 0x%08x has not been prepared.", Param1, Param2);
 			return MIDIERR_UNPREPARED;
 		}
 
 		if (!(mhdr->dwFlags & MHDR_DONE))
 		{
-			if (mhdr->dwFlags & MHDR_INQUEUE)
+			if (mhdr->dwFlags & MHDR_INQUEUE) {
+				LOG(WDMErr, "SysEx event 0x%08x is still in queue for StreamPlayer.", Param1, Param2);
 				return MIDIERR_STILLPLAYING;
+			}	
 		}
 
 		auto ret = SynthModule->PlayLongEvent(mhdr->lpData, mhdr->dwBufferLength);
 		if (ret) {
 			switch (ret) {
 			case SYNTH_INVALPARAM:
-				LOG(WDMErr, "Invalid buffer. (SynthResult = %d, bufsize = %d)", ret, mhdr->dwBufferLength);
+				LOG(WDMErr, "Invalid SysEx event. (Buf = 0x%08x, SynthResult = %d, bufsize = %d)", Param1, ret, mhdr->dwBufferLength);
 				return MMSYSERR_INVALPARAM;
 			default:
+				LOG(WDMErr, "No idea! 0x%08x", Param1);
 				return MMSYSERR_ERROR;
 			}
 		}
 
-		LOG(WDMErr, "HDR %x - %x", mhdr->dwFlags, mhdr->lpData);
-		fDriverCallback->CallbackFunction(MOM_DONE, 0, (DWORD)mhdr);
+#if _DEBUG
+		sprintf_s(lpDataBuf, 65536, "%02X", mhdr->lpData[0]);
+		for (int i = 1; i < mhdr->dwBufferLength && i < 65536; i++) {
+			sprintf_s(lpDataBuf + strlen(lpDataBuf), 65536, "%02X", mhdr->lpData[i]);
+		}
+		LOG(WDMErr, "SysEx event received! Data -> %s (Len %d - dwFlags 0x%04x)", lpDataBuf, mhdr->dwBufferLength, mhdr->dwFlags);
+#endif
+
+		fDriverCallback->CallbackFunction(MOM_DONE, 0, (DWORD_PTR)mhdr);
+
 		return MMSYSERR_NOERROR;
 	}
 
@@ -323,8 +337,7 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 		if (hdrLen < offsetof(MIDIHDR, dwOffset) ||
 			!mhdr || !mhdr->lpData ||
-			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
-			mhdr->dwBytesRecorded % 4)
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded)
 		{
 			return MMSYSERR_INVALPARAM;
 		}
@@ -361,8 +374,7 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 		if (mhdrSize < offsetof(MIDIHDR, dwOffset) ||
 			!mhdr || !mhdr->lpData ||
-			mhdr->dwBufferLength < mhdr->dwBytesRecorded ||
-			mhdr->dwBytesRecorded % 4)
+			mhdr->dwBufferLength < mhdr->dwBytesRecorded)
 		{
 			return MMSYSERR_INVALPARAM;
 		}
@@ -417,8 +429,6 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 
 	case MODM_OPEN:
 	{		
-		LOG(WDMErr, "HOYYYYYYY! OPEN");
-
 		LPMIDIOPENDESC midiOpenDesc = reinterpret_cast<LPMIDIOPENDESC>(Param1);
 		DWORD callbackMode = (DWORD)Param2;
 
@@ -461,6 +471,7 @@ MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, D
 		return MMSYSERR_ERROR;
 
 	case MODM_GETNUMDEVS:
+		LOG(WDMErr, "MODM_GETNUMDEVS");
 		return WDMSettings->IsBlacklistedProcess() ? 0 : 1;
 
 	case MODM_GETDEVCAPS:
@@ -602,35 +613,20 @@ void WINAPI SendDirectDataNoBuf(unsigned int ev) {
 }
 
 unsigned int WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	return modMessage(0, MODM_LONGDATA, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
+}
+
+unsigned int WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 	fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
 	return SynthModule->PlayLongEvent(IIMidiHdr->lpData, IIMidiHdr->dwBytesRecorded) == SYNTH_OK ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 }
 
-unsigned int WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-	// Unsupported, forward to SendDirectLongData
-	return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
-}
-
 unsigned int WINAPI PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-	if (!IIMidiHdr || sizeof(IIMidiHdr->lpData) > 65536) return MMSYSERR_INVALPARAM;	// The buffer doesn't exist or is too big, invalid parameter
-
-	// Mark the buffer as prepared, and return MMSYSERR_NOERROR
-	IIMidiHdr->dwFlags |= MHDR_PREPARED;
-
-	fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
-	return MMSYSERR_NOERROR;
+	return modMessage(0, MODM_PREPARE, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
 }
 
 unsigned int WINAPI UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-	if (!IIMidiHdr) return MMSYSERR_INVALPARAM;								// The buffer doesn't exist, invalid parameter
-	if (!(IIMidiHdr->dwFlags & MHDR_PREPARED)) return MMSYSERR_NOERROR;		// Already unprepared, everything is fine
-	if (IIMidiHdr->dwFlags & MHDR_INQUEUE) return MIDIERR_STILLPLAYING;		// The buffer is currently being played from the driver, cannot unprepare
-
-	// Mark the buffer as unprepared
-	IIMidiHdr->dwFlags &= ~MHDR_PREPARED;
-
-	fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
-	return MMSYSERR_NOERROR;
+	return modMessage(0, MODM_UNPREPARE, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
 }
 
 int WINAPI InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {
@@ -676,6 +672,6 @@ int WINAPI DriverSettings(unsigned int setting, unsigned int mode, void* value, 
 
 unsigned long long WINAPI timeGetTime64() {
 	signed long long CurrentTime;
-	NTFuncs.querySystemTime(&CurrentTime);
+	MiscFuncs.querySystemTime(&CurrentTime);
 	return (unsigned long long)((CurrentTime)-TickStart) / 10000.0;
 }

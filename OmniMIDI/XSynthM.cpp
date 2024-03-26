@@ -12,11 +12,13 @@
 #include "XSynthM.hpp"
 
 bool OmniMIDI::XSynth::LoadSynthModule() {
+	auto ptr = (LibImport**)&xLibImp;
+
 	if (!Settings)
 		Settings = new XSynthSettings;
 
 	if (!XLib)
-		XLib = new Lib(L"xsynth");
+		XLib = new Lib(L"xsynth", ptr, xLibImpLen);
 
 	if (XLib->IsOnline())
 		return true;
@@ -24,21 +26,12 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	if (!XLib->LoadLib())
 		return false;
 
-	for (int i = 0; i < sizeof(XLibImports) / sizeof(XLibImports[0]); i++) {
-		LoadPtr(XLib, XLibImports[i]);
-		
-		throw;
-	}
-
 	return true;
 }
 
 bool OmniMIDI::XSynth::UnloadSynthModule() {
 	if (!XLib)
 		return true;
-
-	for (int i = 0; i < sizeof(XLibImports) / sizeof(XLibImports[0]); i++)
-		ClearPtr(XLibImports[i]);
 
 	if (!XLib->UnloadLib())
 		return false;

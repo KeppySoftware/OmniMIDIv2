@@ -7,26 +7,18 @@
 
 */
 
-/*
-
-	OmniMIDI v15+ (Rewrite) for Windows NT
-
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
-
-*/
-
 #ifndef _ERRSYS_H
 #define _ERRSYS_H
 
-#include <Windows.h>
-#include <tchar.h>
+#include <future>
+#include <iostream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
-#include <stdexcept>
-#ifdef _DEBUG
-#include <iostream>
-#include <future>
+
+#ifdef _WIN32
+#include <tchar.h>
+#include <Windows.h>
 #endif
 
 #define S2(x)					#x
@@ -39,8 +31,8 @@
 #define LOG(x, y, ...)			x.Log(y, __FILE__, __func__, __LINE__, __VA_ARGS__)
 #define LOGV(x, y, ...)			x.Log(S1(y), __FILE__, __func__, __LINE__, __VA_ARGS__)
 #else
-#define LOG(x, y, ...)			NULL
-#define LOGV(x, y, ...)			NULL
+#define LOG(x, y, ...)
+#define LOGV(x, y, ...)
 #endif
 
 namespace ErrorSystem {

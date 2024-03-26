@@ -231,6 +231,7 @@ bool WinDriver::DriverComponent::SetLibraryHandle(HMODULE Module) {
 
 	// All good, save the pointer to a local variable and return true
 	this->LibHandle = Module;
+	LOG(DrvErr, "LibHandle stored! Addr: 0x%08x", this->LibHandle);
 	return true;
 }
 
@@ -241,6 +242,7 @@ bool WinDriver::DriverComponent::UnsetLibraryHandle() {
 
 	// Free the driver by setting the local variable to nullptr, then return true
 	this->LibHandle = nullptr;
+	LOG(DrvErr, "LibHandle emptied.");
 	return true;
 }
 

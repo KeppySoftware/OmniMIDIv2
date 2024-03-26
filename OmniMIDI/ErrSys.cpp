@@ -9,7 +9,7 @@
 #include "ErrSys.hpp"
 
 void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
-#if defined(_WIN32) && !defined(_M_ARM)
+#if defined(_WIN32) && !defined(_M_ARM) && defined(_DEBUG)
 	va_list vl;
 	va_start(vl, Line);
 
@@ -86,8 +86,9 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 	char* Buf = new char[SZBufSize];
 
 #ifdef _DEBUG
-	sprintf_s(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
+	sprintf_s(Buf, BufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
 		Func, File, Line, Error);
+
 #else
 	sprintf_s(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 
 		Func, Error);

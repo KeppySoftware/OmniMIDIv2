@@ -11,35 +11,32 @@
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
 
+#include "ErrSys.hpp"
+#include "EvBuf_t.hpp"
+#include "SoundFontSystem.hpp"
+#include "SynthMain.hpp"
 #include <bass\bass.h>
-#include <bass\bassmidi.h>
 #include <bass\bass_vst.h>
 #include <bass\bassasio.h>
+#include <bass\bassmidi.h>
 #include <bass\basswasapi.h>
 #include <thread>
-#include <atomic>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
 #include <vector>
-#include <codecvt>
-#include <locale>
-#include <future>
-#include "EvBuf_t.hpp"
-#include "ErrSys.hpp"
-#include "SynthMain.hpp"
-#include "SoundFontSystem.hpp"
 
-// Engines
-#define INVALID_ENGINE		-1
-#define BASS_INTERNAL		0
-#define WASAPI				1
-#define XAUDIO_2_9			2
-#define ASIO				3
-#define KERNEL_STREAM		4
+#ifdef _WIN32
+#include "XAudio2Output.hpp"
+#endif
 
 namespace OmniMIDI {
+	enum BASSEngine {
+		Invalid = -1,
+		Internal,
+		WASAPI,
+		XAudio2,
+		ASIO,
+		KS
+	};
+
 	class BASSSettings : public SynthSettings {
 	private:
 		ErrorSystem::Logger SetErr;
@@ -50,8 +47,12 @@ namespace OmniMIDI {
 		unsigned int AudioFrequency = 48000;
 		unsigned int MaxVoices = 1000;
 		unsigned int MaxCPU = 95;
-		int AudioEngine = WASAPI;
+		int AudioEngine = (int)WASAPI;
 		bool LoudMax = false;
+
+		// XAudio2
+		int XABufSize = 88;
+		int XASweepRate = 15;
 
 		// WASAPI
 		float WASAPIBuf = 32.0f;
@@ -87,6 +88,8 @@ namespace OmniMIDI {
 						JSONGetVal(LoudMax),
 						JSONGetVal(MaxCPU),
 						JSONGetVal(MaxVoices),
+						JSONGetVal(XABufSize),
+						JSONGetVal(XASweepRate),
 						JSONGetVal(WASAPIBuf)
 					}}
 				};
@@ -115,9 +118,13 @@ namespace OmniMIDI {
 							JSONSetVal(float, WASAPIBuf);
 							JSONSetVal(int, AudioEngine);
 							JSONSetVal(std::string, ASIODevice);
+							JSONSetVal(std::string, ASIOLCh);
+							JSONSetVal(std::string, ASIORCh);
 							JSONSetVal(unsigned int, AudioFrequency);
 							JSONSetVal(unsigned int, EvBufSize);
 							JSONSetVal(unsigned int, MaxCPU);
+							JSONSetVal(unsigned int, XABufSize);
+							JSONSetVal(unsigned int, XASweepRate);
 							JSONSetVal(unsigned int, MaxVoices);
 						}
 					}
@@ -137,7 +144,7 @@ namespace OmniMIDI {
 	class BASSSynth : public SynthModule {
 	private:
 		ErrorSystem::Logger SynErr;
-		OMShared::Funcs NTFuncs;
+		OMShared::Funcs MiscFuncs;
 
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;
@@ -145,7 +152,7 @@ namespace OmniMIDI {
 		Lib* BVstLib = nullptr;
 		Lib* BAsiLib = nullptr;
 
-		LibImport BLibImports[66] = {
+		LibImport LibImports[66] = {
 			// BASS
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
@@ -222,6 +229,7 @@ namespace OmniMIDI {
 			ImpFunc(BASS_ASIO_Stop),
 			ImpFunc(BASS_ASIO_IsStarted)
 		};
+		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		std::jthread _AudThread;
 		std::jthread _EvtThread;
@@ -233,7 +241,10 @@ namespace OmniMIDI {
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
 		BASSSettings* Settings = nullptr;
 
-		bool Fail = false;
+#ifdef _WIN32
+		XAudio2Output* XAEngine;
+#endif
+
 		bool RestartSynth = false;
 		char LastRunningStatus = 0x0;
 
@@ -243,7 +254,7 @@ namespace OmniMIDI {
 
 		// BASS system
 		bool LoadFuncs();
-		bool UnloadFuncs();
+		bool ClearFuncs();
 		void StreamSettings(bool restart);
 		bool ProcessEvBuf();
 		bool ProcessEvent(unsigned int ev);
@@ -255,7 +266,7 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size);
 		unsigned int GetSampleRate() { return Settings->AudioFrequency; }
-		bool IsSynthInitialized() { return (AudioStream != 0 && Fail != true); }
+		bool IsSynthInitialized() { return (AudioStream != 0); }
 		int SynthID() { return 0x1411BA55; }
 
 		// Event handling system

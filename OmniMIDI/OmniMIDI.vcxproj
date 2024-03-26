@@ -477,6 +477,7 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -636,6 +637,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="BASSSynth.hpp" />
+    <ClInclude Include="XAudio2Output.hpp" />
     <ClInclude Include="StreamPlayer.hpp" />
     <ClInclude Include="ErrSys.hpp" />
     <ClInclude Include="EvBuf_t.hpp" />
@@ -653,6 +655,7 @@
     <ClCompile Include="bassasio.cpp" />
     <ClCompile Include="bassmidi.cpp" />
     <ClCompile Include="BASSSynth.cpp" />
+    <ClCompile Include="XAudio2Output.cpp" />
     <ClCompile Include="bass_vst.cpp" />
     <ClCompile Include="basswasapi.cpp" />
     <ClCompile Include="StreamPlayer.cpp" />

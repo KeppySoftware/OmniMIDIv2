@@ -27,7 +27,7 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 	while (!goToBed) {
 		while (paused || !mhdrQueue)
 		{
-			NTFuncs.uSleep(-1);
+			MiscFuncs.uSleep(-1);
 			if (goToBed) break;
 		}
 
@@ -71,7 +71,7 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 				deltaMicroseconds = (tempo * deltaTicks / ticksPerQN);
 				timeAcc += deltaMicroseconds;
 
-				NTFuncs.uSleep(((signed long long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
+				MiscFuncs.uSleep(((signed long long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
 				noMoreDelta = true;
 				
 				break;
@@ -79,7 +79,7 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 			else if (smpte) {
 				double fpsToFrlen = (1000000 / smpteFramerate) / smpteFrameTicks;
 				timeAcc += fpsToFrlen;
-				NTFuncs.uSleep(fpsToFrlen * -1);
+				MiscFuncs.uSleep(fpsToFrlen * -1);
 			}
 
 			noMoreDelta = false;
@@ -92,7 +92,9 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 				synthModule->PlayLongEvent((char*)event->dwParms, event->dwEvent & 0xFFFFFF);
 				break;
 			case MEVT_TEMPO:
-				SetTempo(event->dwEvent & 0xFFFFFF);
+				if (!smpte)
+					SetTempo(event->dwEvent & 0xFFFFFF);
+
 				break;
 			default:
 				break;

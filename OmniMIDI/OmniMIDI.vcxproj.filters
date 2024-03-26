@@ -55,6 +55,9 @@
     <Filter Include="Source Files\Synthesizer\SDL">
       <UniqueIdentifier>{523a16c6-a8d4-49ea-809c-7df576ddef9d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Synthesizer\BASS">
+      <UniqueIdentifier>{f6bbb320-6ba9-4e94-94fb-bdbc84d62612}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ErrSys.hpp">
@@ -92,6 +95,9 @@
     </ClInclude>
     <ClInclude Include="StreamPlayer.hpp">
       <Filter>Header Files\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="XAudio2Output.hpp">
+      <Filter>Header Files\Synthesizer\BASS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +154,9 @@
     </ClCompile>
     <ClCompile Include="StreamPlayer.cpp">
       <Filter>Source Files\Extensions</Filter>
+    </ClCompile>
+    <ClCompile Include="XAudio2Output.cpp">
+      <Filter>Source Files\Synthesizer\BASS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

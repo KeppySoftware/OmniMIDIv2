@@ -117,7 +117,7 @@ namespace OmniMIDI {
 	class TinySFSynth : public SynthModule {
 	private:
 		ErrorSystem::Logger SynErr;
-		OMShared::Funcs NTFuncs;
+		OMShared::Funcs MiscFuncs;
 
 		std::jthread _EvtThread;
 		EvBuf* Events = nullptr;

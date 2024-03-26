@@ -14,7 +14,7 @@ namespace OmniMIDI {
 	class StreamPlayer {
 	private:
 		ErrorSystem::Logger StrmErr;
-		OMShared::Funcs NTFuncs;
+		OMShared::Funcs MiscFuncs;
 		OmniMIDI::SynthModule* synthModule;
 		WinDriver::DriverCallback* drvCallback;
 

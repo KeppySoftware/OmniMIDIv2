@@ -14,12 +14,12 @@
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!fDrv)
-		NTFuncs.uSleep(-1);
+		MiscFuncs.uSleep(-1);
 
 	fluid_synth_system_reset(fSyn);
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			NTFuncs.uSleep(-1);
+			MiscFuncs.uSleep(-1);
 	}
 }
 
@@ -43,33 +43,33 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	unsigned char param2 = GetSecondParam(tgtev);
 
 	switch (cmd) {
-	case MIDI_NOTEON:
+	case NoteOn:
 		// param1 is the key, param2 is the velocity
 		fluid_synth_noteon(fSyn, ch, param1, param2);
 		break;
 
-	case MIDI_NOTEOFF:
+	case NoteOff:
 		// param1 is the key, ignore param2
 		fluid_synth_noteoff(fSyn, ch, param1);
 		break;
 
-	case MIDI_POLYAFTER:
+	case Aftertouch:
 		fluid_synth_key_pressure(fSyn, ch, param1, param2);
 		break;
 
-	case MIDI_CMC:
+	case CC:
 		fluid_synth_cc(fSyn, ch, param1, param2);
 		break;
 
-	case MIDI_PROGCHAN:
+	case PatchChange:
 		fluid_synth_program_change(fSyn, ch, param1);
 		break;
 
-	case MIDI_CHANAFTER:
+	case ChannelPressure:
 		fluid_synth_channel_pressure(fSyn, ch, param1);
 		break;
 
-	case MIDI_PITCHWHEEL:
+	case PitchBend:
 		fluid_synth_pitch_bend(fSyn, ch, param2 << 7 | param1);
 		break;
 
@@ -77,16 +77,16 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 		switch (st) {
 
 		// Let's go!
-		case MIDI_SYSEXBEG:
+		case SystemMessageStart:
 			sysev = tgtev << 8;
 
 			LOG(SynErr, "SysEx Begin: %x", sysev);
 			fluid_synth_sysex(fSyn, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
-			while (GetStatus(sysev) != MIDI_SYSEXEND) {
+			while (GetStatus(sysev) != SystemMessageEnd) {
 				Events->Peek(&sysev);
 
-				if (GetStatus(sysev) != MIDI_SYSEXEND) {
+				if (GetStatus(sysev) != SystemMessageEnd) {
 					Events->Pop(&sysev);
 					LOG(SynErr, "SysEx Ev: %x", sysev);
 					fluid_synth_sysex(fSyn, (const char*)&sysev, 3, 0, &len, &handled, 0);
@@ -96,14 +96,25 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 			LOG(SynErr, "SysEx End", sysev);		
 			break;
 
-		case 0xFF:
+		case SystemReset:
 			for (int i = 0; i < 16; i++)
 			{
 				fluid_synth_all_notes_off(fSyn, i);
 				fluid_synth_all_sounds_off(fSyn, i);
 				fluid_synth_system_reset(fSyn);
 			}
+			break;
+
+		case Unknown1:
+		case Unknown2:
+		case Unknown3:
+		case Unknown4:
+			return false;
+
+		default:
+			break;
 		}
+
 		break;
 	}
 
@@ -112,19 +123,14 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 
 bool OmniMIDI::FluidSynth::LoadSynthModule() {
 	if (!Settings) {
+		auto ptr = (LibImport**)&fLibImp;
 		Settings = new FluidSettings;
 
 		if (!FluiLib)
-			FluiLib = new Lib(L"libfluidsynth-3");
+			FluiLib = new Lib(L"libfluidsynth-3", ptr, fLibImpLen);
 
 		if (!FluiLib->LoadLib())
 			return false;
-
-		for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
-			if (FLibImports[i].SetLib(FluiLib->Ptr()))
-				if (FLibImports[i].SetPtr(FLibImports[i].GetName()))
-					continue;
-		}
 
 		Events = new EvBuf(Settings->EvBufSize);
 		_EvtThread = std::jthread(&FluidSynth::EventsThread, this);
@@ -145,13 +151,6 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 		fSet = nullptr;
 
 		delete Events;
-
-		for (int i = 0; i < sizeof(FLibImports) / sizeof(FLibImports[0]); i++) {
-
-			ClearPtr(FLibImports[i]);
-
-			throw;
-		}
 
 		if (!FluiLib->UnloadLib())
 		{

@@ -134,11 +134,11 @@ namespace OmniMIDI {
 	class FluidSynth : public SynthModule {
 	private:
 		ErrorSystem::Logger SynErr;
-		OMShared::Funcs NTFuncs;
+		OMShared::Funcs MiscFuncs;
 
 		Lib* FluiLib = nullptr;
 
-		LibImport FLibImports[24] = {
+		LibImport fLibImp[24] = {
 			// BASS
 			ImpFunc(new_fluid_synth),
 			ImpFunc(new_fluid_settings),
@@ -165,6 +165,7 @@ namespace OmniMIDI {
 			ImpFunc(new_fluid_audio_driver),
 			ImpFunc(delete_fluid_audio_driver)
 		};
+		size_t fLibImpLen = sizeof(fLibImp) / sizeof(fLibImp[0]);
 
 		std::jthread _EvtThread;
 		EvBuf* Events;

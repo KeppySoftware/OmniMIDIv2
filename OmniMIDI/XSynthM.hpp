@@ -103,7 +103,7 @@ namespace OmniMIDI {
 
 		Lib* XLib = nullptr;
 
-		LibImport XLibImports[5] = {
+		LibImport xLibImp[5] = {
 			// BASS
 			ImpFunc(StartModule),
 			ImpFunc(StopModule),
@@ -111,6 +111,7 @@ namespace OmniMIDI {
 			ImpFunc(LoadSoundFont),
 			ImpFunc(ResetModule)
 		};
+		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
 
 		SoundFontSystem SFSystem;
 		XSynthSettings* Settings = nullptr;
