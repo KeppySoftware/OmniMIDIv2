@@ -29,6 +29,7 @@
 #define FLUIDSYNTH			1
 #define XSYNTH				2
 #define TINYSF				3
+#define KSYNTH				4
 
 #define fv2fn(f)			(#f)
 #define ImpFunc(f)			LibImport((void**)&f, #f)
@@ -47,8 +48,10 @@
 
 #include "ErrSys.hpp"
 #include "Utils.hpp"
+#include "EvBuf_t.hpp"
 #include "KDMAPI.hpp"
-#include <nlohmann\json.hpp>
+#include "nlohmann\json.hpp"
+#include <thread>
 
 namespace OmniMIDI {
 	enum MIDIEventType {
@@ -87,12 +90,13 @@ namespace OmniMIDI {
 		InitializationError,
 		LibrariesOffline,
 		InvalidParameter,
-		InvalidBuffer
+		InvalidBuffer,
+		NotSupported
 	};
 
 	class LibImport
 	{
-	private:
+	protected:
 		void** funcptr = nullptr;
 		const char* funcname = nullptr;
 
@@ -134,7 +138,7 @@ namespace OmniMIDI {
 	};
 
 	class Lib {
-	private:
+	protected:
 		const wchar_t* Name;
 		void* Library = nullptr;
 		bool Initialized = false;
@@ -168,19 +172,21 @@ namespace OmniMIDI {
 			int swp = 0;
 
 			if (Library == nullptr) {
-				if ((Library = GetModuleHandle(Name)) != nullptr)
+#ifdef _WIN32
+				if ((Library = getLibW(Name)) != nullptr)
 				{
 					// (TODO) Make it so we can load our own version of it
 					// For now, just make the driver try and use that instead
 					return (AppSelfHosted = true);
 				}
 				else {
+#endif
 					if (CustomPath != nullptr) {
-						swp = swprintf_s(DLLPath, MAX_PATH, L"%s\\%s.dll\0", CustomPath, Name);
+						swp = swprintf(DLLPath, MAX_PATH, L"%s\\%s.dll\0", CustomPath, Name);
 						assert(swp != -1);
 
 						if (swp != -1) {
-							wcstombs_s(nullptr, CName, DLLPath, MAX_PATH);
+							wcstombs(CName, DLLPath, MAX_PATH);
 							LOG(LibErr, "Will it work? %s", CName);
 							Library = loadLibW(DLLPath);
 
@@ -190,7 +196,7 @@ namespace OmniMIDI {
 						else return false;
 					}
 					else {
-						swp = swprintf_s(DLLPath, MAX_PATH, L"%s.dll\0", Name);
+						swp = swprintf(DLLPath, MAX_PATH, L"%s.dll\0", Name);
 						assert(swp != -1);
 
 						if (swp != -1) {
@@ -199,14 +205,14 @@ namespace OmniMIDI {
 							if (!Library)
 							{
 								if (Utils.GetFolderPath(OMShared::FIDs::System, SysDir, sizeof(SysDir))) {
-									swp = swprintf_s(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s.dll\0", SysDir, Name);
+									swp = swprintf(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s.dll\0", SysDir, Name);
 									assert(swp != -1);
 									if (swp != -1) {
 										Library = loadLibW(DLLPath);
 										assert(Library != 0);
 
 										if (!Library) {
-											wcstombs_s(nullptr, CName, Name, MAX_PATH);
+											wcstombs(CName, Name, MAX_PATH);
 											NERROR(LibErr, "The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, CName);
 											return false;
 										}
@@ -220,7 +226,9 @@ namespace OmniMIDI {
 						else return false;
 						
 					}
+#ifdef _WIN32
 				}
+#endif
 			}
 
 			for (int i = 0; i < FuncsCount; i++)
@@ -256,14 +264,39 @@ namespace OmniMIDI {
 		}
 	};
 
-	class SynthSettings {
+	class OMSettings {
+	protected:
+		ErrorSystem::Logger SetErr;
+
 	public:
-		SynthSettings() {}
+		virtual ~OMSettings() {}
 	};
 
 	class SynthModule {
+	protected:
+		OMShared::Funcs MiscFuncs;
+		ErrorSystem::Logger SynErr;
+
+		std::jthread _AudThread;
+		std::jthread _EvtThread;
+		std::jthread _LogThread;
+
+		unsigned char LRS = 0;
+		EvBuf* Events;
+
 	public:
-		constexpr unsigned int CheckRunningStatus(unsigned int ev) { return (ev & 0x80); }
+		constexpr unsigned int ApplyRunningStatus(unsigned int ev) {
+			unsigned int tev = GetStatus(ev);
+
+			if ((tev & 0x80) != 0) LRS = tev;
+			else {
+				unsigned int pev = ev;
+				pev = ev << 8 | LRS;
+				return pev;
+			}
+
+			return ev;
+		}
 		constexpr unsigned int GetStatus(unsigned int ev) { return (ev & 0xFF); }
 		constexpr unsigned int GetCommand(unsigned int ev) { return (ev & 0xF0); }
 		constexpr unsigned int GetChannel(unsigned int ev) { return (ev & 0xF); }
@@ -273,21 +306,23 @@ namespace OmniMIDI {
 		virtual ~SynthModule() {}
 		virtual bool LoadSynthModule() { return true; }
 		virtual bool UnloadSynthModule() { return true; }
-		virtual bool StartSynthModule() { return false; }
-		virtual bool StopSynthModule() { return false; }
-		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return true; }
-		virtual unsigned int GetSampleRate() { return 0; }
-		virtual bool IsSynthInitialized() { return false; }
+		virtual bool StartSynthModule() { return true; }
+		virtual bool StopSynthModule() { return true; }
+		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
+		virtual unsigned int GetSampleRate() { return 44100; }
+		virtual bool IsSynthInitialized() { return true; }
 		virtual int SynthID() { return EMPTYMODULE; }
 
 		// Event handling system
-		virtual SynthResult PlayShortEvent(unsigned int ev) { return NotInitialized; }
-		virtual SynthResult UPlayShortEvent(unsigned int ev) { return NotInitialized; }
+		virtual void PlayShortEvent(unsigned int ev) { return; }
+		virtual void UPlayShortEvent(unsigned int ev) { return; }
 
-		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return NotInitialized; }
-		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return NotInitialized; }
+		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return Ok; }
+		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return Ok; }
 
-		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return NotInitialized; }
+		virtual SynthResult Reset() { PlayShortEvent(0x0101FF); return Ok; }
+
+		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};
 }
 

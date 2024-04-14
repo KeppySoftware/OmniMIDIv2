@@ -1,17 +1,52 @@
-#pragma once
+/*
+
+	OmniMIDI v15+ (Rewrite) for Windows NT
+
+	This file contains the required code to run the driver under Windows 7 SP1 and later.
+	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+
+*/
 
 #ifdef _WIN32
 
 #ifndef _COOKEDPLAYER_H
 #define _COOKEDPLAYER_H
 
+#pragma once
 #define MAX_WAIT 10000
 
-#include "WDMEntry.hpp"
+#include <Windows.h>
 #include <mmeapi.h>
+#include "WDMDrv.hpp"
+#include "ErrSys.hpp"
+#include "SynthMain.hpp"
 
 namespace OmniMIDI {
 	class StreamPlayer {
+	protected:
+		WinDriver::DriverCallback* drvCallback;
+
+	public:
+		void Start() { return; }
+		void Stop() { return; }
+
+		bool AddToQueue(MIDIHDR*) { return true; }
+		bool ResetQueue() { return true; }
+		bool EmptyQueue() { return true; }
+		bool IsQueueEmpty() { return true; }
+
+		bool IsDummy() { return true; }
+		void SetTempo(unsigned int ntempo) { return; }
+		void SetTicksPerQN(unsigned short ntimeDiv) { return; }
+		unsigned int GetTempo() { return 0; }
+		unsigned short GetTicksPerQN() { return 0; }
+		void GetPosition(MMTIME* mmtime) { return; }
+
+		StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr) { drvCallback = dptr; }
+		~StreamPlayer() { drvCallback = nullptr; }
+	};
+
+	class CookedPlayer : public StreamPlayer {
 	private:
 		ErrorSystem::Logger StrmErr;
 		OMShared::Funcs MiscFuncs;
@@ -48,14 +83,15 @@ namespace OmniMIDI {
 		bool EmptyQueue();
 		bool IsQueueEmpty() { return (!mhdrQueue); }
 
+		bool IsDummy() { return false; }
 		void SetTempo(unsigned int ntempo);
 		void SetTicksPerQN(unsigned short ntimeDiv);
 		unsigned int GetTempo() { return tempo; }
 		unsigned short GetTicksPerQN() { return ticksPerQN; }
 		void GetPosition(MMTIME* mmtime);
 
-		StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr);
-		~StreamPlayer();
+		CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr);
+		~CookedPlayer();
 	};
 }
 

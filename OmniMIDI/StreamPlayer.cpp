@@ -2,24 +2,24 @@
 
 #include "StreamPlayer.hpp"
 
-OmniMIDI::StreamPlayer::StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr) {
+OmniMIDI::CookedPlayer::CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr) : StreamPlayer(sptr, dptr) {
 	synthModule = sptr;
 	drvCallback = dptr;
 
-	_CooThread = std::jthread(&StreamPlayer::PlayerThread, this);
+	_CooThread = std::jthread(&CookedPlayer::PlayerThread, this);
 	if (!_CooThread.joinable()) {
-		StreamPlayer::~StreamPlayer();
+		CookedPlayer::~CookedPlayer();
 	}
 }
 
-OmniMIDI::StreamPlayer::~StreamPlayer() {
+OmniMIDI::CookedPlayer::~CookedPlayer() {
 	goToBed = true;
 
 	if (_CooThread.joinable())
 		_CooThread.join();
 }
 
-void OmniMIDI::StreamPlayer::PlayerThread() {
+void OmniMIDI::CookedPlayer::PlayerThread() {
 	bool noMoreDelta = false;
 	unsigned long long deltaMicroseconds = 0;
 
@@ -115,13 +115,13 @@ void OmniMIDI::StreamPlayer::PlayerThread() {
 	// LOG(StrmErr, "timeAcc: %d - tickAcc: %d - byteAcc %x", timeAcc, tickAcc, byteAcc);
 }
 
-void OmniMIDI::StreamPlayer::SetTempo(unsigned int ntempo) {
+void OmniMIDI::CookedPlayer::SetTempo(unsigned int ntempo) {
 	tempo = ntempo;
 	bpm = 60000000 / tempo;
 	LOG(StrmErr, "Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
-void OmniMIDI::StreamPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
+void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
 	char smptePortion = (nTicksPerQN >> 8) & 0xFF;
 
 	bool qSmpte = smptePortion & 0x80;
@@ -141,7 +141,7 @@ void OmniMIDI::StreamPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
 	LOG(StrmErr, "Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
-bool OmniMIDI::StreamPlayer::AddToQueue(MIDIHDR* mhdr) {
+bool OmniMIDI::CookedPlayer::AddToQueue(MIDIHDR* mhdr) {
 	MIDIHDR* pmhdrQueue = mhdrQueue;
 
 	if (!mhdrQueue) {
@@ -165,7 +165,7 @@ bool OmniMIDI::StreamPlayer::AddToQueue(MIDIHDR* mhdr) {
 	return true;
 }
 
-bool OmniMIDI::StreamPlayer::ResetQueue() {
+bool OmniMIDI::CookedPlayer::ResetQueue() {
 	for (MIDIHDR* hdr = mhdrQueue; hdr; hdr = hdr->lpNext)
 	{
 		hdr->dwFlags &= ~MHDR_INQUEUE;
@@ -176,7 +176,7 @@ bool OmniMIDI::StreamPlayer::ResetQueue() {
 	return true;
 }
 
-bool OmniMIDI::StreamPlayer::EmptyQueue() {
+bool OmniMIDI::CookedPlayer::EmptyQueue() {
 	if (IsQueueEmpty())
 		return false;
 
@@ -199,7 +199,7 @@ bool OmniMIDI::StreamPlayer::EmptyQueue() {
 	return true;
 }
 
-void OmniMIDI::StreamPlayer::GetPosition(MMTIME* mmtime) {
+void OmniMIDI::CookedPlayer::GetPosition(MMTIME* mmtime) {
 	signed long long totalSeconds = timeAcc / 1000000;
 	unsigned int playedSamples = (unsigned int)(timeAcc / (1000000 / synthModule->GetSampleRate()));
 

@@ -10,6 +10,26 @@
 
 bool OMShared::SysPath::GetFolderPath(const FIDs FolderID, wchar_t* P, size_t PS) {
 #ifdef _WIN32 
+#ifdef WINXPMODE
+	int csidl = 0;
+
+	switch (FolderID) {
+	case System:
+		csidl = CSIDL_SYSTEM;
+		break;
+	case UserFolder:
+		csidl = CSIDL_PROFILE;
+		break;
+	default:
+		break;
+	}
+
+	WCHAR Dir[MAX_PATH];
+	if (SUCCEEDED(SHGetFolderPathW(NULL, csidl, NULL, 0, Dir))) {
+		memcpy(P, Dir, PS);
+		return true;
+	}
+#else
 	GUID id = GUID_NULL;
 
 	switch (FolderID) {
@@ -35,6 +55,9 @@ bool OMShared::SysPath::GetFolderPath(const FIDs FolderID, wchar_t* P, size_t PS
 
 		return true;
 	}
+#endif
+#else
+	// Code for Unix
 #endif
 
 	return false;

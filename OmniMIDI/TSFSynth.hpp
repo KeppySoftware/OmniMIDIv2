@@ -35,13 +35,7 @@
 #include "SoundFontSystem.hpp"
 
 namespace OmniMIDI {
-	class TinySFSettings : public SynthSettings {
-	private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-private-field"
-		ErrorSystem::Logger SetErr;
-#pragma clang diagnostic pop
-
+	class TinySFSettings : public OMSettings {
 	public:
 		bool StereoRendering = true;
 		unsigned int EvBufSize = 32768;
@@ -121,7 +115,6 @@ namespace OmniMIDI {
 
 		std::jthread _EvtThread;
 		EvBuf* Events = nullptr;
-		char LastRunningStatus = 0x0;
 
 		// Holds the global instance pointer
 		tsf* g_TinySoundFont = nullptr;
@@ -174,8 +167,8 @@ namespace OmniMIDI {
 		int SynthID() { return 0xA0A0A0A0; }
 
 		// Event handling system
-		SynthResult PlayShortEvent(unsigned int ev);
-		SynthResult UPlayShortEvent(unsigned int ev);
+		void PlayShortEvent(unsigned int ev);
+		void UPlayShortEvent(unsigned int ev);
 
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);

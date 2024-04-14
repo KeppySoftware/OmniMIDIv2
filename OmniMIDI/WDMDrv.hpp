@@ -7,6 +7,8 @@
 
 */
 
+#ifdef _WIN32
+
 #ifndef _WDMDRV_H
 #define _WDMDRV_H
 
@@ -59,12 +61,6 @@ namespace WinDriver {
 		Callback* pCallback = nullptr;
 		ErrorSystem::Logger CallbackErr;
 
-#ifdef _DEBUG
-		const bool StreamTest = true;
-#else
-		const bool StreamTest = false;
-#endif
-
 	public:
 		// Callbacks
 		bool IsCallbackReady();
@@ -103,4 +99,5 @@ namespace WinDriver {
 	};
 }
 
+#endif
 #endif

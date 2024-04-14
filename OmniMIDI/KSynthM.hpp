@@ -7,17 +7,12 @@
 
 */
 
-#ifndef _XSYNTHM_H
-#define _XSYNTHM_H
-
-// Not supported on ARM Thumb-2!
-#ifndef _M_ARM
+#ifndef _KSYNTHM_H
+#define _KSYNTHM_H
 
 #ifdef _WIN32
 #include <Windows.h>
 #endif
-
-#include <xsynth.h>
 #include <thread>
 #include <atomic>
 #include <algorithm>
@@ -28,16 +23,28 @@
 #include <codecvt>
 #include <locale>
 #include <future>
+#include <ksynth.h>
 #include "EvBuf_t.hpp"
 #include "SynthMain.hpp"
 #include "SoundFontSystem.hpp"
+#include "SynthMain.hpp"
+#include "XAudio2Output.hpp"
 
 namespace OmniMIDI {
-	class XSynthSettings : public OMSettings {
+	class KSynthSettings : public OMSettings {
 	public:
-		double BufSize = 5.0;
+		unsigned int EvBufSize = 32768;
+		unsigned int SampleRate = 48000;
+		unsigned int MaxVoices = 500;
 
-		XSynthSettings() {
+		// XAudio2
+		unsigned int XABufSize = 128;
+		unsigned int XASweepRate = 32;
+		bool ShowStats = false;
+
+		std::string SampleSet = "sample.ksmp";
+
+		KSynthSettings() {
 			// When you initialize Settings(), load OM's own settings by default
 			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
@@ -54,7 +61,13 @@ namespace OmniMIDI {
 			if (st.is_open()) {
 				nlohmann::json defset = {
 					{ "XSynth", {
-						JSONGetVal(BufSize)
+						JSONGetVal(EvBufSize),
+						JSONGetVal(SampleRate),
+						JSONGetVal(MaxVoices),
+						JSONGetVal(XABufSize),
+						JSONGetVal(XASweepRate),
+						JSONGetVal(SampleSet),
+						JSONGetVal(ShowStats)
 					}}
 				};
 
@@ -75,10 +88,16 @@ namespace OmniMIDI {
 					auto json = nlohmann::json::parse(st, nullptr, false, true);
 
 					if (json != nullptr) {
-						auto& JsonData = json["XSynth"];
+						auto& JsonData = json["KSynth"];
 
 						if (!(JsonData == nullptr)) {
-							JSONSetVal(double, BufSize);
+							JSONSetVal(unsigned int, EvBufSize);
+							JSONSetVal(unsigned int, SampleRate);
+							JSONSetVal(unsigned int, MaxVoices);
+							JSONSetVal(unsigned int, XABufSize);
+							JSONSetVal(unsigned int, XASweepRate);
+							JSONSetVal(bool, ShowStats);
+							JSONSetVal(std::string, SampleSet);
 						}
 					}
 					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
@@ -94,23 +113,31 @@ namespace OmniMIDI {
 		}
 	};
 
-	class XSynth : public SynthModule {
+	class KSynthM : public SynthModule {
 	private:
-		Lib* XLib = nullptr;
+		XAudio2Output* XAEngine;
+		KSynth* Synth = nullptr;
+		KSynthSettings* Settings = nullptr;
+		bool OwnConsole = false;
+		bool Terminate = false;
 
-		LibImport xLibImp[5] = {
+		Lib* KLib = nullptr;
+		LibImport LibImports[7] = {
 			// BASS
-			ImpFunc(StartModule),
-			ImpFunc(StopModule),
-			ImpFunc(SendData),
-			ImpFunc(LoadSoundFont),
-			ImpFunc(ResetModule)
+			ImpFunc(ksynth_new),
+			ImpFunc(ksynth_note_on),
+			ImpFunc(ksynth_note_off),
+			ImpFunc(ksynth_note_off_all),
+			ImpFunc(ksynth_generate_buffer),
+			ImpFunc(ksynth_buffer_free),
+			ImpFunc(ksynth_free)
 		};
-		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
+		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-		SoundFontSystem SFSystem;
-		XSynthSettings* Settings = nullptr;
-		bool Running = false;
+		void AudioThread();
+		void EventsThread();
+		void LogThread();
+		bool ProcessEvBuf();
 
 	public:
 		bool LoadSynthModule();
@@ -120,20 +147,19 @@ namespace OmniMIDI {
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return 48000; }
 		bool IsSynthInitialized() { return 0; }
-		int SynthID() { return 0x9AF3812A; }
+		int SynthID() { return 0xFEFEFEFE; }
 
 		// Event handling system
 		void PlayShortEvent(unsigned int ev);
 		void UPlayShortEvent(unsigned int ev);
 
-		SynthResult PlayLongEvent(char* ev, unsigned int size);
-		SynthResult UPlayLongEvent(char* ev, unsigned int size);
+		SynthResult PlayLongEvent(char* ev, unsigned int size) { return Ok; }
+		SynthResult UPlayLongEvent(char* ev, unsigned int size) { return Ok; }
 
-		// Not supported in XSynth
+		SynthResult Reset();
+
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};
 }
-
-#endif
 
 #endif

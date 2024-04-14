@@ -14,9 +14,14 @@
 #ifdef _WIN32
 #include <Windows.h>
 #include <guiddef.h>
-#include <ShlObj_core.h>
 #include <strsafe.h>
 #include <cassert>
+
+#ifdef WINXPMODE
+#include <ShlObj.h>
+#else
+#include <ShlObj_core.h>
+#endif
 
 #define loadLib				LoadLibraryA
 #define loadLibW			LoadLibraryW
@@ -28,8 +33,8 @@
 #include <dlfcn.h>
 #include <unistd.h>
 
-#define loadLib				dlopen
-#define loadLibW			wdlopen
+#define loadLib(l)			dlopen(l, 0)
+#define loadLibW(l)			loadLib((const char*)l)
 #define freeLib				dlclose
 #define getLib				// Unavailable
 #define getLibW				getLib
@@ -112,7 +117,10 @@ namespace OMShared {
 #ifdef _WIN32
 			return pNtQuerySystemTime(v);
 #else
-			// todo
+			struct timeval tnow;
+			gettimeofday(&tnow, 0);
+			*v = tnow.tv_sec * (unsigned long long)10000000 + (((369 * 365 + 89) * (unsigned long long)86400) * 10000000);
+			*v += tnow.tv_usec * 10;
 #endif
 		}
 	};

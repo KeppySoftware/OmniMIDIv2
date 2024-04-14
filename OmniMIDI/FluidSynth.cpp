@@ -30,14 +30,18 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	unsigned int sysev = 0;
 	unsigned int tgtev = 0;
 
-	if (!Events->Pop(&tgtev) || !fDrv)
+	if (!fDrv)
 		return false;
 
-	if (CheckRunningStatus(GetStatus(tgtev)) != 0) LastRunningStatus = GetStatus(tgtev);
-	else tgtev = tgtev << 8 | LastRunningStatus;
+	Events->Pop(&tgtev);
+
+	if (!tgtev)
+		return false;
+
+	tgtev = ApplyRunningStatus(tgtev);
 
 	unsigned char st = GetStatus(tgtev);
-	unsigned char cmd = GetCommand(tgtev);
+	unsigned char cmd = GetCommand(st);
 	unsigned char ch = GetChannel(tgtev);
 	unsigned char param1 = GetFirstParam(tgtev);
 	unsigned char param2 = GetSecondParam(tgtev);
@@ -242,15 +246,15 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
+void OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
 	if (!Events || !IsSynthInitialized())
-		return NotInitialized;
+		return;
 
-	return UPlayShortEvent(ev);
+	UPlayShortEvent(ev);
 }
 
-OmniMIDI::SynthResult OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
-	return Events->Push(ev) ? Ok : InvalidParameter;
+void OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
+	Events->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {

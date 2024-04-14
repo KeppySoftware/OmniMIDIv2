@@ -24,11 +24,15 @@ void OmniMIDI::TinySFSynth::EventsThread() {
 bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	unsigned int tev = 0;
 
-	if (!Events->Pop(&tev) || !IsSynthInitialized())
+	if (!IsSynthInitialized())
 		return false;
 
-	if (CheckRunningStatus(GetStatus(tev)) != 0) LastRunningStatus = GetStatus(tev);
-	else tev = tev << 8 | LastRunningStatus;
+	Events->Pop(&tev);
+
+	if (!tev)
+		return false;
+
+	tev = ApplyRunningStatus(tev);
 
 	unsigned char status = GetStatus(tev);
 	unsigned char cmd = GetCommand(tev);
@@ -173,15 +177,15 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
+void OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
 	if (!Events || !IsSynthInitialized())
-		return NotInitialized;
+		return;
 
-	return UPlayShortEvent(ev);
+	UPlayShortEvent(ev);
 }
 
-OmniMIDI::SynthResult OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
-	return Events->Push(ev) ? Ok : InvalidParameter;
+void OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
+	Events->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {

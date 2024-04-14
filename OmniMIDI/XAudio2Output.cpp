@@ -7,60 +7,54 @@
 
 */
 
+#ifdef _WIN32
+
 #include "XAudio2Output.hpp"
 
 XAudio2Output::~XAudio2Output() {
 	Stop();
 }
 
-XAudio2Output::XAResult XAudio2Output::Init(unsigned strmSampleRate, unsigned int bassFlags, unsigned spf, unsigned sr, unsigned int* basspointer = nullptr) {
-	WAVEFORMATEX wfx;
+XAResult XAudio2Output::Init(XAFlags flags, unsigned strmSampleRate, unsigned spf, unsigned sr) {
+	WAVEFORMATEX wfx = { 0 };
 	HRESULT hr = 0;
 
-	if (!basspointer && !bassStrmPtr)
-		return NoBASSPointer;
-
 	this->sampleRate = strmSampleRate;
-	this->nCh = (bassFlags & BASS_SAMPLE_MONO) ? 1 : 2;
+	this->nCh = (flags & MonoAudio) ? 1 : 2;
 	this->samplesPerFrame = spf;
 	this->sweepRate = sr;
 
-	if (bassFlags & BASS_SAMPLE_8BITS)
+	if (flags & ShortData)
 		this->bitDepth = 1;
-	else if (bassFlags & BASS_SAMPLE_FLOAT)
+	else if (flags & TwentyFourData)
+		this->bitDepth = 3;
+	else if (flags & FloatData)
 		this->bitDepth = 4;
 	else
 		this->bitDepth = 2;
 
-	if (basspointer)
-		bassStrmPtr = basspointer;
-
-	bassFlagsS = bassFlags;
-	int buflen = BASS_ChannelSeconds2Bytes(*bassStrmPtr, 0.016) / bitDepth;
+	flagsS = flags;
 
 	switch (bitDepth) {
-	case 1:
-	case 2:
-		wfx.wFormatTag = WAVE_FORMAT_ADPCM;
-		audioBuf = new int[buflen]();
-		LOG(XAErr, "basspointer 0x%08x -> audioBuf (int) allocated with a size of %d", *bassStrmPtr, buflen);
-		break;
 	case 4:
-	default:
 		wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-		audioBuf = new float[buflen]();
-		LOG(XAErr, "basspointer 0x%08x -> audioBuf (float) allocated with a size of %d", *bassStrmPtr, buflen);
+		break;
+	default:
+		wfx.wFormatTag = WAVE_FORMAT_PCM;
 		break;
 	}
 
+	audioBuf = new float[spf]();
+	LOG(XAErr, "audioBuf allocated with a size of %d", spf);
+
 	wfx.nChannels = nCh;
 	wfx.nSamplesPerSec = sampleRate;
-	wfx.nBlockAlign = bitDepth * nCh;
-	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 	wfx.wBitsPerSample = bitDepth * 8;
-	wfx.cbSize = 0;
+	wfx.nBlockAlign = nCh * bitDepth;
+	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 
-	LOG(XAErr, "SPF set to %d with a sweep rate of %d.", spf, sr);
+	auto lat = (((double)spf / (double)strmSampleRate) * 1000.0) * (double)sweepRate;
+	LOG(XAErr, "Buffer size set to %d, with sweep rate value of %d. Latency will be %0.1fms.", spf, sr, lat + 40.0);
 	LOG(XAErr, "wfxStruct -> wFT: %d, nCh: %d, nSaPS: %d, nBlAlign: %d, nAvgByPS: %d, wBiPS: %d",
 		wfx.wFormatTag, wfx.nChannels, wfx.nSamplesPerSec, wfx.nBlockAlign, wfx.nAvgBytesPerSec, wfx.wBitsPerSample);
 
@@ -75,13 +69,16 @@ XAudio2Output::XAResult XAudio2Output::Init(unsigned strmSampleRate, unsigned in
 		NULL,
 		NULL,
 		AudioCategory_Media);
-	if (FAILED(hr)) return MasteringVoiceFailed;
+	if (FAILED(hr)) 
+		return MasteringVoiceFailed;
 
 	hr = xaudDev->CreateSourceVoice(&sourceVoice, &wfx, 0, 1.0f);
-	if (FAILED(hr)) return SourceVoiceFailed;
+	if (FAILED(hr)) 
+		return SourceVoiceFailed;
 
 	hr = sourceVoice->Start(0);
-	if (FAILED(hr)) return StartFailed;
+	if (FAILED(hr))
+		return StartFailed;
 
 	devChanged = false;
 	restartCount = 0;
@@ -94,7 +91,7 @@ XAudio2Output::XAResult XAudio2Output::Init(unsigned strmSampleRate, unsigned in
 	return Success;
 }
 
-XAudio2Output::XAResult XAudio2Output::Stop() {
+XAResult XAudio2Output::Stop() {
 	if (sourceVoice) {
 		sourceVoice->Stop(0, XAUDIO2_COMMIT_NOW);
 		sourceVoice->DestroyVoice();
@@ -130,52 +127,33 @@ XAudio2Output::XAResult XAudio2Output::Stop() {
 	return Success;
 }
 
-XAudio2Output::XAResult XAudio2Output::Update() {
-	if (devChanged)
-	{
-		Stop();
-		restartCount = 5;
-		devChanged = false;
-		return Success;
-	}
+XAResult XAudio2Output::Update(unsigned int basspointer) {
+	auto dl = BASS_ChannelGetData(basspointer, audioBuf, ((this->bitDepth == 4) ? BASS_DATA_FLOAT : 0) + samplesPerFrame * sizeof(float));
+	
+	if (dl != -1)
+		return Update(audioBuf, dl / sizeof(float));
 
-	if (restartCount)
-	{
-		if (!--restartCount)
-		{
-			auto err = Init(sampleRate, bassFlagsS, samplesPerFrame, sweepRate);
-			if (err)
-			{
-				restartCount = 60 * 5;
-				return err;
-			}
-		}
-		else return Success;
-	}
+	return Fail;
+}
 
+XAResult XAudio2Output::Update(void* buf, size_t len) {
 	for (;;) {
 		sourceVoice->GetState(&voiceState, XAUDIO2_VOICE_NOSAMPLESPLAYED);
-		if (voiceState.BuffersQueued < sweepRate)
-			break;
+		if (voiceState.BuffersQueued < sweepRate) break;
 	}
 
-	auto voidSize = (this->bitDepth == 4) ? sizeof(float) : sizeof(int);
-	auto bufs = ((this->bitDepth == 4) ? BASS_DATA_FLOAT : BASS_DATA_FIXED) + samplesPerFrame * voidSize;
-	auto data = BASS_ChannelGetData(*bassStrmPtr, audioBuf, bufs);
-	auto dataSize = data / voidSize;
-
-	if (data == -1)
+	if (buf == nullptr || len < 1)
 		return Success;
 
-	samplesInBuffer[bufWriteHead] = dataSize / nCh;
-	unsigned num_bytes = dataSize * bitDepth;
+	samplesInBuffer[bufWriteHead] = len / nCh;
+	unsigned num_bytes = len * bitDepth;
 
 	xaudioBuf->AudioBytes = num_bytes;
 	xaudioBuf->pAudioData = sampleBuffer + samplesPerFrame * bufWriteHead * bitDepth;
 	xaudioBuf->pContext = this;
 	bufWriteHead = (bufWriteHead + 1) % sweepRate;
 
-	memcpy((void*)xaudioBuf->pAudioData, audioBuf, num_bytes);
+	memcpy((void*)xaudioBuf->pAudioData, buf, num_bytes);
 
 	if (sourceVoice->SubmitSourceBuffer(xaudioBuf) == S_OK)
 	{
@@ -183,8 +161,7 @@ XAudio2Output::XAResult XAudio2Output::Update() {
 		return Success;
 	}
 
-	Stop();
-	restartCount = 60 * 5;
-
-	return Success;
+	return Fail;
 }
+
+#endif

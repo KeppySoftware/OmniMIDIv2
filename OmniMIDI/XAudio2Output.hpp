@@ -7,12 +7,35 @@
 
 */
 
-#ifndef _BASSXA_H
-#define _BASSXA_H
+#ifdef _WIN32
+
+#ifndef _XAUDIO2_OUTPUT_H
+#define _XAUDIO2_OUTPUT_H
 
 #include "bass/bass.h"
 #include "ErrSys.hpp"
 #include <XAudio2.h>
+#include <mmsystem.h>
+
+enum XAResult {
+	Fail = -1,
+	Success,
+	StreamOpenFailed,
+	MasteringVoiceFailed,
+	SourceVoiceFailed,
+	StartFailed,
+	NoBASSPointer
+};
+
+enum XAFlags {
+	Default = 0,
+	ShortData = 1 << 0,
+	TwentyFourData = 1 << 2,
+	FloatData = 1 << 3,
+	MonoAudio = 1 << 4,
+	StereoAudio = 1 << 5
+};
+DEFINE_ENUM_FLAG_OPERATORS(XAFlags);
 
 class XAudio2Output
 {
@@ -26,8 +49,7 @@ private:
 
 	void*					audioBuf = 0;
 
-	unsigned int*			bassStrmPtr = 0;
-	unsigned int			bassFlagsS = 0;
+	XAFlags					flagsS = (XAFlags)0;
 
 	unsigned char*			sampleBuffer = 0;
 	unsigned long long*		samplesInBuffer = 0;
@@ -35,24 +57,18 @@ private:
 	IXAudio2*				xaudDev = nullptr;
 	IXAudio2MasteringVoice* masterVoice = nullptr;
 	IXAudio2SourceVoice*	sourceVoice = nullptr;
-	XAUDIO2_VOICE_STATE		voiceState;
-	XAUDIO2_BUFFER*			xaudioBuf;
+	XAUDIO2_VOICE_STATE		voiceState = { 0 };
+	XAUDIO2_BUFFER*			xaudioBuf = nullptr;
 	ErrorSystem::Logger		XAErr;
 
 public:
-	enum XAResult {
-		Success,
-		StreamOpenFailed,
-		MasteringVoiceFailed,
-		SourceVoiceFailed,
-		StartFailed,
-		NoBASSPointer
-	};
-
 	~XAudio2Output();
-	XAResult Init(unsigned sample_rate, unsigned int bassflags, unsigned max_samples_per_frame, unsigned num_frames, unsigned int* basspointer);
+	XAResult Init(XAFlags flags, unsigned sample_rate, unsigned spf, unsigned sr);
 	XAResult Stop();
-	XAResult Update();
+	XAResult Update(unsigned int basspointer);
+	XAResult Update(void* buf, size_t len);
+
 };
 
+#endif
 #endif

@@ -49,14 +49,14 @@
     <Filter Include="Source Files\Synthesizer\FluidSynth">
       <UniqueIdentifier>{74999643-da04-4a39-a1ad-075c32c3d234}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Synthesizer\XSynth">
-      <UniqueIdentifier>{af17c2cd-0ad8-47b1-a0fa-3485840a6151}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Synthesizer\SDL">
       <UniqueIdentifier>{523a16c6-a8d4-49ea-809c-7df576ddef9d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Synthesizer\BASS">
-      <UniqueIdentifier>{f6bbb320-6ba9-4e94-94fb-bdbc84d62612}</UniqueIdentifier>
+    <Filter Include="Source Files\Synthesizer\External modules">
+      <UniqueIdentifier>{f343fbfc-10ae-424c-8711-99a3f43a0687}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\MPSupport">
+      <UniqueIdentifier>{0a03db74-c8cb-4511-a65a-6bfda5ef5c24}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -96,8 +96,20 @@
     <ClInclude Include="StreamPlayer.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
+    <ClInclude Include="KSynthM.hpp">
+      <Filter>Header Files\Synthesizer\Synth modules</Filter>
+    </ClInclude>
     <ClInclude Include="XAudio2Output.hpp">
-      <Filter>Header Files\Synthesizer\BASS</Filter>
+      <Filter>Header Files\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="SynthHost.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="SHSettings.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -137,17 +149,11 @@
     <ClCompile Include="libfluidsynth.cpp">
       <Filter>Source Files\Synthesizer\FluidSynth</Filter>
     </ClCompile>
-    <ClCompile Include="xsynth.cpp">
-      <Filter>Source Files\Synthesizer\XSynth</Filter>
-    </ClCompile>
     <ClCompile Include="XSynthM.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
     </ClCompile>
     <ClCompile Include="TSFSynth.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
-    </ClCompile>
-    <ClCompile Include="minisdl_audio.c">
-      <Filter>Source Files\Synthesizer\SDL</Filter>
     </ClCompile>
     <ClCompile Include="SoundFontSystem.cpp">
       <Filter>Source Files\Extensions</Filter>
@@ -155,8 +161,26 @@
     <ClCompile Include="StreamPlayer.cpp">
       <Filter>Source Files\Extensions</Filter>
     </ClCompile>
+    <ClCompile Include="KSynthM.cpp">
+      <Filter>Source Files\Synthesizer\Synth modules</Filter>
+    </ClCompile>
     <ClCompile Include="XAudio2Output.cpp">
-      <Filter>Source Files\Synthesizer\BASS</Filter>
+      <Filter>Source Files\Extensions</Filter>
+    </ClCompile>
+    <ClCompile Include="minisdl_audio.c">
+      <Filter>Source Files\Synthesizer\SDL</Filter>
+    </ClCompile>
+    <ClCompile Include="SynthHost.cpp">
+      <Filter>Source Files\Mandatory</Filter>
+    </ClCompile>
+    <ClCompile Include="ksynth.cpp">
+      <Filter>Source Files\Synthesizer\External modules</Filter>
+    </ClCompile>
+    <ClCompile Include="xsynth.cpp">
+      <Filter>Source Files\Synthesizer\External modules</Filter>
+    </ClCompile>
+    <ClCompile Include="UnixEntry.cpp">
+      <Filter>Source Files\MPSupport</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -164,8 +188,15 @@
       <Filter>Header Files\WDM</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="OMExports.def">
-      <Filter>Source Files</Filter>
-    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="OMRes.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="D:\Windows User\Documents\WAU\Win98 Icons\Icon69.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

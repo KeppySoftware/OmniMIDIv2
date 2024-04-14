@@ -7,9 +7,9 @@
 
 */
 
-#include "WDMDrv.hpp"
-
 #ifdef _WIN32
+
+#include "WDMDrv.hpp"
 
 bool WinDriver::DriverMask::ChangeSettings(short NMID, short NPID, short NT, short NS) {
 	// TODO: Check if the values contain valid technologies/support flags

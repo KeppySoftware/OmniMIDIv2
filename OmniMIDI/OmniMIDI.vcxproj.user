@@ -25,8 +25,9 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-x86_64.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-AVX2.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>$(OutDirFullPath)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-x86_64.exe</LocalDebuggerCommand>

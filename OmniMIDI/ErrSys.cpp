@@ -9,7 +9,7 @@
 #include "ErrSys.hpp"
 
 void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
-#if defined(_WIN32) && !defined(_M_ARM) && defined(_DEBUG)
+#if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
 	va_start(vl, Line);
 
@@ -49,7 +49,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 
 		if (MsgBufSize != 0)
 		{
-			MessageBoxA(NULL, GLEBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+			MsgBox(NULL, GLEBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 			LocalFree(GLEBuf);
 		}
 	}
@@ -59,22 +59,22 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 		cBuf = new char[SZBufSize];
 
 		vsprintf_s(tBuf, SZBufSize, Error, vl);
-		MessageBoxA(NULL, tBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 
 #ifdef _DEBUG
-		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s", 
+		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s",
 			Func, File, Line, tBuf);
-#else
-		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! Error: %s", 
-			Func, tBuf);
-#endif
+
 		sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
 		std::async([&cBuf]() { std::cout << cBuf << std::endl; });
 		delete[] cBuf;
-		delete[] tBuf;
 
-		MessageBoxA(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+		MsgBox(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 		delete[] Buf;
+#else
+		MsgBox(NULL, tBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+#endif
+
+		delete[] tBuf;
 	}
 
 	va_end(vl);
@@ -94,7 +94,7 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 		Func, Error);
 #endif
 
-	MessageBoxA(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
+	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
 	std::async([&Buf]() { std::cout << Buf << std::endl; });
 	delete[] Buf;
 

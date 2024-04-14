@@ -10,13 +10,10 @@
 #ifndef _XSYNTH_H
 #define _XSYNTH_H
 
-#include <Windows.h>
-#include <string>
-
-extern void (WINAPI* LoadSoundFont)(const char* path);
-extern int (WINAPI* StartModule)(double f);
-extern int (WINAPI* StopModule)();
-extern void (WINAPI* ResetModule)();
-extern unsigned int (WINAPI* SendData)(unsigned int ev);
+extern void (*LoadSoundFont)(const char* path);
+extern int (*StartModule)(double f);
+extern int (*StopModule)();
+extern void (*ResetModule)();
+extern unsigned int (*SendData)(unsigned int ev);
 
 #endif

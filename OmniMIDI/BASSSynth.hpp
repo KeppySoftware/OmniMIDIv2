@@ -37,10 +37,7 @@ namespace OmniMIDI {
 		KS
 	};
 
-	class BASSSettings : public SynthSettings {
-	private:
-		ErrorSystem::Logger SetErr;
-
+	class BASSSettings : public OMSettings {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
@@ -49,6 +46,9 @@ namespace OmniMIDI {
 		unsigned int MaxCPU = 95;
 		int AudioEngine = (int)WASAPI;
 		bool LoudMax = false;
+		bool AsyncMode = true;
+		bool FloatRendering = true;
+		bool MonoRendering = false;
 
 		// XAudio2
 		int XABufSize = 88;
@@ -61,6 +61,7 @@ namespace OmniMIDI {
 		std::string ASIODevice = "None";
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
+		bool ASIODirectFeed = false;
 
 		BASSSettings() {
 			// When you initialize Settings(), load OM's own settings by default
@@ -79,9 +80,13 @@ namespace OmniMIDI {
 			if (st.is_open()) {
 				nlohmann::json defset = {
 					{ "BASSSynth", {
+						JSONGetVal(AsyncMode),
 						JSONGetVal(ASIODevice),
 						JSONGetVal(ASIOLCh),
 						JSONGetVal(ASIORCh),
+						JSONGetVal(ASIODirectFeed),
+						JSONGetVal(FloatRendering),
+						JSONGetVal(MonoRendering),
 						JSONGetVal(AudioEngine),
 						JSONGetVal(AudioFrequency),
 						JSONGetVal(EvBufSize),
@@ -114,7 +119,11 @@ namespace OmniMIDI {
 						auto& JsonData = json["BASSSynth"];
 
 						if (!(JsonData == nullptr)) {
+							JSONSetVal(bool, AsyncMode);
 							JSONSetVal(bool, LoudMax);
+							JSONSetVal(bool, ASIODirectFeed);
+							JSONSetVal(bool, FloatRendering);
+							JSONSetVal(bool, MonoRendering);
 							JSONSetVal(float, WASAPIBuf);
 							JSONSetVal(int, AudioEngine);
 							JSONSetVal(std::string, ASIODevice);
@@ -143,16 +152,13 @@ namespace OmniMIDI {
 
 	class BASSSynth : public SynthModule {
 	private:
-		ErrorSystem::Logger SynErr;
-		OMShared::Funcs MiscFuncs;
-
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;
 		Lib* BWasLib = nullptr;
 		Lib* BVstLib = nullptr;
 		Lib* BAsiLib = nullptr;
 
-		LibImport LibImports[66] = {
+		LibImport LibImports[68] = {
 			// BASS
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
@@ -170,6 +176,7 @@ namespace OmniMIDI {
 			ImpFunc(BASS_ErrorGetCode),
 			ImpFunc(BASS_FXSetParameters),
 			ImpFunc(BASS_Free),
+			ImpFunc(BASS_Update),
 			ImpFunc(BASS_GetDevice),
 			ImpFunc(BASS_GetDeviceInfo),
 			ImpFunc(BASS_GetInfo),
@@ -223,6 +230,7 @@ namespace OmniMIDI {
 			ImpFunc(BASS_ASIO_GetDeviceInfo),
 			ImpFunc(BASS_ASIO_GetLatency),
 			ImpFunc(BASS_ASIO_GetRate),
+			ImpFunc(BASS_ASIO_GetInfo),
 			ImpFunc(BASS_ASIO_Init),
 			ImpFunc(BASS_ASIO_SetRate),
 			ImpFunc(BASS_ASIO_Start),
@@ -231,11 +239,10 @@ namespace OmniMIDI {
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-		std::jthread _AudThread;
-		std::jthread _EvtThread;
-		EvBuf* Events;
-
 		unsigned int AudioStream = 0;
+		unsigned int Voices = 0;
+		float CPUUsage = 0.0f;
+		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
@@ -246,18 +253,21 @@ namespace OmniMIDI {
 #endif
 
 		bool RestartSynth = false;
-		char LastRunningStatus = 0x0;
-
-		// Threads func
-		void AudioThread();
-		void EventsThread();
 
 		// BASS system
 		bool LoadFuncs();
 		bool ClearFuncs();
 		void StreamSettings(bool restart);
 		bool ProcessEvBuf();
-		bool ProcessEvent(unsigned int ev);
+
+		void AudioThread();
+		void EventsThread();
+		void BASSThread();
+		void LogThread();
+
+		static unsigned long AudioProcesser(void* buffer, unsigned long length, void* user);
+		static unsigned long CALLBACK AsioProc(int input, unsigned long chan, void* buffer, unsigned long length, void* user);
+		static unsigned long CALLBACK WasapiProc(void* buffer, unsigned long length, void* user);
 
 	public:
 		bool LoadSynthModule();
@@ -270,8 +280,8 @@ namespace OmniMIDI {
 		int SynthID() { return 0x1411BA55; }
 
 		// Event handling system
-		SynthResult PlayShortEvent(unsigned int ev);
-		SynthResult UPlayShortEvent(unsigned int ev);
+		void PlayShortEvent(unsigned int ev);
+		void UPlayShortEvent(unsigned int ev);
 
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);

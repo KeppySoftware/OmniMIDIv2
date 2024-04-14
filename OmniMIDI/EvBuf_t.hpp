@@ -1,65 +1,46 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite)
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under any OS.
 
 */
 
 #ifndef _EVBUF_T_H
 #define _EVBUF_T_H
 
+#pragma once
+
 #define EvBuf				EvBuf_t
 
-#include <Windows.h>
 #ifdef _STATSDEV
 #include <iostream>
 #include <future>
 #endif
 
 namespace OmniMIDI {
-	struct Ev {
-		unsigned int Event;
-		unsigned int Align[15];
-	};
-
-	// Sono's buffer
 	class EvBuf_t {
 	private:
-		Ev* Buffer;
-		size_t Size{ 0 };
-
-		// Written by reader thread
-		alignas(64) volatile size_t	ReadHead { 0 };
-		alignas(64) size_t WriteHeadCached { 0 };
-
-		// Written by writer thread
-		alignas(64) volatile size_t	WriteHead { 0 };
-		alignas(64) size_t ReadHeadCached { 0 };
+		size_t ReadHead = 0;
+		size_t WriteHead = 0;
 
 #ifdef _STATSDEV
 		FILE* dummy;
-		alignas(64) size_t EventsSent{ 0 };
-		alignas(64) size_t EventsSkipped{ 0 };
+		size_t EventsSent = 0;
+		size_t EventsSkipped = 0;
 #endif
+
+		size_t Size = 0;
+		unsigned int* Buffer;
 
 	public:
-		EvBuf_t(size_t ReqSize) {
-#ifdef _STATSDEV
-			if (AllocConsole()) {
-				freopen_s(&dummy, "CONOUT$", "w", stdout);
-				freopen_s(&dummy, "CONOUT$", "w", stderr);
-				freopen_s(&dummy, "CONIN$", "r", stdin);
-				std::cout.clear();
-				std::clog.clear();
-				std::cerr.clear();
-				std::cin.clear();
-			}
-#endif
-
-			Buffer = new Ev[ReqSize];
+		EvBuf_t(size_t ReqSize) {			
 			Size = ReqSize;
+
+			if (Size < 8)
+				Size = 8;
+
+			Buffer = new unsigned int[Size];
 		}
 
 		~EvBuf_t() {
@@ -67,82 +48,81 @@ namespace OmniMIDI {
 			GetStats();
 			EventsSent = 0;
 			EventsSkipped = 0;
-			FreeConsole();
 #endif
 
 			Size = 0;
 			ReadHead = 0;
 			WriteHead = 0;
-			ReadHeadCached = 0;
-			WriteHeadCached = 0;
 
 			delete[] Buffer;
 		}
 
-#ifdef _STATSDEV
-		void GetStats() {
-			char asdf[1024] = {};
-			snprintf(asdf, sizeof(asdf), "%llu of %llu events skipped", EventsSkipped, EventsSent);
-			std::cout << asdf << std::endl;
-			while (std::cin.get() != '');
-		}
-#endif
+		void Push(unsigned int ev) {
+#ifndef EVBUF_OLD
+			auto tWriteHead = WriteHead + 1;
+			if (tWriteHead >= Size)
+				tWriteHead = 0;
 
-		bool Push(unsigned int ev) {
-			size_t LocalWriteHead = WriteHead;
-			size_t NextWriteHead = LocalWriteHead + 1;
+			if (tWriteHead != ReadHead)
+				WriteHead = tWriteHead;
 
-			if (NextWriteHead >= Size)
-				NextWriteHead = 0;
+			Buffer[WriteHead] = ev;
+#else
+			auto tReadHead = ReadHead;
+			auto tWriteHead = WriteHead + 1;
+
+			if (tWriteHead >= Size)
+				tWriteHead = 0;
 
 #ifdef _STATSDEV
 			EventsSent++;
 #endif
 
-			if (NextWriteHead == ReadHeadCached)
-			{
-				ReadHeadCached = ReadHead;
-				if (NextWriteHead == ReadHeadCached) {
+			if (tWriteHead == tReadHead) {
 #ifdef _STATSDEV
-					// std::async([&ev]() { std::cout << "Event " << std::hex << ev << " has been skipped because the buffer is overflowing!" << std::endl; });
-					EventsSkipped++;
+				EventsSkipped++;
 #endif
-					return false;
-				}
+				return;
 			}
 
-			Buffer[LocalWriteHead].Event = ev;
-			WriteHead = NextWriteHead;
-
-			return true;
+			Buffer[WriteHead] = ev;
+			WriteHead = tWriteHead;
+#endif
 		}
 
-		bool Pop(unsigned int* ev) {
-			size_t LocalReadHead = ReadHead;
-			if (LocalReadHead == WriteHeadCached)
+		void Pop(unsigned int* ev) {
+#ifndef EVBUF_OLD
+			if (ReadHead != WriteHead)
 			{
-				WriteHeadCached = WriteHead;
-				if (LocalReadHead == WriteHeadCached)
-					return false;
+				if (++ReadHead >= Size) ReadHead = 0;
+				*ev = Buffer[ReadHead];			
 			}
+#else
+			auto tWriteHead = WriteHead;
 
-			size_t NextReadHead = LocalReadHead + 1;
-			if (NextReadHead >= Size)
-				NextReadHead = 0;
+			if (ReadHead == tWriteHead)
+				return;
 
-			*ev = Buffer[LocalReadHead].Event;
-			ReadHead = NextReadHead;
+			size_t tNextHead = ReadHead + 1;
+			if (tNextHead >= Size)
+				tNextHead = 0;
 
-			return true;
+			*ev = Buffer[ReadHead];
+			ReadHead = tNextHead;
+#endif
 		}
 
 		void Peek(unsigned int* ev) {
-			size_t NextReadHead = ReadHead + 1;
-			if (NextReadHead >= Size)
-				NextReadHead = 0;
+			auto tNextHead = ReadHead + 1;
 
-			*ev = Buffer[NextReadHead].Event;
+			if (tNextHead >= Size)
+				tNextHead = 0;
+
+			*ev = Buffer[tNextHead];
 		}
+
+		size_t GetReadHeadPos() { return ReadHead; }
+		size_t GetWriteHeadPos() { return WriteHead; }
 	};
 }
 

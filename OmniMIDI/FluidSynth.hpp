@@ -30,10 +30,7 @@
 #include "SoundFontSystem.hpp"
 
 namespace OmniMIDI {
-	class FluidSettings : public SynthSettings {
-	private:
-		ErrorSystem::Logger SetErr;
-
+	class FluidSettings : public OMSettings {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
@@ -177,8 +174,6 @@ namespace OmniMIDI {
 		fluid_audio_driver_t* fDrv = nullptr;
 		std::vector<int> SoundFonts;
 
-		char LastRunningStatus = 0x0;
-
 		void EventsThread();
 		bool ProcessEvBuf();
 
@@ -193,8 +188,8 @@ namespace OmniMIDI {
 		int SynthID() { return 0x6F704EC6; }
 
 		// Event handling system
-		SynthResult PlayShortEvent(unsigned int ev);
-		SynthResult UPlayShortEvent(unsigned int ev);
+		void PlayShortEvent(unsigned int ev);
+		void UPlayShortEvent(unsigned int ev);
 
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);

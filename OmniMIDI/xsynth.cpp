@@ -9,8 +9,8 @@
 
 #include <xsynth.h>
 
-void (WINAPI* LoadSoundFont)(const char* path) = 0;
-int (WINAPI* StartModule)(double f) = 0;
-int (WINAPI* StopModule)() = 0;
-void (WINAPI* ResetModule)() = 0;
-unsigned int (WINAPI* SendData)(unsigned int ev) = 0;
+void (*LoadSoundFont)(const char* path);
+int (*StartModule)(double f);
+int (*StopModule)();
+void (*ResetModule)();
+unsigned int (*SendData)(unsigned int ev);
