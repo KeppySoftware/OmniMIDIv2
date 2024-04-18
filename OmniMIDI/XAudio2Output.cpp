@@ -127,15 +127,6 @@ XAResult XAudio2Output::Stop() {
 	return Success;
 }
 
-XAResult XAudio2Output::Update(unsigned int basspointer) {
-	auto dl = BASS_ChannelGetData(basspointer, audioBuf, ((this->bitDepth == 4) ? BASS_DATA_FLOAT : 0) + samplesPerFrame * sizeof(float));
-	
-	if (dl != -1)
-		return Update(audioBuf, dl / sizeof(float));
-
-	return Fail;
-}
-
 XAResult XAudio2Output::Update(void* buf, size_t len) {
 	for (;;) {
 		sourceVoice->GetState(&voiceState, XAUDIO2_VOICE_NOSAMPLESPLAYED);

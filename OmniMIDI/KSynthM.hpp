@@ -125,11 +125,11 @@ namespace OmniMIDI {
 		LibImport LibImports[7] = {
 			// BASS
 			ImpFunc(ksynth_new),
+			ImpFunc(ksynth_cc),
 			ImpFunc(ksynth_note_on),
 			ImpFunc(ksynth_note_off),
 			ImpFunc(ksynth_note_off_all),
-			ImpFunc(ksynth_generate_buffer),
-			ImpFunc(ksynth_buffer_free),
+			ImpFunc(ksynth_fill_buffer),
 			ImpFunc(ksynth_free)
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
@@ -138,6 +138,7 @@ namespace OmniMIDI {
 		void EventsThread();
 		void LogThread();
 		bool ProcessEvBuf();
+		void ProcessEvBufChk();
 
 	public:
 		bool LoadSynthModule();

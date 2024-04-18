@@ -21,8 +21,8 @@
 namespace OmniMIDI {
 	class EvBuf_t {
 	private:
-		size_t ReadHead = 0;
-		size_t WriteHead = 0;
+		volatile size_t ReadHead = 0;
+		volatile size_t WriteHead = 0;
 
 #ifdef _STATSDEV
 		FILE* dummy;
@@ -119,6 +119,10 @@ namespace OmniMIDI {
 				tNextHead = 0;
 
 			*ev = Buffer[tNextHead];
+		}
+
+		bool NewEventsAvailable() {
+			return (ReadHead != WriteHead);
 		}
 
 		size_t GetReadHeadPos() { return ReadHead; }

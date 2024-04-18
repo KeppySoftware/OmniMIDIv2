@@ -49,6 +49,8 @@ namespace OmniMIDI {
 		bool AsyncMode = true;
 		bool FloatRendering = true;
 		bool MonoRendering = false;
+		bool OneThreadMode = false;
+		bool StreamDirectFeed = false;
 
 		// XAudio2
 		int XABufSize = 88;
@@ -61,7 +63,6 @@ namespace OmniMIDI {
 		std::string ASIODevice = "None";
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
-		bool ASIODirectFeed = false;
 
 		BASSSettings() {
 			// When you initialize Settings(), load OM's own settings by default
@@ -84,9 +85,10 @@ namespace OmniMIDI {
 						JSONGetVal(ASIODevice),
 						JSONGetVal(ASIOLCh),
 						JSONGetVal(ASIORCh),
-						JSONGetVal(ASIODirectFeed),
+						JSONGetVal(StreamDirectFeed),
 						JSONGetVal(FloatRendering),
 						JSONGetVal(MonoRendering),
+						JSONGetVal(OneThreadMode),
 						JSONGetVal(AudioEngine),
 						JSONGetVal(AudioFrequency),
 						JSONGetVal(EvBufSize),
@@ -121,7 +123,8 @@ namespace OmniMIDI {
 						if (!(JsonData == nullptr)) {
 							JSONSetVal(bool, AsyncMode);
 							JSONSetVal(bool, LoudMax);
-							JSONSetVal(bool, ASIODirectFeed);
+							JSONSetVal(bool, OneThreadMode);
+							JSONSetVal(bool, StreamDirectFeed);
 							JSONSetVal(bool, FloatRendering);
 							JSONSetVal(bool, MonoRendering);
 							JSONSetVal(float, WASAPIBuf);
@@ -259,15 +262,17 @@ namespace OmniMIDI {
 		bool ClearFuncs();
 		void StreamSettings(bool restart);
 		bool ProcessEvBuf();
+		void ProcessEvBufChk();
 
 		void AudioThread();
 		void EventsThread();
 		void BASSThread();
 		void LogThread();
 
-		static unsigned long AudioProcesser(void* buffer, unsigned long length, void* user);
-		static unsigned long CALLBACK AsioProc(int input, unsigned long chan, void* buffer, unsigned long length, void* user);
-		static unsigned long CALLBACK WasapiProc(void* buffer, unsigned long length, void* user);
+		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, void*);
+		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, void*);
+		static unsigned long CALLBACK AsioProc(int, unsigned long, void*, unsigned long, void*);
+		static unsigned long CALLBACK AsioEvProc(int, unsigned long, void*, unsigned long, void*);
 
 	public:
 		bool LoadSynthModule();

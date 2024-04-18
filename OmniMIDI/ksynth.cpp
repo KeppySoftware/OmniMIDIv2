@@ -12,7 +12,8 @@
 struct KSynth* (*ksynth_new)(const char* ksmpf, unsigned int sample_rate, unsigned int num_channel, unsigned long max_polyphony);
 void (*ksynth_note_on)(struct KSynth* ksynth_instance, unsigned char channel, unsigned char note, unsigned char velocity);
 void (*ksynth_note_off)(struct KSynth* ksynth_instance, unsigned char channel, unsigned char note);
+void (*ksynth_cc)(struct KSynth* ksynth_instance, unsigned char channel, unsigned char param1, unsigned char param2);
 void (*ksynth_note_off_all)(struct KSynth* ksynth_instance);
-float* (*ksynth_generate_buffer)(struct KSynth* ksynth_instance, unsigned short buffer_size);
+void (*ksynth_fill_buffer)(struct KSynth* ksynth_instance, float* buffer, unsigned int buffer_size);
 void (*ksynth_buffer_free)(float* buffer);
 void (*ksynth_free)(struct KSynth* ksynth_instance);

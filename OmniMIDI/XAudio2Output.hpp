@@ -65,7 +65,6 @@ public:
 	~XAudio2Output();
 	XAResult Init(XAFlags flags, unsigned sample_rate, unsigned spf, unsigned sr);
 	XAResult Stop();
-	XAResult Update(unsigned int basspointer);
 	XAResult Update(void* buf, size_t len);
 
 };

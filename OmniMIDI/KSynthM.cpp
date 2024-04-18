@@ -9,39 +9,6 @@
 
 #include "KSynthM.hpp"
 
-void OmniMIDI::KSynthM::AudioThread() {
-	while (!Terminate) {
-		auto f = ksynth_generate_buffer(Synth, Settings->XABufSize / 2);
-
-		if (f != nullptr) {
-			XAEngine->Update(f, Settings->XABufSize);
-			ksynth_buffer_free(f);
-		}
-
-		MiscFuncs.uSleep(-1);
-	}
-}
-
-void OmniMIDI::KSynthM::EventsThread() {
-	while (!Terminate) {
-		if (!ProcessEvBuf())
-			MiscFuncs.uSleep(-1);
-	}
-}
-
-void OmniMIDI::KSynthM::LogThread() {
-	char* Buf = new char[4096];
-
-	while (!Terminate) {
-		sprintf_s(Buf, 4096, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", Synth->rendering_time * 100, Synth->polyphony, Events->GetReadHeadPos(), Events->GetWriteHeadPos());
-		SetConsoleTitleA(Buf);
-
-		MiscFuncs.uSleep(-1);
-	}
-
-	delete[] Buf;
-}
-
 bool OmniMIDI::KSynthM::ProcessEvBuf() {
 	unsigned int ev = 0;
 
@@ -70,6 +37,9 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 		// param1 is the key, ignore param2
 		ksynth_note_off(Synth, chan, param1);	
 		break;
+	case CC:
+		ksynth_cc(Synth, chan, param1, param2);
+		break;
 	default:
 		switch (status) {
 			// Let's go!
@@ -83,6 +53,60 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 	}
 
 	return true;
+}
+
+void OmniMIDI::KSynthM::ProcessEvBufChk() {
+	do ProcessEvBuf();
+	while (Events->NewEventsAvailable());
+}
+
+void OmniMIDI::KSynthM::AudioThread() {
+	unsigned div = Settings->XABufSize / (Settings->XABufSize / 2);
+	size_t arrsize = Settings->XABufSize;
+	size_t chksize = arrsize / div;
+	float* buf = new float[arrsize];
+	float* cbuf = new float[chksize];
+
+	if (chksize < 2)
+		chksize = 2;
+
+	while (!Terminate) {
+		for (int i = 0; i < div; i++) {
+			ProcessEvBufChk();
+
+			ksynth_fill_buffer(Synth, cbuf, chksize);
+			for (int j = 0; j < chksize; j++) {
+				buf[(i * chksize) + j] = cbuf[j];
+			}
+		}
+
+		XAEngine->Update(buf, arrsize);
+
+		MiscFuncs.uSleep(-1);
+	}
+
+	delete[] cbuf;
+	delete[] buf;
+}
+
+void OmniMIDI::KSynthM::EventsThread() {
+	while (!Terminate) {
+		if (!ProcessEvBuf())
+			MiscFuncs.uSleep(-1);
+	}
+}
+
+void OmniMIDI::KSynthM::LogThread() {
+	char* Buf = new char[4096];
+
+	while (!Terminate) {
+		sprintf_s(Buf, 4096, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", Synth->rendering_time * 100, Synth->polyphony, Events->GetReadHeadPos(), Events->GetWriteHeadPos());
+		SetConsoleTitleA(Buf);
+
+		MiscFuncs.uSleep(-1);
+	}
+
+	delete[] Buf;
 }
 
 bool OmniMIDI::KSynthM::LoadSynthModule() {
@@ -133,6 +157,7 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 			return false;
 		}
 
+		Events = new EvBuf(Settings->EvBufSize);
 		_AudThread = std::jthread(&KSynthM::AudioThread, this);
 		if (!_AudThread.joinable()) {
 			NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread.get_id());
@@ -145,12 +170,11 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 			return false;
 		}
 
-		Events = new EvBuf(Settings->EvBufSize);
-		_EvtThread = std::jthread(&KSynthM::EventsThread, this);
-		if (!_EvtThread.joinable()) {
-			NERROR(SynErr, "_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
-			return false;
-		}
+		//_EvtThread = std::jthread(&KSynthM::EventsThread, this);
+		// if (!_EvtThread.joinable()) {
+		//	NERROR(SynErr, "_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
+		//	return false;
+		// }
 
 		if (Settings->ShowStats) {
 			if (AllocConsole()) {
