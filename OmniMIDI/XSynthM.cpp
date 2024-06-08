@@ -14,8 +14,10 @@
 bool OmniMIDI::XSynth::LoadSynthModule() {
 	auto ptr = (LibImport**)&xLibImp;
 
-	if (!Settings)
+	if (!Settings) {
 		Settings = new XSynthSettings;
+		Settings->LoadSynthConfig();
+	}
 
 	if (!XLib)
 		XLib = new Lib(L"xsynth", ptr, xLibImpLen);

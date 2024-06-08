@@ -34,76 +34,56 @@
 #include "SynthMain.hpp"
 #include "SoundFontSystem.hpp"
 
+#define TINYSF_STR "TinySFSynth"
+
 namespace OmniMIDI {
 	class TinySFSettings : public OMSettings {
 	public:
+		// Global settings
 		bool StereoRendering = true;
 		unsigned int EvBufSize = 32768;
-		unsigned int AudioFrequency = 48000;
+		unsigned int SampleRate = 48000;
 		unsigned int Samples = 4096;
-		unsigned int MaxVoices = 512;
+		unsigned int VoiceLimit = 512;
 
 		TinySFSettings() {
-			// When you initialize Settings(), load OM's own settings by default
-			OMShared::SysPath Utils;
-			wchar_t OMPath[MAX_PATH] = { 0 };
-
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				LoadJSON(OMPath);
-			}
+			LoadSynthConfig();
 		}
 
-		void CreateJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::out | std::ofstream::trunc);
-			if (st.is_open()) {
-				nlohmann::json defset = {
-					{ "TinySFSynth", {
-						JSONGetVal(StereoRendering),
-						JSONGetVal(EvBufSize),
-						JSONGetVal(AudioFrequency),
-						JSONGetVal(Samples),
-						JSONGetVal(MaxVoices)
-					}}
+		void RewriteSynthConfig() {
+			CloseConfig();
+			if (InitConfig(true, TINYSF_STR, sizeof(TINYSF_STR))) {
+				nlohmann::json DefConfig = {
+					{
+						ConfGetVal(StereoRendering),
+						ConfGetVal(EvBufSize),
+						ConfGetVal(SampleRate),
+						ConfGetVal(Samples),
+						ConfGetVal(VoiceLimit)
+					}
 				};
 
-				std::string dump = defset.dump(1);
-				st.write(dump.c_str(), dump.length());
-				st.close();
+				if (AppendToConfig(DefConfig))
+					WriteConfig();
 			}
+
+			CloseConfig();
+			InitConfig(false, TINYSF_STR);
 		}
 
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
-		void LoadJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::in);
+		void LoadSynthConfig() {
+			if (InitConfig(false, TINYSF_STR, sizeof(TINYSF_STR))) {
+				SynthSetVal(bool, StereoRendering);
+				SynthSetVal(unsigned int, EvBufSize);
+				SynthSetVal(unsigned int, SampleRate);
+				SynthSetVal(unsigned int, Samples);
+				SynthSetVal(unsigned int, VoiceLimit);
+				return;
+			}
 
-			if (st.is_open()) {
-				try {
-					// Read the JSON data from there
-					auto json = nlohmann::json::parse(st, nullptr, false, true);
-
-					if (json != nullptr) {
-						auto& JsonData = json["TinySFSynth"];
-
-						if (!(JsonData == nullptr)) {
-							JSONSetVal(bool, StereoRendering);
-							JSONSetVal(unsigned int, EvBufSize);
-							JSONSetVal(unsigned int, AudioFrequency);
-							JSONSetVal(unsigned int, Samples);
-							JSONSetVal(unsigned int, MaxVoices);
-						}
-					}
-					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
-				}
-				catch (nlohmann::json::type_error ex) {
-					st.close();
-					LOG(SetErr, "The JSON is corrupted or malformed!\n\nnlohmann::json says: %s", ex.what());
-					CreateJSON(Path);
-					return;
-				}
-				st.close();
+			if (IsConfigOpen() && !IsSynthConfigValid()) {
+				RewriteSynthConfig();
 			}
 		}
 	};
@@ -114,7 +94,6 @@ namespace OmniMIDI {
 		OMShared::Funcs MiscFuncs;
 
 		std::jthread _EvtThread;
-		EvBuf* Events = nullptr;
 
 		// Holds the global instance pointer
 		tsf* g_TinySoundFont = nullptr;
@@ -162,7 +141,7 @@ namespace OmniMIDI {
 		bool StartSynthModule();
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
-		unsigned int GetSampleRate() { return Settings->AudioFrequency; }
+		unsigned int GetSampleRate() { return Settings->SampleRate; }
 		bool IsSynthInitialized() { return (g_TinySoundFont != nullptr); }
 		int SynthID() { return 0xA0A0A0A0; }
 

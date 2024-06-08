@@ -9,8 +9,9 @@
 #include "SoundFontSystem.hpp"
 
 std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstring list) {
-	wchar_t OMPath[MAX_PATH] = { 0 };
+	wchar_t OMPath[MAX_PATH_LONG] = { 0 };
 	const char* path = nullptr;
+	bool succeed = false;
 
 	if (SoundFonts.size() > 0)
 		return &SoundFonts;
@@ -19,7 +20,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 		swprintf_s(OMPath, L"%s\\OmniMIDI\\lists\\OmniMIDI_A.json\0", OMPath);
 
 		std::fstream sfs;
-		sfs.open(!list.empty() ? list.c_str() : OMPath);
+		sfs.open(!list.empty() ? list.c_str() : OMPath, std::fstream::in);
 
 		if (sfs.is_open()) {
 			try {
@@ -63,27 +64,60 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 
 							// If it's not, then let's loop until the end of the JSON struct
 						}
+
+						ListPath = new wchar_t[MAX_PATH_LONG];
+
+						if (ListPath)
+							wcscpy(ListPath, OMPath);
+
+						succeed = true;
 					}
-					else NERROR(SfErr, "\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, OMPath);
+					else NERROR(SfErr, "\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, !list.empty() ? list.c_str() : OMPath);
 				}
 				else NERROR(SfErr, "Invalid JSON structure!", false);
 			}
+			catch (nlohmann::json::parse_error ex) {
+				NERROR(SfErr, "An error has occurred while parsing the SoundFont JSON. %s.", true, ex.what());
+			}
 			catch (nlohmann::json::type_error ex) {
-				NERROR(SfErr, "The SoundFont JSON is corrupted or malformed!nlohmann::json says: %s", ex.what());
+				// Common error, just return nullptr and we'll retry
+				LOG(SfErr, "The SoundFont JSON contains a value whose type does not match the expected semantics. %s.", ex.what());
+			}
+			catch (nlohmann::json::other_error ex) {
+				NERROR(SfErr, "An unknown error has occurred while reading the SoundFont JSON. %s.", true, ex.what());
 			}
 
 			sfs.close();
-			return &SoundFonts;
+			return succeed ? &SoundFonts : nullptr;
 		}
-		else NERROR(SfErr, "SoundFonts JSON does not exist.", false);
+		else NERRORV(SfErr, L"SoundFonts JSON at path \"%s\" does not exist.", false, !list.empty() ? list.c_str() : OMPath);
 	}
 
 	return nullptr;
 }
 
 bool OmniMIDI::SoundFontSystem::ClearList() {
+	if (ListPath)
+	{
+		delete[] ListPath;
+		ListPath = nullptr;
+	}
+
 	if (SoundFonts.size() > 0)
 		SoundFonts.clear();
 
 	return true;
+}
+
+bool OmniMIDI::SoundFontSystem::ListModified(bool init) {
+	if (ListPath) {
+		auto ftime = std::filesystem::last_write_time(ListPath);
+
+		if (ListLastEdit != ftime) {
+			ListLastEdit = ftime;
+			return init ? false : true;
+		}
+	}
+	
+	return false;
 }

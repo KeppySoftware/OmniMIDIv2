@@ -15,7 +15,7 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 	if (!Synth)
 		return false;
 
-	Events->Pop(&ev);
+	ShortEvents->Pop(&ev);
 
 	if (!ev)
 		return false;
@@ -46,6 +46,7 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 		case SystemReset:
 			// This is 0xFF, which is a system reset.
 			ksynth_note_off_all(Synth);
+			LOG(SynErr, "SR!");
 			break;
 		default:
 			return false;
@@ -57,13 +58,13 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 
 void OmniMIDI::KSynthM::ProcessEvBufChk() {
 	do ProcessEvBuf();
-	while (Events->NewEventsAvailable());
+	while (ShortEvents->NewEventsAvailable());
 }
 
 void OmniMIDI::KSynthM::AudioThread() {
-	unsigned div = Settings->XABufSize / (Settings->XABufSize / 2);
-	size_t arrsize = Settings->XABufSize;
-	size_t chksize = arrsize / div;
+	unsigned div = Settings->XAMaxSamplesPerFrame / (Settings->XAMaxSamplesPerFrame / 2);
+	unsigned int arrsize = Settings->XAMaxSamplesPerFrame;
+	unsigned int chksize = arrsize / div;
 	float* buf = new float[arrsize];
 	float* cbuf = new float[chksize];
 
@@ -80,7 +81,7 @@ void OmniMIDI::KSynthM::AudioThread() {
 			}
 		}
 
-		XAEngine->Update(buf, arrsize);
+		WinAudioEngine->Update(buf, arrsize);
 
 		MiscFuncs.uSleep(-1);
 	}
@@ -97,10 +98,13 @@ void OmniMIDI::KSynthM::EventsThread() {
 }
 
 void OmniMIDI::KSynthM::LogThread() {
-	char* Buf = new char[4096];
+	const float smoothingFac = 0.0025f;
+	float smoothedVal = 0.0f;
+	char* Buf = new char[192];
 
 	while (!Terminate) {
-		sprintf_s(Buf, 4096, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", Synth->rendering_time * 100, Synth->polyphony, Events->GetReadHeadPos(), Events->GetWriteHeadPos());
+		smoothedVal = (1.0f - smoothingFac) * smoothedVal + smoothingFac * (Synth->rendering_time * 100);
+		sprintf_s(Buf, 192, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", smoothedVal, Synth->polyphony, ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
 		SetConsoleTitleA(Buf);
 
 		MiscFuncs.uSleep(-1);
@@ -112,22 +116,31 @@ void OmniMIDI::KSynthM::LogThread() {
 bool OmniMIDI::KSynthM::LoadSynthModule() {
 	auto ptr = (LibImport*)LibImports;
 
-	if (!Settings)
+	if (!Settings) {
 		Settings = new KSynthSettings;
+		Settings->LoadSynthConfig();
+	}
 
 	if (!KLib)
 		KLib = new Lib(L"ksynth", &ptr, LibImportsSize);
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
-	if (KLib->LoadLib()) {
-		return true;
+	if (!KLib->LoadLib()) {
+		NERROR(SynErr, "Something went wrong here!!!", true);
+		return false;
 	}
 
-	NERROR(SynErr, "Something went wrong here!!!", true);
-	return false;
+	if (!AllocateShortEvBuf(Settings->EvBufSize)) {
+		NERROR(SynErr, "AllocateShortEvBuf failed.", true);
+		return false;
+	}
+
+	return true;
 }
 
 bool OmniMIDI::KSynthM::UnloadSynthModule() {
+	FreeShortEvBuf();
+
 	if (!KLib)
 		return true;
 
@@ -142,31 +155,32 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		Settings = new KSynthSettings;
 
 	Terminate = false;
-	Synth = ksynth_new(Settings->SampleSet.c_str(), Settings->SampleRate, 2, Settings->MaxVoices);
+	Synth = ksynth_new(Settings->SampleSet.c_str(), Settings->SampleRate, 2, Settings->VoiceLimit);
 
 	if (Synth) {
-		XAEngine = new XAudio2Output;
+		if (!WinAudioEngine)
+			WinAudioEngine = (SoundOut*)CreateXAudio2Output();
 
-		auto xar = XAEngine->Init(XAFlags::FloatData | XAFlags::StereoAudio, Settings->SampleRate, Settings->XABufSize, Settings->XASweepRate);
-		if (xar != XAResult::Success) {
-			NERROR(SynErr, "XAEngine->Init failed. %u", true, xar);
+		auto xar = WinAudioEngine->Init(nullptr, SOAudioFlags::FloatData | SOAudioFlags::StereoAudio, Settings->SampleRate, Settings->XAMaxSamplesPerFrame, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
+		if (xar != SoundOutResult::Success) {
+			NERROR(SynErr, "WinAudioEngine->Init failed. %u", true, xar);
 
-			XAEngine->Stop();
-			delete XAEngine;
-	
+			StopSynthModule();
 			return false;
 		}
 
-		Events = new EvBuf(Settings->EvBufSize);
+		ShortEvents = new EvBuf(Settings->EvBufSize);
 		_AudThread = std::jthread(&KSynthM::AudioThread, this);
 		if (!_AudThread.joinable()) {
 			NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread.get_id());
+			StopSynthModule();
 			return false;
 		}
 
 		_LogThread = std::jthread(&KSynthM::LogThread, this);
 		if (!_LogThread.joinable()) {
 			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			StopSynthModule();
 			return false;
 		}
 
@@ -176,7 +190,7 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		//	return false;
 		// }
 
-		if (Settings->ShowStats) {
+		if (Settings->IsDebugMode()) {
 			if (AllocConsole()) {
 				OwnConsole = true;
 				FILE* dummy;
@@ -198,34 +212,48 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 
 bool OmniMIDI::KSynthM::StopSynthModule() {
 	Terminate = true;
+
 	if (_AudThread.joinable())
 		_AudThread.join();
 
-	if (Settings->ShowStats && OwnConsole) {
+	if (_LogThread.joinable())
+		_LogThread.join();
+
+	if (WinAudioEngine) {
+		WinAudioEngine->Stop();
+		delete WinAudioEngine;
+		WinAudioEngine = nullptr;
+	}
+
+	if (Settings->IsDebugMode() && OwnConsole) {
 		FreeConsole();
 		OwnConsole = false;
 	}
 
-	ksynth_free(Synth);
-	Synth = nullptr;
+	if (Synth) {
+		ksynth_free(Synth);
+		Synth = nullptr;
+	}
 
 	return true;
 }
 
 void OmniMIDI::KSynthM::PlayShortEvent(unsigned int ev) {
-	if (!Events)
+	if (!ShortEvents)
 		return;
 
 	UPlayShortEvent(ev);
 }
 
 void OmniMIDI::KSynthM::UPlayShortEvent(unsigned int ev) {
-	Events->Push(ev);
+	ShortEvents->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::KSynthM::Reset() {
-	if (Synth)
+	if (Synth) {
+		LOG(SynErr, "SR!");
 		ksynth_note_off_all(Synth);
+	}
 
 	return Ok;
 }

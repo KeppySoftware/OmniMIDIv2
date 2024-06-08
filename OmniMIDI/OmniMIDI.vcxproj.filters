@@ -60,17 +60,8 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ErrSys.hpp">
-      <Filter>Header Files\Extensions</Filter>
-    </ClInclude>
     <ClInclude Include="WDMDrv.hpp">
       <Filter>Header Files\WDM</Filter>
-    </ClInclude>
-    <ClInclude Include="SynthMain.hpp">
-      <Filter>Header Files\Synthesizer</Filter>
-    </ClInclude>
-    <ClInclude Include="Utils.hpp">
-      <Filter>Header Files\Extensions</Filter>
     </ClInclude>
     <ClInclude Include="KDMAPI.hpp">
       <Filter>Header Files\Extensions</Filter>
@@ -81,17 +72,11 @@
     <ClInclude Include="FluidSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
-    <ClInclude Include="EvBuf_t.hpp">
-      <Filter>Header Files\Extensions</Filter>
-    </ClInclude>
     <ClInclude Include="XSynthM.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
     <ClInclude Include="TSFSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundFontSystem.hpp">
-      <Filter>Header Files\Extensions</Filter>
     </ClInclude>
     <ClInclude Include="StreamPlayer.hpp">
       <Filter>Header Files\Extensions</Filter>
@@ -111,11 +96,32 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Common.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="ShakraPipe.hpp">
+      <Filter>Header Files\Synthesizer\Synth modules</Filter>
+    </ClInclude>
+    <ClInclude Include="ErrSys.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="EvBuf_t.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundFontSystem.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundOut.h">
+      <Filter>Header Files\Extensions</Filter>
+    </ClInclude>
+    <ClInclude Include="SynthMain.hpp">
+      <Filter>Header Files\Mandatory</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ErrSys.cpp">
-      <Filter>Source Files\Extensions</Filter>
-    </ClCompile>
     <ClCompile Include="WDMEntry.cpp">
       <Filter>Source Files\WDM</Filter>
     </ClCompile>
@@ -130,9 +136,6 @@
     </ClCompile>
     <ClCompile Include="basswasapi.cpp">
       <Filter>Source Files\Synthesizer\BASS</Filter>
-    </ClCompile>
-    <ClCompile Include="Utils.cpp">
-      <Filter>Source Files\Extensions</Filter>
     </ClCompile>
     <ClCompile Include="bassasio.cpp">
       <Filter>Source Files\Synthesizer\BASS</Filter>
@@ -154,9 +157,6 @@
     </ClCompile>
     <ClCompile Include="TSFSynth.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundFontSystem.cpp">
-      <Filter>Source Files\Extensions</Filter>
     </ClCompile>
     <ClCompile Include="StreamPlayer.cpp">
       <Filter>Source Files\Extensions</Filter>
@@ -181,6 +181,18 @@
     </ClCompile>
     <ClCompile Include="UnixEntry.cpp">
       <Filter>Source Files\MPSupport</Filter>
+    </ClCompile>
+    <ClCompile Include="ShakraPipe.cpp">
+      <Filter>Source Files\Synthesizer\Synth modules</Filter>
+    </ClCompile>
+    <ClCompile Include="SoundFontSystem.cpp">
+      <Filter>Source Files\Mandatory</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>Source Files\Mandatory</Filter>
+    </ClCompile>
+    <ClCompile Include="ErrSys.cpp">
+      <Filter>Source Files\Mandatory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

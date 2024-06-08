@@ -30,95 +30,84 @@
 #include "SynthMain.hpp"
 #include "XAudio2Output.hpp"
 
+#define KSYNTH_STR "KSynth"
+
 namespace OmniMIDI {
 	class KSynthSettings : public OMSettings {
 	public:
+		// Global settings
 		unsigned int EvBufSize = 32768;
 		unsigned int SampleRate = 48000;
-		unsigned int MaxVoices = 500;
+		unsigned int VoiceLimit = 500;
 
 		// XAudio2
-		unsigned int XABufSize = 128;
-		unsigned int XASweepRate = 32;
-		bool ShowStats = false;
+		unsigned int XAMaxSamplesPerFrame = 88;
+		unsigned int XASamplesPerFrame = 15;
+		unsigned int XAChunksDivision = 1;
 
 		std::string SampleSet = "sample.ksmp";
 
-		KSynthSettings() {
-			// When you initialize Settings(), load OM's own settings by default
-			OMShared::SysPath Utils;
-			wchar_t OMPath[MAX_PATH] = { 0 };
-
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				LoadJSON(OMPath);
-			}
-		}
-
-		void CreateJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::out | std::ofstream::trunc);
-			if (st.is_open()) {
-				nlohmann::json defset = {
-					{ "XSynth", {
-						JSONGetVal(EvBufSize),
-						JSONGetVal(SampleRate),
-						JSONGetVal(MaxVoices),
-						JSONGetVal(XABufSize),
-						JSONGetVal(XASweepRate),
-						JSONGetVal(SampleSet),
-						JSONGetVal(ShowStats)
-					}}
+		void RewriteSynthConfig() {
+			CloseConfig();
+			if (InitConfig(true, KSYNTH_STR, sizeof(KSYNTH_STR))) {
+				nlohmann::json DefConfig = {
+					{
+						ConfGetVal(EvBufSize),
+						ConfGetVal(SampleRate),
+						ConfGetVal(VoiceLimit),
+						ConfGetVal(XAMaxSamplesPerFrame),
+						ConfGetVal(XASamplesPerFrame),
+						ConfGetVal(SampleSet)
+					}
 				};
 
-				std::string dump = defset.dump(1);
-				st.write(dump.c_str(), dump.length());
-				st.close();
+				if (AppendToConfig(DefConfig))
+					WriteConfig();
 			}
+
+			CloseConfig();
+			InitConfig(false, KSYNTH_STR, sizeof(KSYNTH_STR));
 		}
 
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
-		void LoadJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::in);
+		void LoadSynthConfig() {
+			if (InitConfig(false, KSYNTH_STR, sizeof(KSYNTH_STR))) {
+				SynthSetVal(unsigned int, EvBufSize);
+				SynthSetVal(unsigned int, SampleRate);
+				SynthSetVal(unsigned int, VoiceLimit);
+				SynthSetVal(unsigned int, XAMaxSamplesPerFrame);
+				SynthSetVal(unsigned int, XASamplesPerFrame);
+				SynthSetVal(std::string, SampleSet);
 
-			if (st.is_open()) {
-				try {
-					// Read the JSON data from there
-					auto json = nlohmann::json::parse(st, nullptr, false, true);
+				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 32 || XAMaxSamplesPerFrame > 512)
+					XAMaxSamplesPerFrame = 88;
 
-					if (json != nullptr) {
-						auto& JsonData = json["KSynth"];
+				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / 8 || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
+					XASamplesPerFrame = 15;
 
-						if (!(JsonData == nullptr)) {
-							JSONSetVal(unsigned int, EvBufSize);
-							JSONSetVal(unsigned int, SampleRate);
-							JSONSetVal(unsigned int, MaxVoices);
-							JSONSetVal(unsigned int, XABufSize);
-							JSONSetVal(unsigned int, XASweepRate);
-							JSONSetVal(bool, ShowStats);
-							JSONSetVal(std::string, SampleSet);
-						}
-					}
-					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
-				}
-				catch (nlohmann::json::type_error ex) {
-					st.close();
-					LOG(SetErr, "The JSON is corrupted or malformed!nlohmann::json says: %s", ex.what());
-					CreateJSON(Path);
-					return;
-				}
-				st.close();
+				if (XAChunksDivision > 4 || !XAChunksDivision)
+					XAChunksDivision = 1;
+
+				if (SampleRate == 0 || SampleRate > 384000)
+					SampleRate = 48000;
+
+				if (VoiceLimit < 1 || VoiceLimit > 100000)
+					VoiceLimit = 1024;
+
+				return;
+			}
+
+			if (IsConfigOpen() && !IsSynthConfigValid()) {
+				RewriteSynthConfig();
 			}
 		}
 	};
 
 	class KSynthM : public SynthModule {
 	private:
-		XAudio2Output* XAEngine;
+		SoundOut* WinAudioEngine = nullptr;
 		KSynth* Synth = nullptr;
 		KSynthSettings* Settings = nullptr;
-		bool OwnConsole = false;
 		bool Terminate = false;
 
 		Lib* KLib = nullptr;
@@ -147,7 +136,7 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return 48000; }
-		bool IsSynthInitialized() { return 0; }
+		bool IsSynthInitialized() { return Synth != nullptr; }
 		int SynthID() { return 0xFEFEFEFE; }
 
 		// Event handling system

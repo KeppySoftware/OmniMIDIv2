@@ -32,64 +32,44 @@
 #include "SynthMain.hpp"
 #include "SoundFontSystem.hpp"
 
+#define XSYNTH_STR "XSynth"
+
 namespace OmniMIDI {
 	class XSynthSettings : public OMSettings {
 	public:
+		// Global settings
 		double BufSize = 5.0;
 
 		XSynthSettings() {
-			// When you initialize Settings(), load OM's own settings by default
-			OMShared::SysPath Utils;
-			wchar_t OMPath[MAX_PATH] = { 0 };
-
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				LoadJSON(OMPath);
-			}
+			LoadSynthConfig();
 		}
 
-		void CreateJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::out | std::ofstream::trunc);
-			if (st.is_open()) {
-				nlohmann::json defset = {
-					{ "XSynth", {
-						JSONGetVal(BufSize)
-					}}
+		void RewriteSynthConfig() {
+			CloseConfig();
+			if (InitConfig(true, XSYNTH_STR, sizeof(XSYNTH_STR))) {
+				nlohmann::json DefConfig = {
+					{
+						ConfGetVal(BufSize)
+					}
 				};
 
-				std::string dump = defset.dump(1);
-				st.write(dump.c_str(), dump.length());
-				st.close();
+				if (AppendToConfig(DefConfig))
+					WriteConfig();
 			}
+
+			CloseConfig();
+			InitConfig(false, XSYNTH_STR, sizeof(XSYNTH_STR));
 		}
 
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
-		void LoadJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::in);
+		void LoadSynthConfig() {
+			if (InitConfig(false, XSYNTH_STR, sizeof(XSYNTH_STR))) {
+				SynthSetVal(double, BufSize);
+				return;
+			}
 
-			if (st.is_open()) {
-				try {
-					// Read the JSON data from there
-					auto json = nlohmann::json::parse(st, nullptr, false, true);
-
-					if (json != nullptr) {
-						auto& JsonData = json["XSynth"];
-
-						if (!(JsonData == nullptr)) {
-							JSONSetVal(double, BufSize);
-						}
-					}
-					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
-				}
-				catch (nlohmann::json::type_error ex) {
-					st.close();
-					LOG(SetErr, "The JSON is corrupted or malformed!nlohmann::json says: %s", ex.what());
-					CreateJSON(Path);
-					return;
-				}
-				st.close();
+			if (IsConfigOpen() && !IsSynthConfigValid()) {
+				RewriteSynthConfig();
 			}
 		}
 	};

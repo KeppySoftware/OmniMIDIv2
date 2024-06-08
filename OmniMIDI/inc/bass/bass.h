@@ -473,7 +473,7 @@ typedef struct BASS_3DVECTOR {
 typedef DWORD (CALLBACK STREAMPROC)(HSTREAM handle, void *buffer, DWORD length, void *user);
 /* User stream callback function.
 handle : The stream that needs writing
-buffer : Buffer to write the samples in
+buffer : buf to write the samples in
 length : Number of bytes to write
 user   : The 'user' parameter value given when calling BASS_StreamCreate
 RETURN : Number of bytes written. Set the BASS_STREAMPROC_END flag to end the stream. */
@@ -523,7 +523,7 @@ typedef struct {
 
 typedef void (CALLBACK DOWNLOADPROC)(const void *buffer, DWORD length, void *user);
 /* Internet stream download callback function.
-buffer : Buffer containing the downloaded data... NULL=end of download
+buffer : buf containing the downloaded data... NULL=end of download
 length : Number of bytes in the buffer
 user   : The 'user' parameter value given when calling BASS_StreamCreateURL */
 
@@ -557,14 +557,14 @@ typedef void (CALLBACK DSPPROC)(HDSP handle, DWORD channel, void *buffer, DWORD 
 /* DSP callback function.
 handle : The DSP handle
 channel: Channel that the DSP is being applied to
-buffer : Buffer to apply the DSP to
+buffer : buf to apply the DSP to
 length : Number of bytes in the buffer
 user   : The 'user' parameter given when calling BASS_ChannelSetDSP */
 
 typedef BOOL (CALLBACK RECORDPROC)(HRECORD handle, const void *buffer, DWORD length, void *user);
 /* Recording callback function.
 handle : The recording handle
-buffer : Buffer containing the recorded sample data
+buffer : buf containing the recorded sample data
 length : Number of bytes
 user   : The 'user' parameter value given when calling BASS_RecordStart
 RETURN : TRUE = continue recording, FALSE = stop */

@@ -6,7 +6,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 	if (!AudioStream)
 		return false;
 
-	Events->Pop(&tev);
+	ShortEvents->Pop(&tev);
 
 	if (!tev)
 		return false;
@@ -61,10 +61,10 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 2);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
-				Events->Peek(&sysev);
+				ShortEvents->Peek(&sysev);
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
-					Events->Pop(&sysev);
+					ShortEvents->Pop(&sysev);
 					LOG(SynErr, "SysEx Ev: 0x%x", sysev);
 					BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 3);
 				}
@@ -101,7 +101,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {
 	do ProcessEvBuf();
-	while (Events->NewEventsAvailable());
+	while (ShortEvents->NewEventsAvailable());
 }
 
 unsigned long CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, unsigned long length, void* user) {
@@ -142,7 +142,7 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 		break;
 	}
 
-#if !defined(_M_ARM) && !defined(_M_ARM64)
+#if defined(WIN32) && (!defined(_M_ARM) && !defined(_M_ARM64))
 	if (Settings->LoudMax)
 	{
 		if (!BVstLib->LoadLib())
@@ -166,8 +166,10 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 	if (!BAudLib->UnloadLib())
 		return false;
 
+#if defined(WIN32) && (!defined(_M_ARM) && !defined(_M_ARM64))
 	if (!BVstLib->UnloadLib())
 		return false;
+#endif
 
 	return true;
 }
@@ -188,8 +190,8 @@ void OmniMIDI::BASSSynth::StreamSettings(bool restart) {
 
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_SRC, 0);
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_KILL, 1);
-	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_VOICES, Settings->MaxVoices);
-	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_CPU, Settings->MaxCPU);
+	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_VOICES, (float)Settings->VoiceLimit);
+	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, 1 << 24);
 }
 
@@ -209,8 +211,8 @@ void OmniMIDI::BASSSynth::AudioThread() {
 	case XAudio2:
 	{	
 		// If bufsize is 64, div will be 32, so the chunk will be 2
-		unsigned div = Settings->XABufSize / 2;
-		size_t arrsize = Settings->XABufSize;
+		unsigned div = Settings->XAChunksDivision;
+		size_t arrsize = Settings->XAMaxSamplesPerFrame;
 		size_t chksize = arrsize / div;
 		float* buf = nullptr;
 		float* cBuf = nullptr;
@@ -229,12 +231,12 @@ void OmniMIDI::BASSSynth::AudioThread() {
 				}
 			}
 
-			XAEngine->Update(buf, Settings->XABufSize);
+			WinAudioEngine->Update(buf, Settings->XAMaxSamplesPerFrame);
 			MiscFuncs.uSleep(-1);
 		}
 
-		delete cBuf;
-		delete buf;
+		delete[] cBuf;
+		delete[] buf;
 		break;
 	}
 
@@ -261,38 +263,27 @@ void OmniMIDI::BASSSynth::BASSThread() {
 		MiscFuncs.uSleep(-1);
 
 	while (IsSynthInitialized()) {
-		BASS_ChannelGetAttribute(AudioStream, BASS_ATTRIB_CPU, &CPUUsage);
+		BASS_ChannelGetAttribute(AudioStream, BASS_ATTRIB_CPU, &RenderingTime);
 		BASS_ChannelGetAttribute(AudioStream, BASS_ATTRIB_MIDI_VOICES_ACTIVE, &tv);
 
-		Voices = (unsigned int)tv;
+		ActiveVoices = (unsigned int)tv;
 		tv = 0;
 
+		if (SFSystem.ListModified()) {
+			LoadSoundFonts();
+		}
+
 		MiscFuncs.uSleep(-1);
 	}
-}
-
-void OmniMIDI::BASSSynth::LogThread() {
-	char* Buf = new char[4096];
-
-	while (AudioStream == 0)
-		MiscFuncs.uSleep(-1);
-
-	while (IsSynthInitialized()) {
-		sprintf_s(Buf, 4096, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", CPUUsage, Voices, Events->GetReadHeadPos(), Events->GetWriteHeadPos());
-		SetConsoleTitleA(Buf);
-		MiscFuncs.uSleep(-1);
-	}
-
-	sprintf_s(Buf, 4096, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", 0, 0, 0, 0);
-	SetConsoleTitleA(Buf);
-	delete[] Buf;
 }
 
 bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	auto ptr = (LibImport*)LibImports;
 
-	if (!Settings)
+	if (!Settings) {
 		Settings = new BASSSettings;
+		Settings->LoadSynthConfig();
+	}
 
 	if (!BAudLib)
 		BAudLib = new Lib(L"BASS", &ptr, LibImportsSize);
@@ -310,27 +301,31 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 		BVstLib = new Lib(L"BASS_VST", &ptr, LibImportsSize);
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
-	if (LoadFuncs()) {
-		// LOG(SynErr, L"LoadFuncs succeeded.");
-		// TODO
-		Events = new EvBuf(Settings->EvBufSize);
-		return true;
+	if (!LoadFuncs()) {
+		NERROR(SynErr, "Something went wrong here!!!", true);
+		return false;
 	}
 
-	NERROR(SynErr, "Something went wrong here!!!", true);
-	return false;
+	if (!AllocateShortEvBuf(Settings->EvBufSize)) {
+		NERROR(SynErr, "AllocateShortEvBuf failed.", true);
+		return false;
+	}
+
+	return true;
 }
 
 bool OmniMIDI::BASSSynth::UnloadSynthModule() {
 	// LOG(SynErr, L"UnloadBASSSynth called.");
 	if (ClearFuncs()) {
-		delete Events;
-		Events = nullptr;
+		FreeShortEvBuf();
 
 		SoundFonts.clear();
 
-		delete Settings;
-		Settings = nullptr;
+		if (Settings) {
+			delete Settings;
+			Settings = nullptr;
+		}
+
 		return true;
 	}
 
@@ -347,7 +342,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	bool bInfoGood = false;
 	bool noFreqChange = false;
 	double devFreq = 0.0;
-	double asioFreq = (double)Settings->AudioFrequency;
+	double asioFreq = (double)Settings->SampleRate;
 	unsigned int leftChID = -1, rightChID = -1;
 	const char* lCh = Settings->ASIOLCh.c_str();
 	const char* rCh = Settings->ASIORCh.c_str();
@@ -360,10 +355,16 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	bool asioCheck = false;
 	unsigned int asioCount = 0, asioDev = 0;
 
-	unsigned int deviceFlags = (Settings->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
-	unsigned int streamFlags = (Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) | (Settings->MonoRendering ? BASS_SAMPLE_MONO : 0) | (Settings->FloatRendering ? BASS_SAMPLE_FLOAT : 0);
+	unsigned int deviceFlags = 
+		(Settings->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
 
-	XAFlags xaFlags = (Settings->MonoRendering ? XAFlags::MonoAudio : XAFlags::StereoAudio);
+	unsigned int streamFlags = 
+		(Settings->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
+		(Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) | 
+		(Settings->MonoRendering ? BASS_SAMPLE_MONO : 0) | 
+		(Settings->FloatRendering ? BASS_SAMPLE_FLOAT : 0);
+
+	SOAudioFlags xaFlags = (Settings->MonoRendering ? SOAudioFlags::MonoAudio : SOAudioFlags::StereoAudio);
 
 	// If the audio stream is not 0, then stream is allocated already
 	if (AudioStream)
@@ -379,7 +380,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		deviceFlags |= BASS_DEVICE_DSOUND;
 
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
-		if (BASS_Init(-1, Settings->AudioFrequency, BASS_DEVICE_STEREO, 0, nullptr)) {
+		if (BASS_Init(-1, Settings->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
 			if ((bInfoGood = BASS_GetInfo(&defInfo))) 
 				LOG(SynErr, "minbuf %d", defInfo.minbuf);
 
@@ -394,12 +395,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, bInfoGood ? defInfo.minbuf : 0);
 		BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, bInfoGood ? (defInfo.minbuf * 2) : 0);
 
-		if (!BASS_Init(-1, Settings->AudioFrequency, deviceFlags, 0, nullptr)) {
+		if (!BASS_Init(-1, Settings->SampleRate, deviceFlags, 0, nullptr)) {
 			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->AudioFrequency);
+		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
 		if (!AudioStream) {
 			NERROR(SynErr, "BASS_MIDI_StreamCreate failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
@@ -418,7 +419,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-		LOG(SynErr, "bassDev %d >> devFreq %d", -1, Settings->AudioFrequency);
+		LOG(SynErr, "bassDev %d >> devFreq %d", -1, Settings->SampleRate);
 		break;
 
 	case WASAPI:
@@ -427,18 +428,18 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		streamFlags |= BASS_STREAM_DECODE;
 
-		if (!BASS_Init(0, Settings->AudioFrequency, deviceFlags, 0, nullptr)) {
+		if (!BASS_Init(0, Settings->SampleRate, deviceFlags, 0, nullptr)) {
 			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->AudioFrequency);
+		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
 		if (!AudioStream) {
 			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		if (!BASS_WASAPI_Init(-1, Settings->AudioFrequency, Settings->MonoRendering ? 1 : 2, ((Settings->AsyncMode) ? BASS_WASAPI_ASYNC : 0) | BASS_WASAPI_EVENT, Settings->WASAPIBuf / 1000.0f, 0, proc, this)) {
+		if (!BASS_WASAPI_Init(-1, Settings->SampleRate, Settings->MonoRendering ? 1 : 2, ((Settings->AsyncMode) ? BASS_WASAPI_ASYNC : 0) | BASS_WASAPI_EVENT, Settings->WASAPIBuf / 1000.0f, 0, proc, this)) {
 			NERROR(SynErr, "BASS_WASAPI_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
@@ -448,32 +449,32 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-		LOG(SynErr, "wasapiDev %d >> devFreq %d", -1, Settings->AudioFrequency);
+		LOG(SynErr, "wasapiDev %d >> devFreq %d", -1, Settings->SampleRate);
 		break;
 	}
 
 #ifdef _WIN32
 	case XAudio2:
 	{
-		XAEngine = new XAudio2Output;
+		WinAudioEngine = CreateXAudio2Output();
 
 		streamFlags |= BASS_STREAM_DECODE;
-		xaFlags |= XAFlags::FloatData;
+		xaFlags |= SOAudioFlags::FloatData;
 
-		if (!BASS_Init(0, Settings->AudioFrequency, deviceFlags, 0, nullptr)) {
+		if (!BASS_Init(0, Settings->SampleRate, deviceFlags, 0, nullptr)) {
 			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->AudioFrequency);
+		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
 		if (!AudioStream) {
 			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		auto xar = XAEngine->Init(xaFlags, Settings->AudioFrequency, Settings->XABufSize, Settings->XASweepRate);
-		if (xar != XAResult::Success) {
-			NERROR(SynErr, "XAEngine->Init failed. %u", true, xar);
+		auto xar = WinAudioEngine->Init(m_hModule, xaFlags, Settings->SampleRate, Settings->XAMaxSamplesPerFrame, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
+		if (xar != SoundOutResult::Success) {
+			NERROR(SynErr, "WinAudioEngine->Init failed. %u", true, xar);
 			return false;
 		}
 
@@ -566,12 +567,18 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			}
 		}
 
+		if (!asioFreq) {
+			asioFreq = Settings->SampleRate;
+			LOG(SynErr, "Nothing set the frequency for the ASIO device! Falling back to the value from the settings... (%dHz)", (int)asioFreq);
+		}
+
 		if (!BASS_Init(0, asioFreq, deviceFlags, 0, nullptr)) {
 			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
+		else LOG(SynErr, "BASS_Init returned true. (freq: %d, dFlags: %d)", (int)asioFreq, deviceFlags);
 
-		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->AudioFrequency);
+		AudioStream = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
 		if (!AudioStream) {
 			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
@@ -586,7 +593,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			if (Settings->StreamDirectFeed) LOG(SynErr, "ASIO direct feed enabled.");
 			else LOG(SynErr, "AsioProc allocated.");
 
-			LOG(SynErr, "Channel %d set to %dHz and enabled.", leftChID, asioFreq);
+			LOG(SynErr, "Channel %d set to %dHz and enabled.", leftChID, (int)asioFreq);
 
 			if (Settings->MonoRendering) asioCheck = BASS_ASIO_ChannelEnableMirror(rightChID, 0, leftChID);
 			else asioCheck = BASS_ASIO_ChannelJoin(0, rightChID, leftChID);
@@ -602,7 +609,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 					BASS_ASIO_ChannelSetFormat(0, leftChID, BASS_ASIO_FORMAT_FLOAT | BASS_ASIO_FORMAT_DITHER);
 					BASS_ASIO_ChannelSetRate(0, leftChID, asioFreq);
 
-					LOG(SynErr, "asioDev %d >> chL %d, chR %d - devFreq %d", asioDev, leftChID, rightChID, asioFreq);
+					LOG(SynErr, "asioDev %d >> chL %d, chR %d - asioFreq %d", asioDev, leftChID, rightChID, (int)asioFreq);
 					break;
 				}
 			}
@@ -617,37 +624,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		return false;
 	}
 
-	std::vector<OmniMIDI::SoundFont>* SFv = SFSystem.LoadList();
-	if (SFv != nullptr) {
-		std::vector<SoundFont>& dSFv = *SFv;
-
-		for (int i = 0; i < SFv->size(); i++) {
-			unsigned int bmfiflags = 0;
-			BASS_MIDI_FONTEX sf = BASS_MIDI_FONTEX();
-
-			sf.spreset = dSFv[i].spreset;
-			sf.sbank = dSFv[i].sbank;
-			sf.dpreset = dSFv[i].dpreset;
-			sf.dbank = dSFv[i].dbank;
-			sf.dbanklsb = dSFv[i].dbanklsb;
-
-			if (dSFv[i].xgdrums) bmfiflags |= BASS_MIDI_FONT_XGDRUMS;
-			if (dSFv[i].linattmod) bmfiflags |= BASS_MIDI_FONT_LINATTMOD;
-			if (dSFv[i].lindecvol) bmfiflags |= BASS_MIDI_FONT_LINDECVOL;
-			if (dSFv[i].minfx) bmfiflags |= BASS_MIDI_FONT_MINFX;
-			if (dSFv[i].nolimits) bmfiflags |= BASS_MIDI_FONT_NOLIMITS;
-			if (dSFv[i].norampin) bmfiflags |= BASS_MIDI_FONT_NORAMPIN;
-
-			sf.font = BASS_MIDI_FontInit(dSFv[i].path.c_str(), bmfiflags | BASS_MIDI_FONT_MMAP);
-
-			// Check if the soundfont loads, if it does then it's valid
-			if (BASS_MIDI_FontLoad(sf.font, sf.spreset, sf.sbank))
-				SoundFonts.push_back(sf);
-			else NERROR(SynErr, "Error 0x%x occurred while loading \"%s\"!", false, BASS_ErrorGetCode(), dSFv[i].path.c_str());
-		}
-
-		BASS_MIDI_StreamSetFonts(AudioStream, &SoundFonts[0], (unsigned int)SoundFonts.size() | BASS_MIDI_FONT_EX);
-	}
+	LoadSoundFonts();
 
 	// Sorry ARM users!
 #ifdef _WIN32 
@@ -678,21 +655,92 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		}
 	}
 
-#ifdef _DEBUG
-	_LogThread = std::jthread(&BASSSynth::LogThread, this);
-	if (!_LogThread.joinable()) {
-	 	NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
-	 	return false;
-	}
+	if (Settings->IsDebugMode()) {
+		_BASThread = std::jthread(&BASSSynth::BASSThread, this);
+		if (!_BASThread.joinable()) {
+			NERROR(SynErr, "_BASThread failed. (ID: %x)", true, _BASThread.get_id());
+			return false;
+		}
 
-	_BASThread = std::jthread(&BASSSynth::BASSThread, this);
-	if (!_BASThread.joinable()) {
-		NERROR(SynErr, "_BASThread failed. (ID: %x)", true, _BASThread.get_id());
-		return false;
-	}
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
+		if (!_LogThread.joinable()) {
+			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			return false;
+		}
+
+#if defined _WIN32 && !defined _DEBUG
+		if (AllocConsole()) {
+			OwnConsole = true;
+			FILE* dummy;
+			freopen_s(&dummy, "CONOUT$", "w", stdout);
+			freopen_s(&dummy, "CONOUT$", "w", stderr);
+			freopen_s(&dummy, "CONIN$", "r", stdin);
+			std::cout.clear();
+			std::clog.clear();
+			std::cerr.clear();
+			std::cin.clear();
+
+			_LogThread = std::jthread(&BASSSynth::LogThread, this);
+			if (!_LogThread.joinable()) {
+				NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+				return false;
+			}
+		}
 #endif
+	}
 
 	return true;
+}
+
+void OmniMIDI::BASSSynth::LoadSoundFonts() {
+	if (SoundFonts.size() > 0)
+	{
+		for (int i = 0; i < SoundFonts.size(); i++)
+		{
+			if (SoundFonts[i].font)
+				BASS_MIDI_FontFree(SoundFonts[i].font);
+		}
+	}
+	SoundFonts.clear();
+
+	if (SFSystem.ClearList()) {
+		int retry = 0;
+		std::vector<OmniMIDI::SoundFont>* SFv = nullptr;
+
+		while (SFv == nullptr || retry++ != 30)
+			SFv = SFSystem.LoadList();
+
+		if (SFv != nullptr) {
+			auto& dSFv = *SFv;
+
+			for (int i = 0; i < SFv->size(); i++) {
+				unsigned int bmfiflags = 0;
+				BASS_MIDI_FONTEX sf = BASS_MIDI_FONTEX();
+
+				sf.spreset = dSFv[i].spreset;
+				sf.sbank = dSFv[i].sbank;
+				sf.dpreset = dSFv[i].dpreset;
+				sf.dbank = dSFv[i].dbank;
+				sf.dbanklsb = dSFv[i].dbanklsb;
+
+				if (dSFv[i].xgdrums) bmfiflags |= BASS_MIDI_FONT_XGDRUMS;
+				if (dSFv[i].linattmod) bmfiflags |= BASS_MIDI_FONT_LINATTMOD;
+				if (dSFv[i].lindecvol) bmfiflags |= BASS_MIDI_FONT_LINDECVOL;
+				if (dSFv[i].minfx) bmfiflags |= BASS_MIDI_FONT_MINFX;
+				if (dSFv[i].nolimits) bmfiflags |= BASS_MIDI_FONT_NOLIMITS;
+				if (dSFv[i].norampin) bmfiflags |= BASS_MIDI_FONT_NORAMPIN;
+
+				sf.font = BASS_MIDI_FontInit(dSFv[i].path.c_str(), bmfiflags | BASS_MIDI_FONT_MMAP);
+
+				// Check if the soundfont loads, if it does then it's valid
+				if (BASS_MIDI_FontLoad(sf.font, sf.spreset, sf.sbank))
+					SoundFonts.push_back(sf);
+				else NERROR(SynErr, "Error 0x%x occurred while loading \"%s\"!", false, BASS_ErrorGetCode(), dSFv[i].path.c_str());
+			}
+
+			BASS_MIDI_StreamSetFonts(AudioStream, &SoundFonts[0], (unsigned int)SoundFonts.size() | BASS_MIDI_FONT_EX);
+		}
+	}
 }
 
 bool OmniMIDI::BASSSynth::StopSynthModule() {
@@ -721,9 +769,9 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		break;
 
 	case XAudio2:
-		if (XAEngine) {
-			XAEngine->Stop();
-			delete XAEngine;
+		if (WinAudioEngine) {
+			WinAudioEngine->Stop();
+			delete WinAudioEngine;
 		}
 		break;
 
@@ -778,10 +826,10 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 		// Old WinMMWRP code, ignore
 		break;
 
-	SettingsManagerCase(KDMAPI_AUDIOFREQ, get, unsigned int, Settings->AudioFrequency, var, size);
+	SettingsManagerCase(KDMAPI_AUDIOFREQ, get, unsigned int, Settings->SampleRate, var, size);
 	SettingsManagerCase(KDMAPI_CURRENTENGINE, get, unsigned int, Settings->AudioEngine, var, size);
-	SettingsManagerCase(KDMAPI_MAXVOICES, get, unsigned int, Settings->MaxVoices, var, size);
-	SettingsManagerCase(KDMAPI_MAXRENDERINGTIME, get, unsigned int, Settings->MaxCPU, var, size);
+	SettingsManagerCase(KDMAPI_MAXVOICES, get, unsigned int, Settings->VoiceLimit, var, size);
+	SettingsManagerCase(KDMAPI_MAXRENDERINGTIME, get, unsigned int, Settings->RenderTimeLimit, var, size);
 
 	default:
 		LOG(SynErr, "Unknown setting passed to SettingsManager. (VAL: 0x%x)", setting);
@@ -792,14 +840,14 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 }
 
 void OmniMIDI::BASSSynth::PlayShortEvent(unsigned int ev) {
-	if (!Events)
+	if (!ShortEvents)
 		return;
 
 	UPlayShortEvent(ev);
 }
 
 void OmniMIDI::BASSSynth::UPlayShortEvent(unsigned int ev) {
-	Events->Push(ev);
+	ShortEvents->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {

@@ -11,12 +11,14 @@
 
 #pragma once
 
+#include "Common.hpp"
 #include "ErrSys.hpp"
 #include "Utils.hpp"
 #include "nlohmann\json.hpp"
 #include <fstream>
 #include <future>
 #include <string>
+#include <filesystem>
 
 namespace OmniMIDI {
 	class SoundFont {
@@ -42,11 +44,14 @@ namespace OmniMIDI {
 	private:
 		ErrorSystem::Logger SfErr;
 		OMShared::SysPath Utils;
+		wchar_t* ListPath = nullptr;
+		std::filesystem::file_time_type ListLastEdit;
 		std::vector<SoundFont> SoundFonts;
 
 	public:
 		std::vector<OmniMIDI::SoundFont>* LoadList(std::wstring list = L"");
 		bool ClearList();
+		bool ListModified(bool init = false);
 	};
 }
 

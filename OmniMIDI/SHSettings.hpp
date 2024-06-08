@@ -17,6 +17,7 @@
 #endif
 
 #include <fstream>
+#include "Common.hpp"
 #include "ErrSys.hpp"
 #include "SynthMain.hpp"
 #include "KDMAPI.hpp"
@@ -24,11 +25,6 @@
 namespace OmniMIDI {
 	class SHSettings : public OMSettings {
 	public:
-		// Global settings
-		char Renderer = BASSMIDI;
-		bool KDMAPIEnabled = true;
-		bool DebugMode = false;
-		std::string CustomRenderer = "empty";
 		std::vector<std::string> Blacklist;
 
 		SHSettings() {
@@ -44,59 +40,8 @@ namespace OmniMIDI {
 				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
 				swprintf_s(OMBPath, L"%s\\OmniMIDI\\blacklist.json\0", OMBPath);
 				swprintf_s(OMDBPath, L"%s\\OmniMIDI\\defblacklist.json\0", OMBPath);
-				LoadJSON(OMPath);
+				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 				LoadBlacklist(OMBPath);
-			}
-		}
-
-		void CreateJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::out | std::ofstream::trunc);
-			if (st.is_open()) {
-				nlohmann::json defset = {
-					{ "WDMInit", {
-						JSONGetVal(Renderer),
-						JSONGetVal(DebugMode),
-						JSONGetVal(CustomRenderer),
-						JSONGetVal(KDMAPIEnabled)
-					}}
-				};
-
-				std::string dump = defset.dump(1);
-				st.write(dump.c_str(), dump.length());
-				st.close();
-			}
-		}
-
-		// Here you can load your own JSON, it will be tied to ChangeSetting()
-		void LoadJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::in);
-
-			if (st.is_open()) {
-				try {
-					// Read the JSON data from there
-					auto json = nlohmann::json::parse(st, nullptr, false, true);
-
-					if (json != nullptr) {
-						auto& JsonData = json["WDMInit"];
-
-						if (!(JsonData == nullptr)) {
-							JSONSetVal(int, Renderer);
-							JSONSetVal(bool, DebugMode);
-							JSONSetVal(bool, KDMAPIEnabled);
-							JSONSetVal(std::string, CustomRenderer);
-						}
-					}
-					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
-				}
-				catch (nlohmann::json::type_error ex) {
-					st.close();
-					LOG(SetErr, "The JSON is corrupted or malformed! nlohmann::json says: %s", ex.what());
-					CreateJSON(Path);
-					return;
-				}
-				st.close();
 			}
 		}
 
@@ -123,26 +68,40 @@ namespace OmniMIDI {
 		}
 
 		bool IsBlacklistedProcess() {
-			char szFilePath[MAX_PATH];
-			char szFileName[MAX_PATH];
+			bool flag = false;
+			char* szFilePath = new char[MAX_PATH_LONG];
+			char* szFileName = new char[MAX_PATH_LONG];
 
-			if (!Blacklist.empty())
-			{
-				GetModuleFileNameA(NULL, szFilePath, MAX_PATH);
-				strncpy_s(szFileName, PathFindFileNameA(szFilePath), MAX_PATH);
+			if (!szFilePath || !szFileName) {
+				if (szFilePath)
+					delete[] szFilePath;
+
+				if (szFileName)
+					delete[] szFileName;
+
+				return false;
+			}
+
+			if (!Blacklist.empty()) {
+				GetModuleFileNameA(NULL, szFilePath, MAX_PATH_LONG);
+				strncpy(szFileName, PathFindFileNameA(szFilePath), MAX_PATH_LONG);
 
 				for (int i = 0; i < Blacklist.size(); i++) {
 					if (!_stricmp(szFilePath, Blacklist[i].c_str())) {
-						return true;
+						flag = true;
+						break;
 					}
 
 					if (!_stricmp(szFileName, Blacklist[i].c_str())) {
-						return true;
+						flag = true;
+						break;
 					}
 				}
 			}
 
-			return false;
+			delete[] szFilePath;
+			delete[] szFileName;
+			return flag;
 		}
 	};
 }

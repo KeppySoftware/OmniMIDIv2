@@ -63,7 +63,7 @@ extern "C" {
 					fDriverCallback = new WinDriver::DriverCallback;
 
 					// Allocate a generic dummy synth for now
-					Host = new OmniMIDI::SynthHost(fDriverCallback);
+					Host = new OmniMIDI::SynthHost(fDriverCallback, hModule);
 				}
 			}
 

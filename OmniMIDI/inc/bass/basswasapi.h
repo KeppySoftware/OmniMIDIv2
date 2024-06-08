@@ -109,7 +109,7 @@ typedef struct {
 
 typedef DWORD(CALLBACK WASAPIPROC)(void* buffer, DWORD length, void* user);
 /* WASAPI callback function.
-buffer : Buffer containing the sample data
+buffer : buf containing the sample data
 length : Number of bytes
 user   : The 'user' parameter given when calling BASS_WASAPI_Init
 RETURN : The number of bytes written (output devices), 0/1 = stop/continue (input devices) */

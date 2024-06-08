@@ -41,6 +41,32 @@ bool OmniMIDI::SynthHost::SpFree() {
 }
 #endif
 
+void OmniMIDI::SynthHost::HostHealthCheck() {
+	wchar_t* confPath = SHSettings->GetConfigPath();
+
+	if (confPath) {
+		auto ftime = std::filesystem::last_write_time(confPath);
+		auto chktime = ftime;
+
+		while (!Synth->IsSynthInitialized());
+
+		while (Synth->IsSynthInitialized()) {
+			ftime = std::filesystem::last_write_time(confPath);
+
+			if (chktime != ftime) {
+				chktime = ftime;
+
+				if (Stop(true))
+				{
+					Start();
+					confPath = SHSettings->GetConfigPath();
+					while (!Synth->IsSynthInitialized());
+				}
+			}
+		}
+	}
+}
+
 void OmniMIDI::SynthHost::RefreshSettings() {
 	LOG(SHErr, "Refreshing synth host settings...");
 
@@ -52,13 +78,17 @@ void OmniMIDI::SynthHost::RefreshSettings() {
 	}
 
 	SHSettings = new OmniMIDI::SHSettings;
-	LOG(SHErr, "Settings refreshed! (renderer %d, kdmapi %d, crender %s)", SHSettings->Renderer, SHSettings->KDMAPIEnabled, SHSettings->CustomRenderer.c_str());
+	LOG(SHErr, "Settings refreshed! (renderer %d, kdmapi %d, crender %s)", SHSettings->GetRenderer(), SHSettings->IsKDMAPIEnabled(), SHSettings->GetCustomRenderer());
 }
 
 bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 	Get();
 
 	if (Synth->LoadSynthModule()) {
+#ifdef _WIN32
+		Synth->SetInstance(hwndMod);
+#endif
+
 		if (Synth->StartSynthModule()) {
 			LOG(SHErr, "Synth ID: %x", Synth->SynthID());
 
@@ -66,8 +96,16 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 			if (StreamPlayer) {
 				if (!SpInit())
 					return false;
-			}
+			}	
 #endif
+
+			if (!_HealthThread.joinable()) {
+				_HealthThread = std::jthread(&SynthHost::HostHealthCheck, this);
+				if (!_HealthThread.joinable()) {
+					NERROR(SHErr, "_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
+					return false;
+				}
+			}
 
 			return true;
 		}
@@ -84,7 +122,7 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 	return false;
 }
 
-bool OmniMIDI::SynthHost::Stop() {
+bool OmniMIDI::SynthHost::Stop(bool restart) {
 #ifdef _WIN32 
 	SpFree();
 #endif
@@ -101,10 +139,15 @@ bool OmniMIDI::SynthHost::Stop() {
 		else return false;
 	}
 
-	if (DrvCallback->IsCallbackReady()) {
-		DrvCallback->CallbackFunction(MOM_CLOSE, 0, 0);
-		DrvCallback->ClearCallbackFunction();
-		LOG(SHErr, "Callback system has been freed.");
+	if (!restart) {
+		if (DrvCallback->IsCallbackReady()) {
+			DrvCallback->CallbackFunction(MOM_CLOSE, 0, 0);
+			DrvCallback->ClearCallbackFunction();
+			LOG(SHErr, "Callback system has been freed.");
+		}
+
+		if (_HealthThread.joinable())
+			_HealthThread.join();
 	}
 
 	return true;
@@ -114,10 +157,10 @@ void OmniMIDI::SynthHost::Get() {
 	Free();
 	RefreshSettings();
 
-	char r = SHSettings->Renderer;
+	char r = SHSettings->GetRenderer();
 	switch (r) {
-	case EXTERNAL:
-		extModule = loadLib(SHSettings->CustomRenderer.c_str());
+	case Synthesizers::External:
+		extModule = loadLib(SHSettings->GetCustomRenderer());
 
 		if (extModule) {
 			auto iM = reinterpret_cast<rInitModule>(getAddr(extModule, "initModule"));
@@ -128,7 +171,7 @@ void OmniMIDI::SynthHost::Get() {
 				if (Synth) {
 					LOG(SHErr, "R%d (EXTERNAL >> %s)",
 						r,
-						SHSettings->CustomRenderer.c_str());
+						SHSettings->GetCustomRenderer());
 					break;
 				}
 			}
@@ -136,37 +179,44 @@ void OmniMIDI::SynthHost::Get() {
 		Free();
 
 		Synth = new OmniMIDI::SynthModule;
-		NERROR(SHErr, "The requested external module (%s) could not be loaded.", SHSettings->CustomRenderer.c_str());
+		NERROR(SHErr, "The requested external module (%s) could not be loaded.", SHSettings->GetCustomRenderer());
 		break;
 
-	case TINYSF:
+	case Synthesizers::TinySoundFont:
 		Synth = new OmniMIDI::TinySFSynth;
 		LOG(SHErr, "R%d (TINYSF)", r);
 		break;
 
-	case FLUIDSYNTH:
+	case Synthesizers::FluidSynth:
 		Synth = new OmniMIDI::FluidSynth;
 		LOG(SHErr, "R%d (FLUIDSYNTH)", r);
 		break;
 
 #if !defined _M_ARM
-	case BASSMIDI:
+	case Synthesizers::BASSMIDI:
 		Synth = new OmniMIDI::BASSSynth;
 		LOG(SHErr, "R%d (BASSMIDI)", r);
 		break;
 #endif
 
 #if defined _M_AMD64
-	case XSYNTH:
+	case Synthesizers::XSynth:
 		Synth = new OmniMIDI::XSynth;
 		LOG(SHErr, "R%d (XSYNTH)", r);
 		break;
 #endif
 
 #if !defined _M_ARM || !defined _M_ARM64
-	case KSYNTH:
+	case Synthesizers::ksynth:
 		Synth = new OmniMIDI::KSynthM;
 		LOG(SHErr, "R%d (KSYNTH)", r);
+		break;
+#endif
+
+#if defined WIN32 
+	case Synthesizers::ShakraPipe:
+		Synth = new OmniMIDI::ShakraPipe;
+		LOG(SHErr, "R%d (SHAKRA)", r);
 		break;
 #endif
 
@@ -194,8 +244,13 @@ void OmniMIDI::SynthHost::Free() {
 
 	if (Synth != nullptr)
 	{
-		delete Synth;
-		Synth = nullptr;
+		auto tSynth = new SynthModule;
+		auto oSynth = Synth;
+
+		Synth = tSynth;
+
+		delete oSynth;
+
 		LOG(SHErr, "Synth freed.");
 	}
 

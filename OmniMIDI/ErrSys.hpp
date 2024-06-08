@@ -34,6 +34,7 @@
 #define S1(x)					S2(x)
 
 #define NERROR(x, y, z, ...)	x.ThrowError(y, z, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define NERRORV(x, y, z, ...)	x.ThrowError(S1(y), z, __FILE__, __func__, __LINE__, __VA_ARGS__)
 #define FNERROR(x, y)			x.ThrowFatalError(y, __FILE__, __func__, __LINE__)
 
 #define LOGI(x, y, ...)			x.Log(y, __FILE__, __func__, __LINE__, __VA_ARGS__)

@@ -82,7 +82,7 @@ typedef DWORD (CALLBACK ASIOPROC)(BOOL input, DWORD channel, void *buffer, DWORD
 /* ASIO channel callback function.
 input  : Input? else output
 channel: Channel number
-buffer : Buffer containing the sample data
+buffer : buf containing the sample data
 length : Number of bytes
 user   : The 'user' parameter given when calling BASS_ASIO_ChannelEnable
 RETURN : The number of bytes written (ignored with input channels) */

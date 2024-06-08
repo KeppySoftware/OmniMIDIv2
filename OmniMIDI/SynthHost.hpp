@@ -14,8 +14,10 @@
 #include "SynthMain.hpp"
 #include "SHSettings.hpp"
 
+#ifdef _WIN32
 // Cooked player, let it cook...
 #include "StreamPlayer.hpp"
+#endif
 
 // Synthesizers
 #include "BASSSynth.hpp"
@@ -23,6 +25,7 @@
 #include "XSynthM.hpp"
 #include "TSFSynth.hpp"
 #include "KSynthM.hpp"
+#include "ShakraPipe.hpp"
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();
 typedef void(*rStopModule)();
@@ -31,30 +34,44 @@ namespace OmniMIDI {
 	class SynthHost
 	{
 	private:
-		// From driver lib
-		SHSettings* SHSettings = nullptr;
-		WinDriver::DriverCallback* DrvCallback = nullptr;
-
 		// Ours
 		ErrorSystem::Logger SHErr;
 		SynthModule* Synth = nullptr;
-		StreamPlayer* StreamPlayer = nullptr;
+		SHSettings* SHSettings = nullptr;
+		std::jthread _HealthThread;
 		void* extModule = nullptr;
 
+#ifdef _WIN32
+		// From driver lib
+		HMODULE hwndMod = nullptr;
+		StreamPlayer* StreamPlayer = nullptr;
+		WinDriver::DriverCallback* DrvCallback = nullptr;
+#endif
+
 	public:
-		SynthHost(WinDriver::DriverCallback* dsrc) {
-			DrvCallback = dsrc;
+#ifdef _WIN32
+		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod) {
+			DrvCallback = dcasrc;
+			hwndMod = mod;
 			SHSettings = new OmniMIDI::SHSettings;
 			Synth = new OmniMIDI::SynthModule;
 			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback);
 		}
+#else
+		SynthHost(WinDriver::DriverCallback* dcasrc) {
+			SHSettings = new OmniMIDI::SHSettings;
+			Synth = new OmniMIDI::SynthModule;
+		}
+#endif
 
 		~SynthHost() {
 			Synth->StopSynthModule();
 			Synth->UnloadSynthModule();
 
+#ifdef _WIN32
 			if (StreamPlayer != nullptr)
 				delete StreamPlayer;
+#endif
 
 			if (Synth != nullptr)
 				delete Synth;
@@ -65,10 +82,10 @@ namespace OmniMIDI {
 
 		void RefreshSettings();
 		bool Start(bool StreamPlayer = false);
-		bool Stop();
+		bool Stop(bool restart = false);
 		void Get();
 		void Free();
-		bool IsKDMAPIAvailable() { return SHSettings->KDMAPIEnabled; }
+		bool IsKDMAPIAvailable() { return SHSettings->IsKDMAPIEnabled(); }
 
 #ifdef _WIN32 
 		bool IsStreamPlayerAvailable() { return !StreamPlayer->IsDummy(); }
@@ -88,6 +105,8 @@ namespace OmniMIDI {
 		unsigned int SpGetTicksPerQN() { return StreamPlayer->GetTicksPerQN(); }
 		void SpGetPosition(MMTIME* mmtime) { StreamPlayer->GetPosition(mmtime); }
 #endif
+
+		void HostHealthCheck();
 
 		// Event handling system
 		void PlayShortEvent(unsigned int ev) { Synth->PlayShortEvent(ev); }

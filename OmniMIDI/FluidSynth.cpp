@@ -33,7 +33,7 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	if (!fDrv)
 		return false;
 
-	Events->Pop(&tgtev);
+	ShortEvents->Pop(&tgtev);
 
 	if (!tgtev)
 		return false;
@@ -88,10 +88,10 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 			fluid_synth_sysex(fSyn, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
-				Events->Peek(&sysev);
+				ShortEvents->Peek(&sysev);
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
-					Events->Pop(&sysev);
+					ShortEvents->Pop(&sysev);
 					LOG(SynErr, "SysEx Ev: %x", sysev);
 					fluid_synth_sysex(fSyn, (const char*)&sysev, 3, 0, &len, &handled, 0);
 				}		
@@ -128,7 +128,11 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 bool OmniMIDI::FluidSynth::LoadSynthModule() {
 	if (!Settings) {
 		auto ptr = (LibImport**)&fLibImp;
-		Settings = new FluidSettings;
+
+		if (!Settings) {
+			Settings = new FluidSettings;
+			Settings->LoadSynthConfig();
+		}
 
 		if (!FluiLib)
 			FluiLib = new Lib(L"libfluidsynth-3", ptr, fLibImpLen);
@@ -136,7 +140,11 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 		if (!FluiLib->LoadLib())
 			return false;
 
-		Events = new EvBuf(Settings->EvBufSize);
+		if (!AllocateShortEvBuf(Settings->EvBufSize)) {
+			NERROR(SynErr, "AllocateShortEvBuf failed.", true);
+			return false;
+		}
+
 		_EvtThread = std::jthread(&FluidSynth::EventsThread, this);
 	}
 
@@ -148,13 +156,15 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 		return true;
 
 	if (!fSyn && !fDrv) {
-		delete Settings;
-		Settings = nullptr;
+		FreeShortEvBuf();
+
+		if (Settings) {
+			delete Settings;
+			Settings = nullptr;
+		}
 
 		delete_fluid_settings(fSet);
 		fSet = nullptr;
-
-		delete Events;
 
 		if (!FluiLib->UnloadLib())
 		{
@@ -183,9 +193,9 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 		fluid_settings_setint(fSet, "audio.periods", Settings->Periods);
 		fluid_settings_setint(fSet, "synth.device-id", 16);
 		fluid_settings_setint(fSet, "synth.min-note-length", Settings->MinimumNoteLength);
-		fluid_settings_setint(fSet, "synth.polyphony", Settings->MaxVoices);
+		fluid_settings_setint(fSet, "synth.polyphony", Settings->VoiceLimit);
 		fluid_settings_setint(fSet, "synth.threadsafe-api", Settings->ThreadsCount > 1 ? 0 : 1);
-		fluid_settings_setnum(fSet, "synth.sample-rate", Settings->AudioFrequency);
+		fluid_settings_setnum(fSet, "synth.sample-rate", Settings->SampleRate);
 		fluid_settings_setnum(fSet, "synth.overflow.volume", Settings->OverflowVolume);
 		fluid_settings_setnum(fSet, "synth.overflow.percussion", Settings->OverflowPercussion);
 		fluid_settings_setnum(fSet, "synth.overflow.important", Settings->OverflowImportant);
@@ -247,14 +257,14 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 }
 
 void OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
-	if (!Events || !IsSynthInitialized())
+	if (!ShortEvents || !IsSynthInitialized())
 		return;
 
 	UPlayShortEvent(ev);
 }
 
 void OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
-	Events->Push(ev);
+	ShortEvents->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {

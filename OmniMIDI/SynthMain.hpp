@@ -16,26 +16,20 @@
 // #define _STATSDEV
 
 // ERRORS
-#define SYNTH_OK			0x00
-#define SYNTH_NOTINIT		0x01
-#define SYNTH_INITERR		0x02
-#define SYNTH_LIBOFFLINE	0x03
-#define SYNTH_INVALPARAM	0x04
-#define SYNTH_INVALBUF		0x05
+#define SYNTH_OK				0x00
+#define SYNTH_NOTINIT			0x01
+#define SYNTH_INITERR			0x02
+#define SYNTH_LIBOFFLINE		0x03
+#define SYNTH_INVALPARAM		0x04
+#define SYNTH_INVALBUF			0x05
 
-// Renderers
-#define EXTERNAL			-1
-#define BASSMIDI			0
-#define FLUIDSYNTH			1
-#define XSYNTH				2
-#define TINYSF				3
-#define KSYNTH				4
+#define fv2fn(f)				(#f)
+#define ImpFunc(f)				LibImport((void**)&f, #f)
 
-#define fv2fn(f)			(#f)
-#define ImpFunc(f)			LibImport((void**)&f, #f)
-
-#define JSONGetVal(f)		{ #f, f }
-#define JSONSetVal(t, f)	f = JsonData[#f].is_null() ? f : JsonData[#f].get<t>()
+#define ConfGetVal(f)			{ #f, f }
+#define JSONSetVal(t, f)		f = JsonData[#f].is_null() ? f : JsonData[#f].get<t>()
+#define MainSetVal(t, f)		f = mainptr[#f].is_null() ? f : mainptr[#f].get<t>()
+#define SynthSetVal(t, f)		f = synptr[#f].is_null() ? f : synptr[#f].get<t>()
 
 #define SettingsManagerCase(choice, get, type, setting, var, size) \
 	case choice: \
@@ -44,6 +38,7 @@
 		else setting = *(type*)var; \
 		break;
 
+#define DUMMY_STR			"dummy"
 #define EMPTYMODULE			0xDEADBEEF
 
 #include "ErrSys.hpp"
@@ -52,6 +47,7 @@
 #include "KDMAPI.hpp"
 #include "nlohmann\json.hpp"
 #include <thread>
+#include <fstream>
 
 namespace OmniMIDI {
 	enum MIDIEventType {
@@ -92,6 +88,19 @@ namespace OmniMIDI {
 		InvalidParameter,
 		InvalidBuffer,
 		NotSupported
+	};
+
+	class Synthesizers {
+	public:
+		enum n {
+			External = -1,
+			BASSMIDI,
+			FluidSynth,
+			XSynth,
+			TinySoundFont,
+			ksynth,
+			ShakraPipe
+		};
 	};
 
 	class LibImport
@@ -266,10 +275,181 @@ namespace OmniMIDI {
 
 	class OMSettings {
 	protected:
+		// When you initialize Settings(), load OM's own settings by default
 		ErrorSystem::Logger SetErr;
+		OMShared::SysPath Utils;
+		std::fstream* JSONStream = nullptr;
+		char* SynthName = nullptr;
+		nlohmann::json mainptr = nullptr;
+		nlohmann::json synptr = nullptr;
+
+		// Default values
+		char Renderer = Synthesizers::BASSMIDI;
+		bool KDMAPIEnabled = true;
+		bool DebugMode = false;
+		std::string CustomRenderer = "empty";
+
+		wchar_t* SettingsPath = nullptr;
+
+	private:
+		nlohmann::json jsonptr = nullptr;
 
 	public:
-		virtual ~OMSettings() {}
+		~OMSettings() {
+			CloseConfig();
+		}
+
+		virtual void LoadSynthConfig() {}
+		virtual void RewriteSynthConfig() {}
+
+		char GetRenderer() { return Renderer; }
+		bool IsKDMAPIEnabled() { return KDMAPIEnabled; }
+		bool IsDebugMode() { return DebugMode; }
+		const char* GetCustomRenderer() { return CustomRenderer.c_str(); }
+
+		bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 64) {
+			if (JSONStream && JSONStream->is_open())
+				return true;
+
+			if (SynthName == nullptr && pSynthName != nullptr) {
+				if (strcmp(pSynthName, DUMMY_STR)) {
+					if (pSynthName_sz > 64)
+						pSynthName_sz = 64;
+
+					SynthName = new char[pSynthName_sz];
+					if (strcpy(SynthName, pSynthName) != SynthName) {
+						NERROR(SetErr, "An error has occurred while parsing SynthName!", true);
+						CloseConfig();
+						return false;
+					}
+				}
+			}
+			else {
+				NERROR(SetErr, "InitConfig called with no SynthName specified!", true);
+				CloseConfig();
+				return false;
+			}
+
+			SettingsPath = new wchar_t[MAX_PATH];
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(SettingsPath) * MAX_PATH)) {
+				swprintf(SettingsPath, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
+
+				if (!JSONStream) JSONStream = new std::fstream;
+				JSONStream->open(SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
+
+				if (!JSONStream->is_open()) {
+					NERROR(SetErr, "An error has occurred while opening the config file!", true);
+					CloseConfig();
+					return false;
+				}
+
+				jsonptr = nlohmann::json::parse(*JSONStream, nullptr, false, true);
+				
+				mainptr = jsonptr["OmniMIDI"];
+				if (mainptr == nullptr) {
+					NERROR(SetErr, "An error has occurred while parsing the settings for OmniMIDI!", true);
+					CloseConfig();
+					return false;
+				}
+
+				MainSetVal(int, Renderer);
+				MainSetVal(bool, DebugMode);
+				MainSetVal(bool, KDMAPIEnabled);
+				MainSetVal(std::string, CustomRenderer);
+
+				if (SynthName) {
+					synptr = mainptr["SynthModules"][SynthName];
+					if (synptr == nullptr) {
+						NERROR(SetErr, "An error has occurred while parsing the settings for the chosen synth module!", true, SynthName);
+						CloseConfig();
+						return false;
+					}
+				}
+
+				return true;
+			}
+			else NERROR(SetErr, "An error has occurred while parsing the user profile path!", true);
+
+			return false;
+		}
+
+		bool AppendToConfig(nlohmann::json content) {
+			nlohmann::json tmp = nullptr;
+
+			if (content == nullptr)
+				return false;
+
+			tmp = jsonptr["OmniMIDI"]["SynthModules"][SynthName];
+			if (tmp != nullptr) {
+				jsonptr["OmniMIDI"]["SynthModules"].erase(SynthName);
+			}
+
+			tmp.clear();
+			tmp = {
+				{ SynthName, {
+					content
+				}}
+			};
+
+			jsonptr["OmniMIDI"]["SynthModules"].push_back(tmp);
+			mainptr = jsonptr["OmniMIDI"];
+			synptr = mainptr["SynthModules"][SynthName];
+			return true;
+		}
+
+		bool WriteConfig() {
+			if (!JSONStream || !JSONStream->is_open())
+				return false;
+
+			std::string dump = mainptr.dump(1);
+			JSONStream->write(dump.c_str(), dump.length());
+			JSONStream->close();
+
+			return true;
+		}
+
+		bool ReloadConfig() {
+			JSONStream->close();
+			return InitConfig();
+		}
+
+		bool IsConfigOpen() { return JSONStream && JSONStream->is_open(); }
+
+		bool IsSynthConfigValid() { return synptr != nullptr; }
+
+		wchar_t* GetConfigPath() { return SettingsPath; }
+
+		void CloseConfig() {
+			if (!jsonptr.is_null()) {
+				jsonptr.clear();
+			}
+
+			if (!mainptr.is_null()) {
+				mainptr.clear();
+			}
+
+			if (!synptr.is_null()) {
+				synptr.clear();
+			}
+
+			if (JSONStream) {
+				if (JSONStream->is_open())
+					JSONStream->close();
+
+				delete JSONStream;
+				JSONStream = nullptr;
+			}
+
+			if (SettingsPath) {
+				delete SettingsPath;
+				SettingsPath = nullptr;
+			}
+
+			if (SynthName) {
+				delete SynthName;
+				SynthName = nullptr;
+			}
+		}
 	};
 
 	class SynthModule {
@@ -281,10 +461,20 @@ namespace OmniMIDI {
 		std::jthread _EvtThread;
 		std::jthread _LogThread;
 
+#ifdef _WIN32
+		HMODULE m_hModule;
+#endif
+
+		bool OwnConsole = false;
+		unsigned int ActiveVoices = 0;
+		float RenderingTime = 0.0f;
+
 		unsigned char LRS = 0;
-		EvBuf* Events;
+		BEvBuf* ShortEvents = new BaseEvBuf_t;
+		BEvBuf* LongEvents = new BaseEvBuf_t;
 
 	public:
+
 		constexpr unsigned int ApplyRunningStatus(unsigned int ev) {
 			unsigned int tev = GetStatus(ev);
 
@@ -303,7 +493,7 @@ namespace OmniMIDI {
 		constexpr unsigned int GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
 		constexpr unsigned int GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
-		virtual ~SynthModule() {}
+		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }
 		virtual bool UnloadSynthModule() { return true; }
 		virtual bool StartSynthModule() { return true; }
@@ -312,6 +502,79 @@ namespace OmniMIDI {
 		virtual unsigned int GetSampleRate() { return 44100; }
 		virtual bool IsSynthInitialized() { return true; }
 		virtual int SynthID() { return EMPTYMODULE; }
+		virtual unsigned int GetActiveVoices() { return ActiveVoices; }
+		virtual float GetRenderingTime() { return RenderingTime; }
+
+#ifdef _WIN32
+		virtual void SetInstance(HMODULE hModule) { m_hModule = hModule; }
+#endif
+
+		virtual void LogFunc() {
+			const char Templ[] = "RT > %06.2f%% - POLY: %d (Ev RH%08zu WH%08zu)";
+			char* Buf = new char[96];
+
+			while (!IsSynthInitialized())
+				MiscFuncs.uSleep(-1);
+
+			while (IsSynthInitialized()) {
+				sprintf(Buf, Templ, GetRenderingTime(), GetActiveVoices(), ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
+
+#ifdef _WIN32
+				SetConsoleTitleA(Buf);
+#else
+				std::cout << "\033]0;" << Buf << "\007";
+#endif
+
+				MiscFuncs.uSleep(-1);
+			}
+
+			sprintf(Buf, Templ, 0.0f, 0, (size_t)0, (size_t)0);
+			SetConsoleTitleA(Buf);
+			delete[] Buf;
+		}
+
+		virtual void FreeEvBuf(BEvBuf* target) {
+			if (target) {
+				auto tEvents = new BEvBuf;
+				auto oEvents = target;
+
+				target = tEvents;
+
+				delete oEvents;
+			}
+		}
+
+		virtual BEvBuf* AllocateShortEvBuf(size_t size) {
+			if (ShortEvents) {
+				auto tEvents = new EvBuf(size);
+				auto oEvents = ShortEvents;
+
+				ShortEvents = tEvents;
+
+				delete oEvents;
+			}
+
+			// Double check
+			return ShortEvents;
+		}
+
+		virtual BEvBuf* AllocateLongEvBuf(size_t size) {
+			if (LongEvents) {
+				auto tEvents = new LEvBuf(size);
+				auto oEvents = LongEvents;
+
+				LongEvents = tEvents;
+
+				delete oEvents;
+			}
+
+			// Double check
+			return LongEvents;
+		}
+
+		virtual void FreeShortEvBuf() { FreeEvBuf(ShortEvents); }
+		virtual void FreeLongEvBuf() { FreeEvBuf(LongEvents); }
+
 
 		// Event handling system
 		virtual void PlayShortEvent(unsigned int ev) { return; }

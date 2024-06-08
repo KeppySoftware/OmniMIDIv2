@@ -27,6 +27,8 @@
 #include "XAudio2Output.hpp"
 #endif
 
+#define BASSSYNTH_STR "BASSSynth"
+
 namespace OmniMIDI {
 	enum BASSEngine {
 		Invalid = -1,
@@ -34,17 +36,19 @@ namespace OmniMIDI {
 		WASAPI,
 		XAudio2,
 		ASIO,
-		KS
+		BASSENGINE_COUNT = ASIO
 	};
 
 	class BASSSettings : public OMSettings {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
-		unsigned int AudioFrequency = 48000;
-		unsigned int MaxVoices = 1000;
-		unsigned int MaxCPU = 95;
+		unsigned int SampleRate = 48000;
+		unsigned int VoiceLimit = 1024;
+		unsigned int RenderTimeLimit = 95;
 		int AudioEngine = (int)WASAPI;
+
+		bool FollowOverlaps = false;
 		bool LoudMax = false;
 		bool AsyncMode = true;
 		bool FloatRendering = true;
@@ -53,8 +57,9 @@ namespace OmniMIDI {
 		bool StreamDirectFeed = false;
 
 		// XAudio2
-		int XABufSize = 88;
-		int XASweepRate = 15;
+		unsigned int XAMaxSamplesPerFrame = 88;
+		unsigned int XASamplesPerFrame = 15;
+		unsigned int XAChunksDivision = false;
 
 		// WASAPI
 		float WASAPIBuf = 32.0f;
@@ -64,91 +69,87 @@ namespace OmniMIDI {
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
 
-		BASSSettings() {
-			// When you initialize Settings(), load OM's own settings by default
-			OMShared::SysPath Utils;
-			wchar_t OMPath[MAX_PATH] = { 0 };
-
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				LoadJSON(OMPath);
-			}
-		}
-
-		void CreateJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::out | std::ofstream::trunc);
-			if (st.is_open()) {
-				nlohmann::json defset = {
-					{ "BASSSynth", {
-						JSONGetVal(AsyncMode),
-						JSONGetVal(ASIODevice),
-						JSONGetVal(ASIOLCh),
-						JSONGetVal(ASIORCh),
-						JSONGetVal(StreamDirectFeed),
-						JSONGetVal(FloatRendering),
-						JSONGetVal(MonoRendering),
-						JSONGetVal(OneThreadMode),
-						JSONGetVal(AudioEngine),
-						JSONGetVal(AudioFrequency),
-						JSONGetVal(EvBufSize),
-						JSONGetVal(LoudMax),
-						JSONGetVal(MaxCPU),
-						JSONGetVal(MaxVoices),
-						JSONGetVal(XABufSize),
-						JSONGetVal(XASweepRate),
-						JSONGetVal(WASAPIBuf)
-					}}
+		void RewriteSynthConfig() override {
+			CloseConfig();
+			if (InitConfig(true, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
+				nlohmann::json DefConfig = {
+					{
+						ConfGetVal(AsyncMode),
+						ConfGetVal(ASIODevice),
+						ConfGetVal(ASIOLCh),
+						ConfGetVal(ASIORCh),
+						ConfGetVal(StreamDirectFeed),
+						ConfGetVal(FloatRendering),
+						ConfGetVal(MonoRendering),
+						ConfGetVal(XAChunksDivision),
+						ConfGetVal(OneThreadMode),
+						ConfGetVal(FollowOverlaps),
+						ConfGetVal(AudioEngine),
+						ConfGetVal(SampleRate),
+						ConfGetVal(EvBufSize),
+						ConfGetVal(LoudMax),
+						ConfGetVal(RenderTimeLimit),
+						ConfGetVal(VoiceLimit),
+						ConfGetVal(XAMaxSamplesPerFrame),
+						ConfGetVal(XASamplesPerFrame),
+						ConfGetVal(WASAPIBuf)
+					}
 				};
 
-				std::string dump = defset.dump(1);
-				st.write(dump.c_str(), dump.length());
-				st.close();
+				if (AppendToConfig(DefConfig))
+					WriteConfig();
 			}
+
+			CloseConfig();
+			InitConfig(false, BASSSYNTH_STR, sizeof(BASSSYNTH_STR));
 		}
 
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
-		void LoadJSON(wchar_t* Path) {
-			std::fstream st;
-			st.open(Path, std::fstream::in);
+		void LoadSynthConfig() override {
+			if (InitConfig(false, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
+				SynthSetVal(bool, AsyncMode);
+				SynthSetVal(bool, LoudMax);
+				SynthSetVal(bool, OneThreadMode);
+				SynthSetVal(bool, StreamDirectFeed);
+				SynthSetVal(bool, FloatRendering);
+				SynthSetVal(bool, MonoRendering);
+				SynthSetVal(bool, FollowOverlaps);
+				SynthSetVal(float, WASAPIBuf);
+				SynthSetVal(int, AudioEngine);
+				SynthSetVal(std::string, ASIODevice);
+				SynthSetVal(std::string, ASIOLCh);
+				SynthSetVal(std::string, ASIORCh);
+				SynthSetVal(unsigned int, SampleRate);
+				SynthSetVal(unsigned int, EvBufSize);
+				SynthSetVal(unsigned int, RenderTimeLimit);
+				SynthSetVal(unsigned int, XAMaxSamplesPerFrame);
+				SynthSetVal(unsigned int, XASamplesPerFrame);
+				SynthSetVal(unsigned int, VoiceLimit);
+				SynthSetVal(unsigned int, XAChunksDivision);
 
-			if (st.is_open()) {
-				try {
-					// Read the JSON data from there
-					auto json = nlohmann::json::parse(st, nullptr, false, true);
+				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 32 || XAMaxSamplesPerFrame > 512)
+					XAMaxSamplesPerFrame = 88;
 
-					if (json != nullptr) {
-						auto& JsonData = json["BASSSynth"];
+				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / 8 || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
+					XASamplesPerFrame = 15;
+			
+				if (XAChunksDivision > 4 || !XAChunksDivision)
+					XAChunksDivision = 1;
 
-						if (!(JsonData == nullptr)) {
-							JSONSetVal(bool, AsyncMode);
-							JSONSetVal(bool, LoudMax);
-							JSONSetVal(bool, OneThreadMode);
-							JSONSetVal(bool, StreamDirectFeed);
-							JSONSetVal(bool, FloatRendering);
-							JSONSetVal(bool, MonoRendering);
-							JSONSetVal(float, WASAPIBuf);
-							JSONSetVal(int, AudioEngine);
-							JSONSetVal(std::string, ASIODevice);
-							JSONSetVal(std::string, ASIOLCh);
-							JSONSetVal(std::string, ASIORCh);
-							JSONSetVal(unsigned int, AudioFrequency);
-							JSONSetVal(unsigned int, EvBufSize);
-							JSONSetVal(unsigned int, MaxCPU);
-							JSONSetVal(unsigned int, XABufSize);
-							JSONSetVal(unsigned int, XASweepRate);
-							JSONSetVal(unsigned int, MaxVoices);
-						}
-					}
-					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
-				}
-				catch (nlohmann::json::type_error ex) {
-					st.close();
-					LOG(SetErr, "The JSON is corrupted or malformed!nlohmann::json says: %s", ex.what());
-					CreateJSON(Path);
-					return;
-				}
-				st.close();
+				if (SampleRate == 0 || SampleRate > 384000)
+					SampleRate = 48000;
+
+				if (VoiceLimit < 1 || VoiceLimit > 100000)
+					VoiceLimit = 1024;
+
+				if (AudioEngine < Internal || AudioEngine > BASSENGINE_COUNT)
+					AudioEngine = WASAPI;
+
+				return;
+			}
+
+			if (IsConfigOpen() && !IsSynthConfigValid()) {
+				RewriteSynthConfig();
 			}
 		}
 	};
@@ -243,8 +244,6 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		unsigned int AudioStream = 0;
-		unsigned int Voices = 0;
-		float CPUUsage = 0.0f;
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
@@ -252,7 +251,7 @@ namespace OmniMIDI {
 		BASSSettings* Settings = nullptr;
 
 #ifdef _WIN32
-		XAudio2Output* XAEngine;
+		SoundOut* WinAudioEngine;
 #endif
 
 		bool RestartSynth = false;
@@ -261,13 +260,13 @@ namespace OmniMIDI {
 		bool LoadFuncs();
 		bool ClearFuncs();
 		void StreamSettings(bool restart);
+		void LoadSoundFonts();
 		bool ProcessEvBuf();
 		void ProcessEvBufChk();
 
 		void AudioThread();
 		void EventsThread();
 		void BASSThread();
-		void LogThread();
 
 		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, void*);
 		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, void*);
@@ -280,7 +279,7 @@ namespace OmniMIDI {
 		bool StartSynthModule();
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size);
-		unsigned int GetSampleRate() { return Settings->AudioFrequency; }
+		unsigned int GetSampleRate() { return Settings->SampleRate; }
 		bool IsSynthInitialized() { return (AudioStream != 0); }
 		int SynthID() { return 0x1411BA55; }
 

@@ -27,7 +27,7 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	if (!IsSynthInitialized())
 		return false;
 
-	Events->Pop(&tev);
+	ShortEvents->Pop(&tev);
 
 	if (!tev)
 		return false;
@@ -74,20 +74,23 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 }
 
 bool OmniMIDI::TinySFSynth::LoadSynthModule() {
-	if (!Settings)
+	if (!Settings) {
 		Settings = new TinySFSettings;
+		Settings->LoadSynthConfig();
+	}
 
-	Events = new EvBuf(Settings->EvBufSize);
+	if (!AllocateShortEvBuf(Settings->EvBufSize)) {
+		NERROR(SynErr, "AllocateShortEvBuf failed.", true);
+		return false;
+	}
+
 	_EvtThread = std::jthread(&TinySFSynth::EventsThread, this);
 
 	return true;
 }
 
 bool OmniMIDI::TinySFSynth::UnloadSynthModule() {
-	if (Events) {
-		delete Events;
-		Events = nullptr;
-	}
+	FreeShortEvBuf();
 
 	return true;
 }
@@ -102,7 +105,7 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 	// Define the desired audio output format we request
 	SDL_AudioSpec OutputAudioSpec = { 0 };
 	SDL_AudioSpec FinalAudioSpec = { 0 };
-	OutputAudioSpec.freq = Settings->AudioFrequency;
+	OutputAudioSpec.freq = Settings->SampleRate;
 	OutputAudioSpec.format = AUDIO_F32;
 	OutputAudioSpec.channels = Settings->StereoRendering ? 2 : 1;
 	OutputAudioSpec.samples = Settings->Samples;
@@ -126,7 +129,7 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 			g_TinySoundFont = tsf_load_filename(dSFv[i].path.c_str());
 			if (g_TinySoundFont) {
 				tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
-				LOG(SynErr, "tsf_set_max_voices set to %d", Settings->MaxVoices);
+				LOG(SynErr, "tsf_set_max_voices set to %d", Settings->VoiceLimit);
 				break;
 			}
 		}
@@ -140,8 +143,8 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 	}
 
 	tsf_set_output(g_TinySoundFont, Settings->StereoRendering ? TSF_STEREO_INTERLEAVED : TSF_MONO, OutputAudioSpec.freq, 0);
-	tsf_set_max_voices(g_TinySoundFont, Settings->MaxVoices);
-	LOG(SynErr, "tsf_set_max_voices set to %d", Settings->MaxVoices);
+	tsf_set_max_voices(g_TinySoundFont, Settings->VoiceLimit);
+	LOG(SynErr, "tsf_set_max_voices set to %d", Settings->VoiceLimit);
 
 	g_Mutex = SDL_CreateMutex();
 
@@ -178,14 +181,14 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 }
 
 void OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
-	if (!Events || !IsSynthInitialized())
+	if (!ShortEvents || !IsSynthInitialized())
 		return;
 
 	UPlayShortEvent(ev);
 }
 
 void OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
-	Events->Push(ev);
+	ShortEvents->Push(ev);
 }
 
 OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {

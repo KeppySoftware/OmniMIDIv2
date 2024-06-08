@@ -321,7 +321,7 @@ typedef void (CALLBACK MIDIINPROC)(DWORD device, double time, const BYTE* buffer
 /* MIDI input callback function.
 device : MIDI input device
 time   : Timestamp
-buffer : Buffer containing MIDI data
+buffer : buf containing MIDI data
 length : Number of bytes of data
 user   : The 'user' parameter value given when calling BASS_MIDI_InInit */
 
