@@ -83,8 +83,7 @@ namespace OmniMIDI {
 		void RefreshSettings();
 		bool Start(bool StreamPlayer = false);
 		bool Stop(bool restart = false);
-		void Get();
-		void Free();
+		OmniMIDI::SynthModule* GetSynth();
 		bool IsKDMAPIAvailable() { return SHSettings->IsKDMAPIEnabled(); }
 
 #ifdef _WIN32 

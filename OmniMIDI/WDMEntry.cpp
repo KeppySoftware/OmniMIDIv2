@@ -311,7 +311,6 @@ extern "C" {
 
 		case MODM_CLOSE:
 			if (Host->Stop()) {
-				Host->Free();
 				LOG(WDMErr, "WinMM freed.");
 				return MMSYSERR_NOERROR;
 			}
@@ -439,8 +438,6 @@ extern "C" {
 
 	EXPORT int APICALL TerminateKDMAPIStream() {
 		if (Host->Stop()) {
-			Host->Free();
-
 			LOG(WDMErr, "KDMAPI freed.");
 			return 1;
 		}
@@ -505,7 +502,7 @@ extern "C" {
 		if (setting == KDMAPI_STREAM) {
 			if (fDriverCallback->IsCallbackReady()) {
 				if (!Host->SpInit()) {
-					Host->Free();
+					Host->Stop();
 					return -1;
 				}
 			}

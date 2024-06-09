@@ -123,6 +123,7 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 		NERROR(XAErr, "Error 0x%08x has occurred while opening the XAudio2 device.", true, hr);
 		return StreamOpenFailed;
 	}
+	LOG(XAErr, "XA device created at 0x%08x.", true, xaudDev);
 
 	hr = xaudDev->CreateMasteringVoice(
 		&masterVoice,
@@ -136,18 +137,21 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 		NERROR(XAErr, "Error 0x%08x has occurred while creating the mastering voice for the XAudio2 device.", true, hr);
 		return MasteringVoiceFailed;
 	}
+	LOG(XAErr, "CreateMasteringVoice succeeded.", true, xaudDev);
 
 	hr = xaudDev->CreateSourceVoice(&sourceVoice, &wfx, 0, 4.0f, &bufNotifier);
 	if (FAILED(hr)) {
 		NERROR(XAErr, "Error 0x%08x has occurred while creating the source voice for the XAudio2 device.", true, hr);
 		return SourceVoiceFailed;
 	}
+	LOG(XAErr, "CreateSourceVoice succeeded.", true, xaudDev);
 
 	hr = sourceVoice->Start(0);
 	if (FAILED(hr)) {
 		NERROR(XAErr, "Error 0x%08x has occurred while spinning up the XAudio2 device.", true, hr);
 		return StartFailed;
 	}
+	LOG(XAErr, "Source voice started.", true, xaudDev);
 
 	devChanged = false;
 	bufReadHead = 0;
@@ -156,7 +160,13 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	sampleBuffer = new unsigned char[maxSamplesPerFrame * samplesPerFrame * bitDepth]();
 	samplesInBuffer = new unsigned long long[samplesPerFrame]();
 
-	return Success;
+	if (sampleBuffer && samplesInBuffer) {
+		LOG(XAErr, "Allocated buffers.", true, xaudDev);
+		return Success;
+	}
+
+	NERROR(XAErr, "One of the buffers returned zero. sampleBuffer: %d | samplesInBuffer: %d", true, sampleBuffer != nullptr, samplesInBuffer != nullptr);
+	Stop();
 }
 
 SoundOutResult XAudio2Output::Stop() {

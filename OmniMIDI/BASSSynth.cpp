@@ -477,6 +477,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			NERROR(SynErr, "WinAudioEngine->Init failed. %u", true, xar);
 			return false;
 		}
+		LOG(SynErr, "WinAudioEngine->Init succeeded.");
 
 		_AudThread = std::jthread(&BASSSynth::AudioThread, this);
 		if (!_AudThread.joinable()) {
@@ -625,6 +626,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 
 	LoadSoundFonts();
+	LOG(SynErr, "SoundFonts loaded.");
 
 	// Sorry ARM users!
 #ifdef _WIN32 
@@ -646,6 +648,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #endif
 
 	StreamSettings(false);
+	LOG(SynErr, "Stream settings loaded.");
 
 	if (!Settings->OneThreadMode) {
 		_EvtThread = std::jthread(&BASSSynth::EventsThread, this);
@@ -689,6 +692,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #endif
 	}
 
+	LOG(SynErr, "BASSMIDI ready.");
 	return true;
 }
 

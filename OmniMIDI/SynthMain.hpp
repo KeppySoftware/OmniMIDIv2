@@ -295,7 +295,7 @@ namespace OmniMIDI {
 		nlohmann::json jsonptr = nullptr;
 
 	public:
-		~OMSettings() {
+		virtual ~OMSettings() {
 			CloseConfig();
 		}
 
