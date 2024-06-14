@@ -62,16 +62,17 @@ void OmniMIDI::KSynthM::ProcessEvBufChk() {
 }
 
 void OmniMIDI::KSynthM::AudioThread() {
-	unsigned div = Settings->XAMaxSamplesPerFrame / (Settings->XAMaxSamplesPerFrame / 2);
-	unsigned int arrsize = Settings->XAMaxSamplesPerFrame;
-	unsigned int chksize = arrsize / div;
-	float* buf = new float[arrsize];
-	float* cbuf = new float[chksize];
+	// If bufsize is 64, div will be 32, so the chunk will be 2
+	unsigned div = Settings->XAChunksDivision;
+	size_t arrsize = Settings->XAMaxSamplesPerFrame;
+	size_t chksize = arrsize / div;
+	float* buf = nullptr;
+	float* cbuf = nullptr;
 
-	if (chksize < 2)
-		chksize = 2;
+	buf = new float[arrsize];
+	cbuf = new float[chksize];
 
-	while (!Terminate) {
+	while (IsSynthInitialized()) {
 		for (int i = 0; i < div; i++) {
 			ProcessEvBufChk();
 
@@ -82,7 +83,6 @@ void OmniMIDI::KSynthM::AudioThread() {
 		}
 
 		WinAudioEngine->Update(buf, arrsize);
-
 		MiscFuncs.uSleep(-1);
 	}
 
@@ -91,26 +91,22 @@ void OmniMIDI::KSynthM::AudioThread() {
 }
 
 void OmniMIDI::KSynthM::EventsThread() {
-	while (!Terminate) {
+	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
 			MiscFuncs.uSleep(-1);
 	}
 }
 
-void OmniMIDI::KSynthM::LogThread() {
+void OmniMIDI::KSynthM::DataCheckThread() {
 	const float smoothingFac = 0.0025f;
 	float smoothedVal = 0.0f;
-	char* Buf = new char[192];
 
-	while (!Terminate) {
+	while (IsSynthInitialized()) {
 		smoothedVal = (1.0f - smoothingFac) * smoothedVal + smoothingFac * (Synth->rendering_time * 100);
-		sprintf_s(Buf, 192, "RT > %06.2f%% - POLY: %d (Ev RH%05d WH%05d)", smoothedVal, Synth->polyphony, ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
-		SetConsoleTitleA(Buf);
-
+		ActiveVoices = Synth->polyphony;
+		RenderingTime = smoothedVal;
 		MiscFuncs.uSleep(-1);
 	}
-
-	delete[] Buf;
 }
 
 bool OmniMIDI::KSynthM::LoadSynthModule() {
@@ -177,7 +173,14 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 			return false;
 		}
 
-		_LogThread = std::jthread(&KSynthM::LogThread, this);
+		_DatThread = std::jthread(&KSynthM::DataCheckThread, this);
+		if (!_DatThread.joinable()) {
+			NERROR(SynErr, "_DatThread failed. (ID: %x)", true, _DatThread.get_id());
+			StopSynthModule();
+			return false;
+		}
+
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
 		if (!_LogThread.joinable()) {
 			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			StopSynthModule();
@@ -190,6 +193,7 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		//	return false;
 		// }
 
+#ifndef _DEBUG
 		if (Settings->IsDebugMode()) {
 			if (AllocConsole()) {
 				OwnConsole = true;
@@ -203,6 +207,7 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 				std::cin.clear();
 			}
 		}
+#endif
 
 		return true;
 	}
@@ -212,6 +217,9 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 
 bool OmniMIDI::KSynthM::StopSynthModule() {
 	Terminate = true;
+
+	if (_DatThread.joinable())
+		_DatThread.join();
 
 	if (_AudThread.joinable())
 		_AudThread.join();
@@ -225,10 +233,8 @@ bool OmniMIDI::KSynthM::StopSynthModule() {
 		WinAudioEngine = nullptr;
 	}
 
-	if (Settings->IsDebugMode() && OwnConsole) {
-		FreeConsole();
-		OwnConsole = false;
-	}
+	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
+		Settings->CloseConsole();
 
 	if (Synth) {
 		ksynth_free(Synth);

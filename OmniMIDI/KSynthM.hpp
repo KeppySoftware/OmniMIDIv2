@@ -37,8 +37,6 @@ namespace OmniMIDI {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
-		unsigned int SampleRate = 48000;
-		unsigned int VoiceLimit = 500;
 
 		// XAudio2
 		unsigned int XAMaxSamplesPerFrame = 88;
@@ -123,9 +121,11 @@ namespace OmniMIDI {
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
+		std::jthread _DatThread;
+
 		void AudioThread();
 		void EventsThread();
-		void LogThread();
+		void DataCheckThread();
 		bool ProcessEvBuf();
 		void ProcessEvBufChk();
 
@@ -136,7 +136,7 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return 48000; }
-		bool IsSynthInitialized() { return Synth != nullptr; }
+		bool IsSynthInitialized() { return Synth != nullptr && !Terminate; }
 		int SynthID() { return 0xFEFEFEFE; }
 
 		// Event handling system

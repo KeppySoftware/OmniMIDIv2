@@ -106,8 +106,8 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	wfx.nBlockAlign = nCh * bitDepth;
 	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
 
-	auto lat = (((double)mspf / (double)strmSampleRate) * 1000.0) * (double)samplesPerFrame;
-	LOG(XAErr, "Max samples per frame set to %dSPFs, with an average samples per frame value of %d. Buffer will be split in chunks of %d. Latency will be %0.1fms.", maxSamplesPerFrame, samplesPerFrame, nChks, lat + 40.0);
+	auto lat = (((double)samplesPerFrame / (double)strmSampleRate) * 1000.0);
+	LOG(XAErr, "SPF limit set to %dSPFs, with a query  value of %dSPFs. Buffer will be split in chunks of %d. Latency will be around %0.1fms.", maxSamplesPerFrame, samplesPerFrame, nChks, lat + 40.0);
 	LOG(XAErr, "wfxStruct -> wFT: %d, nCh: %d, nSaPS: %d, nBlAlign: %d, nAvgByPS: %d, wBiPS: %d",
 		wfx.wFormatTag, wfx.nChannels, wfx.nSamplesPerSec, wfx.nBlockAlign, wfx.nAvgBytesPerSec, wfx.wBitsPerSample);
 
@@ -158,14 +158,13 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	bufWriteHead = 0;
 
 	sampleBuffer = new unsigned char[maxSamplesPerFrame * samplesPerFrame * bitDepth]();
-	samplesInBuffer = new unsigned long long[samplesPerFrame]();
 
-	if (sampleBuffer && samplesInBuffer) {
-		LOG(XAErr, "Allocated buffers.", true, xaudDev);
+	if (sampleBuffer) {
+		LOG(XAErr, "Allocated buffer.");
 		return Success;
 	}
 
-	NERROR(XAErr, "One of the buffers returned zero. sampleBuffer: %d | samplesInBuffer: %d", true, sampleBuffer != nullptr, samplesInBuffer != nullptr);
+	NERROR(XAErr, "sampleBuffer returned a value of %d.", true, sampleBuffer != nullptr);
 	Stop();
 }
 
@@ -191,11 +190,6 @@ SoundOutResult XAudio2Output::Stop() {
 	if (sampleBuffer) {
 		delete[] sampleBuffer;
 		sampleBuffer = nullptr;
-	}
-
-	if (samplesInBuffer) {
-		delete[] samplesInBuffer;
-		samplesInBuffer = nullptr;
 	}
 
 	CoUninitialize();
@@ -233,7 +227,6 @@ SoundOutResult XAudio2Output::Update(void* buf, size_t len) {
 		}
 	}
 
-	samplesInBuffer[bufWriteHead] = len / nCh;
 	size_t num_bytes = len * bitDepth;
 
 	XAUDIO2_BUFFER xaudioBuf = { 0 };

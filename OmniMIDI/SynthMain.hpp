@@ -122,9 +122,10 @@ namespace OmniMIDI {
 
 		void* GetPtr() { return *(funcptr); }
 		const char* GetName() { return funcname; }
+		bool LoadFailed() { return funcptr == nullptr || (funcptr != nullptr && *(funcptr) == nullptr); }
 
-		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr){
-			void* ptr = (void*)-1;
+		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr) {
+			void* ptr = nullptr;
 
 			if (lib == nullptr && ptrname == nullptr)
 			{
@@ -136,8 +137,9 @@ namespace OmniMIDI {
 
 			ptr = (void*)getAddr(lib, ptrname);
 
-			if (!ptr)
+			if (!ptr) {
 				return false;
+			}
 
 			if (ptr != *(funcptr))
 				*(funcptr) = ptr;
@@ -282,6 +284,7 @@ namespace OmniMIDI {
 		char* SynthName = nullptr;
 		nlohmann::json mainptr = nullptr;
 		nlohmann::json synptr = nullptr;
+		bool OwnConsole = false;
 
 		// Default values
 		char Renderer = Synthesizers::BASSMIDI;
@@ -295,6 +298,10 @@ namespace OmniMIDI {
 		nlohmann::json jsonptr = nullptr;
 
 	public:
+		// Basic settings
+		unsigned int SampleRate = 48000;
+		unsigned int VoiceLimit = 1024;
+
 		virtual ~OMSettings() {
 			CloseConfig();
 		}
@@ -302,10 +309,11 @@ namespace OmniMIDI {
 		virtual void LoadSynthConfig() {}
 		virtual void RewriteSynthConfig() {}
 
-		char GetRenderer() { return Renderer; }
-		bool IsKDMAPIEnabled() { return KDMAPIEnabled; }
-		bool IsDebugMode() { return DebugMode; }
-		const char* GetCustomRenderer() { return CustomRenderer.c_str(); }
+		virtual char GetRenderer() { return Renderer; }
+		virtual bool IsKDMAPIEnabled() { return KDMAPIEnabled; }
+		virtual bool IsOwnConsole() { return OwnConsole; }
+		virtual bool IsDebugMode() { return DebugMode; }
+		virtual const char* GetCustomRenderer() { return CustomRenderer.c_str(); }
 
 		bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 64) {
 			if (JSONStream && JSONStream->is_open())
@@ -450,10 +458,41 @@ namespace OmniMIDI {
 				SynthName = nullptr;
 			}
 		}
+
+		virtual void OpenConsole() {
+			IsDebugMode();
+
+#if defined _WIN32 && !defined _DEBUG
+			if (IsDebugMode()) {
+				if (AllocConsole()) {
+					OwnConsole = true;
+					FILE* dummy;
+					freopen_s(&dummy, "CONOUT$", "w", stdout);
+					freopen_s(&dummy, "CONOUT$", "w", stderr);
+					freopen_s(&dummy, "CONIN$", "r", stdin);
+					std::cout.clear();
+					std::clog.clear();
+					std::cerr.clear();
+					std::cin.clear();
+				}
+			}
+#endif
+		}
+
+		virtual void CloseConsole() {
+#if defined _WIN32 && !defined _DEBUG
+			if (IsDebugMode() && OwnConsole) {
+				FreeConsole();
+				OwnConsole = false;
+			}
+#endif
+		}
+
 	};
 
 	class SynthModule {
 	protected:
+		OMSettings* Settings;
 		OMShared::Funcs MiscFuncs;
 		ErrorSystem::Logger SynErr;
 
@@ -465,7 +504,6 @@ namespace OmniMIDI {
 		HMODULE m_hModule;
 #endif
 
-		bool OwnConsole = false;
 		unsigned int ActiveVoices = 0;
 		float RenderingTime = 0.0f;
 

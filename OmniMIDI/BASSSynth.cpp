@@ -189,7 +189,7 @@ void OmniMIDI::BASSSynth::StreamSettings(bool restart) {
 	}
 
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_SRC, 0);
-	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_KILL, 1);
+	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_KILL, 0);
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_VOICES, (float)Settings->VoiceLimit);
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
 	BASS_ChannelSetAttribute(AudioStream, BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, 1 << 24);
@@ -210,7 +210,6 @@ void OmniMIDI::BASSSynth::AudioThread() {
 
 	case XAudio2:
 	{	
-		// If bufsize is 64, div will be 32, so the chunk will be 2
 		unsigned div = Settings->XAChunksDivision;
 		size_t arrsize = Settings->XAMaxSamplesPerFrame;
 		size_t chksize = arrsize / div;
@@ -231,7 +230,7 @@ void OmniMIDI::BASSSynth::AudioThread() {
 				}
 			}
 
-			WinAudioEngine->Update(buf, Settings->XAMaxSamplesPerFrame);
+			WinAudioEngine->Update(buf, arrsize);
 			MiscFuncs.uSleep(-1);
 		}
 
@@ -671,25 +670,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-#if defined _WIN32 && !defined _DEBUG
-		if (AllocConsole()) {
-			OwnConsole = true;
-			FILE* dummy;
-			freopen_s(&dummy, "CONOUT$", "w", stdout);
-			freopen_s(&dummy, "CONOUT$", "w", stderr);
-			freopen_s(&dummy, "CONIN$", "r", stdin);
-			std::cout.clear();
-			std::clog.clear();
-			std::cerr.clear();
-			std::cin.clear();
-
-			_LogThread = std::jthread(&BASSSynth::LogThread, this);
-			if (!_LogThread.joinable()) {
-				NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
-				return false;
-			}
-		}
-#endif
+		Settings->OpenConsole();
 	}
 
 	LOG(SynErr, "BASSMIDI ready.");
@@ -758,10 +739,14 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	if (_AudThread.joinable())
 		_AudThread.join();
 
-#ifdef _DEBUG
 	if (_LogThread.joinable())
 		_LogThread.join();
-#endif
+
+	if (_BASThread.joinable())
+		_BASThread.join();
+
+	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
+		Settings->CloseConsole();
 
 	switch (Settings->AudioEngine) {
 	case WASAPI:

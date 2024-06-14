@@ -42,9 +42,7 @@ namespace OmniMIDI {
 		// Global settings
 		bool StereoRendering = true;
 		unsigned int EvBufSize = 32768;
-		unsigned int SampleRate = 48000;
 		unsigned int Samples = 4096;
-		unsigned int VoiceLimit = 512;
 
 		TinySFSettings() {
 			LoadSynthConfig();

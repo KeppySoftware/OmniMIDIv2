@@ -36,8 +36,6 @@ namespace OmniMIDI {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
-		unsigned int SampleRate = 48000;
-		unsigned int VoiceLimit = 1024;
 		unsigned int PeriodSize = 64;
 		unsigned int Periods = 2;
 		unsigned int ThreadsCount = 1;

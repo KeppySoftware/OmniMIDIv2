@@ -183,7 +183,6 @@ private:
 	SOAudioFlags			flagsS = (SOAudioFlags)0;
 
 	unsigned char*			sampleBuffer = 0;
-	unsigned long long*		samplesInBuffer = 0;
 
 	HMODULE					XALib = nullptr;
 	OMShared::Funcs			Funcs;

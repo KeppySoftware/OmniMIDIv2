@@ -43,8 +43,6 @@ namespace OmniMIDI {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
-		unsigned int SampleRate = 48000;
-		unsigned int VoiceLimit = 1024;
 		unsigned int RenderTimeLimit = 95;
 		int AudioEngine = (int)WASAPI;
 
@@ -127,14 +125,14 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, VoiceLimit);
 				SynthSetVal(unsigned int, XAChunksDivision);
 
-				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 32 || XAMaxSamplesPerFrame > 512)
-					XAMaxSamplesPerFrame = 88;
+				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 16 || XAMaxSamplesPerFrame > 1024)
+					XAMaxSamplesPerFrame = 96;
 
-				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / 8 || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
-					XASamplesPerFrame = 15;
-			
-				if (XAChunksDivision > 4 || !XAChunksDivision)
-					XAChunksDivision = 1;
+				if (XAChunksDivision > XAMaxSamplesPerFrame || !XAChunksDivision)
+					XAChunksDivision = 4;
+
+				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / XAChunksDivision || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
+					XASamplesPerFrame = 24;
 
 				if (SampleRate == 0 || SampleRate > 384000)
 					SampleRate = 48000;
