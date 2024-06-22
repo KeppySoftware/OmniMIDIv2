@@ -1,26 +1,23 @@
 #include "BASSSynth.hpp"
 
 bool OmniMIDI::BASSSynth::ProcessEvBuf() {
-	unsigned int tev = 0;
-
 	if (!AudioStream)
 		return false;
 
-	ShortEvents->Pop(&tev);
+	PSE tev = ShortEvents->PopSe();
 
 	if (!tev)
 		return false;
 
-	tev = ApplyRunningStatus(tev);
 	unsigned int sysev = 0;
 
 	unsigned int evt = MIDI_SYSTEM_DEFAULT;
 	unsigned int ev = 0;
-	unsigned char status = GetStatus(tev);
-	unsigned char command = GetCommand(status);
-	unsigned char chan = GetChannel(tev);
-	unsigned char param1 = GetFirstParam(tev);
-	unsigned char param2 = GetSecondParam(tev);
+	unsigned char status = tev->status;
+	unsigned char command = GetCommandChar(tev->status);
+	unsigned char chan = GetChannelChar(tev->status);
+	unsigned char param1 = tev->param1;
+	unsigned char param2 = tev->param2;
 
 	unsigned int len = 3;
 
@@ -55,16 +52,16 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		switch (status) {
 			// Let's go!
 		case SystemMessageStart:
-			sysev = tev << 8;
+			sysev = ShortEvents->CreateDword(tev) << 8;
 
 			LOG(SynErr, "SysEx Begin: 0x%x", sysev);
 			BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 2);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
-				ShortEvents->Peek(&sysev);
+				sysev = ShortEvents->Peek();
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
-					ShortEvents->Pop(&sysev);
+					sysev =  ShortEvents->Pop();
 					LOG(SynErr, "SysEx Ev: 0x%x", sysev);
 					BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &sysev, 3);
 				}
@@ -88,10 +85,12 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		case Unknown4:
 			return false;
 
-		default:
-			if (!((tev - 0xC0) & 0xE0)) len = 2;
-			BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &tev, len);
+		default: {
+			unsigned int d = ShortEvents->CreateDword(tev);
+			if (!((d - 0xC0) & 0xE0)) len = 2;
+			BASS_MIDI_StreamEvents(AudioStream, BASS_MIDI_EVENTS_RAW, &d, len);
 			return true;
+		}		
 		}
 	}
 

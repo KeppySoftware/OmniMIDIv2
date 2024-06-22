@@ -28,23 +28,20 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	int len = 0;
 	int handled = 0;
 	unsigned int sysev = 0;
-	unsigned int tgtev = 0;
 
 	if (!fDrv)
 		return false;
 
-	ShortEvents->Pop(&tgtev);
+	PSE tev = ShortEvents->PopSe();
 
-	if (!tgtev)
+	if (!tev)
 		return false;
 
-	tgtev = ApplyRunningStatus(tgtev);
-
-	unsigned char st = GetStatus(tgtev);
-	unsigned char cmd = GetCommand(st);
-	unsigned char ch = GetChannel(tgtev);
-	unsigned char param1 = GetFirstParam(tgtev);
-	unsigned char param2 = GetSecondParam(tgtev);
+	unsigned char status = tev->status;
+	unsigned char cmd = GetCommandChar(status);
+	unsigned char ch = GetChannelChar(status);
+	unsigned char param1 = tev->param1;
+	unsigned char param2 = tev->param2;
 
 	switch (cmd) {
 	case NoteOn:
@@ -78,20 +75,20 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 		break;
 
 	default:
-		switch (st) {
+		switch (status) {
 
 		// Let's go!
 		case SystemMessageStart:
-			sysev = tgtev << 8;
+			sysev = ShortEvents->CreateDword(tev) << 8;
 
 			LOG(SynErr, "SysEx Begin: %x", sysev);
 			fluid_synth_sysex(fSyn, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
-				ShortEvents->Peek(&sysev);
+				sysev = ShortEvents->Peek();
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
-					ShortEvents->Pop(&sysev);
+					sysev = ShortEvents->Pop();
 					LOG(SynErr, "SysEx Ev: %x", sysev);
 					fluid_synth_sysex(fSyn, (const char*)&sysev, 3, 0, &len, &handled, 0);
 				}		

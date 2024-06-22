@@ -10,35 +10,31 @@
 #include "KSynthM.hpp"
 
 bool OmniMIDI::KSynthM::ProcessEvBuf() {
-	unsigned int ev = 0;
-
 	if (!Synth)
 		return false;
 
-	ShortEvents->Pop(&ev);
+	PSE tev = ShortEvents->PopSe();
 
-	if (!ev)
+	if (!tev)
 		return false;
 
-	ev = ApplyRunningStatus(ev);
+	unsigned char status = tev->status;
+	unsigned char cmd = GetCommandChar(status);
+	unsigned char ch = GetChannelChar(status);
+	unsigned char param1 = tev->param1;
+	unsigned char param2 = tev->param2;
 
-	unsigned char status = GetStatus(ev);
-	unsigned char command = GetCommand(status);
-	unsigned char chan = GetChannel(ev);
-	unsigned char param1 = GetFirstParam(ev);
-	unsigned char param2 = GetSecondParam(ev);
-
-	switch (command) {
+	switch (cmd) {
 	case NoteOn:
 		// param1 is the key, param2 is the velocity
-		ksynth_note_on(Synth, chan, param1, param2);
+		ksynth_note_on(Synth, ch, param1, param2);
 		break;
 	case NoteOff:
 		// param1 is the key, ignore param2
-		ksynth_note_off(Synth, chan, param1);	
+		ksynth_note_off(Synth, ch, param1);
 		break;
 	case CC:
-		ksynth_cc(Synth, chan, param1, param2);
+		ksynth_cc(Synth, ch, param1, param2);
 		break;
 	default:
 		switch (status) {
@@ -192,22 +188,6 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		//	NERROR(SynErr, "_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
 		//	return false;
 		// }
-
-#ifndef _DEBUG
-		if (Settings->IsDebugMode()) {
-			if (AllocConsole()) {
-				OwnConsole = true;
-				FILE* dummy;
-				freopen_s(&dummy, "CONOUT$", "w", stdout);
-				freopen_s(&dummy, "CONOUT$", "w", stderr);
-				freopen_s(&dummy, "CONIN$", "r", stdin);
-				std::cout.clear();
-				std::clog.clear();
-				std::cerr.clear();
-				std::cin.clear();
-			}
-		}
-#endif
 
 		return true;
 	}

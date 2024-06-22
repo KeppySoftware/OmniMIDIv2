@@ -563,7 +563,7 @@ extern "C" {
 					clearR = false;
 				}
 
-				buffer->Pop(&ev);
+				ev = buffer->Pop();
 				receiverBufProc = receiverBufProc + 1;
 			}
 			});

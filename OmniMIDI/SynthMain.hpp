@@ -507,29 +507,19 @@ namespace OmniMIDI {
 		unsigned int ActiveVoices = 0;
 		float RenderingTime = 0.0f;
 
-		unsigned char LRS = 0;
 		BEvBuf* ShortEvents = new BaseEvBuf_t;
 		BEvBuf* LongEvents = new BaseEvBuf_t;
 
 	public:
-
-		constexpr unsigned int ApplyRunningStatus(unsigned int ev) {
-			unsigned int tev = GetStatus(ev);
-
-			if ((tev & 0x80) != 0) LRS = tev;
-			else {
-				unsigned int pev = ev;
-				pev = ev << 8 | LRS;
-				return pev;
-			}
-
-			return ev;
-		}
 		constexpr unsigned int GetStatus(unsigned int ev) { return (ev & 0xFF); }
 		constexpr unsigned int GetCommand(unsigned int ev) { return (ev & 0xF0); }
 		constexpr unsigned int GetChannel(unsigned int ev) { return (ev & 0xF); }
 		constexpr unsigned int GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
 		constexpr unsigned int GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
+
+		constexpr unsigned int GetStatusChar(unsigned char ev) { return (ev & 0xFF); }
+		constexpr unsigned int GetCommandChar(unsigned char ev) { return (ev & 0xF0); }
+		constexpr unsigned int GetChannelChar(unsigned char ev) { return (ev & 0xF); }
 
 		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }

@@ -1542,14 +1542,14 @@ extern "C" {
 		return 1;
 	}
 
-	TSFDEF int tsf_note_on(tsf* f, int preset_index, int key, float vel)
+	TSFDEF int tsf_note_on(tsf* f, int preset_index, int key, float param2)
 	{
-		short midiVelocity = (short)(vel * 127);
+		short midiVelocity = (short)(param2 * 127);
 		int voicePlayIndex;
 		struct tsf_region* region, * regionEnd;
 
 		if (preset_index < 0 || preset_index >= f->presetNum) return 1;
-		if (vel <= 0.0f) { tsf_note_off(f, preset_index, key); return 1; }
+		if (param2 <= 0.0f) { tsf_note_off(f, preset_index, key); return 1; }
 
 		// Play all matching regions.
 		voicePlayIndex = f->voicePlayIndex++;
@@ -1607,7 +1607,7 @@ extern "C" {
 			voice->playingPreset = preset_index;
 			voice->playingKey = key;
 			voice->playIndex = voicePlayIndex;
-			voice->noteGainDB = f->globalGainDB - region->attenuation - tsf_gainToDecibels(1.0f / vel);
+			voice->noteGainDB = f->globalGainDB - region->attenuation - tsf_gainToDecibels(1.0f / param2);
 
 			if (f->channels)
 			{
@@ -1648,11 +1648,11 @@ extern "C" {
 		return 1;
 	}
 
-	TSFDEF int tsf_bank_note_on(tsf* f, int bank, int preset_number, int key, float vel)
+	TSFDEF int tsf_bank_note_on(tsf* f, int bank, int preset_number, int key, float param2)
 	{
 		int preset_index = tsf_get_presetindex(f, bank, preset_number);
 		if (preset_index == -1) return 0;
-		return tsf_note_on(f, preset_index, key, vel);
+		return tsf_note_on(f, preset_index, key, param2);
 	}
 
 	TSFDEF void tsf_note_off(tsf* f, int preset_index, int key)
@@ -1903,11 +1903,11 @@ extern "C" {
 		return 1;
 	}
 
-	TSFDEF int tsf_channel_note_on(tsf* f, int channel, int key, float vel)
+	TSFDEF int tsf_channel_note_on(tsf* f, int channel, int key, float param2)
 	{
 		if (!f->channels || channel >= f->channels->channelNum) return 1;
 		f->channels->activeChannel = channel;
-		return tsf_note_on(f, f->channels->channels[channel].presetIndex, key, vel);
+		return tsf_note_on(f, f->channels->channels[channel].presetIndex, key, param2);
 	}
 
 	TSFDEF void tsf_channel_note_off(tsf* f, int channel, int key)

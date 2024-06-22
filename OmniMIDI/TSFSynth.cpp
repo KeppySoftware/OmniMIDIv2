@@ -22,23 +22,19 @@ void OmniMIDI::TinySFSynth::EventsThread() {
 }
 
 bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
-	unsigned int tev = 0;
-
 	if (!IsSynthInitialized())
 		return false;
 
-	ShortEvents->Pop(&tev);
+	PSE tev = ShortEvents->PopSe();
 
 	if (!tev)
 		return false;
 
-	tev = ApplyRunningStatus(tev);
-
-	unsigned char status = GetStatus(tev);
-	unsigned char cmd = GetCommand(tev);
-	unsigned char ch = GetChannel(tev);
-	unsigned char param1 = GetFirstParam(tev);
-	unsigned char param2 = GetSecondParam(tev);
+	unsigned char status = tev->status;
+	unsigned char cmd = GetCommandChar(status);
+	unsigned char ch = GetChannelChar(status);
+	unsigned char param1 = tev->param1;
+	unsigned char param2 = tev->param2;
 
 	SDL_LockMutex(g_Mutex);
 
