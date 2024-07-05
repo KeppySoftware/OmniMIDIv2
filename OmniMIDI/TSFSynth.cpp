@@ -25,7 +25,7 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	if (!IsSynthInitialized())
 		return false;
 
-	PSE tev = ShortEvents->PopSe();
+	PSE tev = ShortEvents->PopItem();
 
 	if (!tev)
 		return false;

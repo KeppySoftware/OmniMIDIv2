@@ -496,7 +496,7 @@ namespace OmniMIDI {
 		OMShared::Funcs MiscFuncs;
 		ErrorSystem::Logger SynErr;
 
-		std::jthread _AudThread;
+		std::jthread _AudThread[16];
 		std::jthread _EvtThread;
 		std::jthread _LogThread;
 

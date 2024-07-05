@@ -52,6 +52,7 @@ namespace OmniMIDI {
 		bool FloatRendering = true;
 		bool MonoRendering = false;
 		bool OneThreadMode = false;
+		bool ExperimentalMultiThreaded = false;
 		bool StreamDirectFeed = false;
 
 		// XAudio2
@@ -81,6 +82,7 @@ namespace OmniMIDI {
 						ConfGetVal(MonoRendering),
 						ConfGetVal(XAChunksDivision),
 						ConfGetVal(OneThreadMode),
+						ConfGetVal(ExperimentalMultiThreaded),
 						ConfGetVal(FollowOverlaps),
 						ConfGetVal(AudioEngine),
 						ConfGetVal(SampleRate),
@@ -108,6 +110,7 @@ namespace OmniMIDI {
 				SynthSetVal(bool, AsyncMode);
 				SynthSetVal(bool, LoudMax);
 				SynthSetVal(bool, OneThreadMode);
+				SynthSetVal(bool, ExperimentalMultiThreaded);
 				SynthSetVal(bool, StreamDirectFeed);
 				SynthSetVal(bool, FloatRendering);
 				SynthSetVal(bool, MonoRendering);
@@ -241,7 +244,8 @@ namespace OmniMIDI {
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-		unsigned int AudioStream = 0;
+		unsigned int AudioStreams[16] = { 0 };
+		size_t AudioStreamSize = sizeof(AudioStreams) / sizeof(unsigned int);
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
@@ -262,7 +266,7 @@ namespace OmniMIDI {
 		bool ProcessEvBuf();
 		void ProcessEvBufChk();
 
-		void AudioThread();
+		void AudioThread(HSTREAM hStream);
 		void EventsThread();
 		void BASSThread();
 
@@ -278,7 +282,7 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size);
 		unsigned int GetSampleRate() { return Settings->SampleRate; }
-		bool IsSynthInitialized() { return (AudioStream != 0); }
+		bool IsSynthInitialized() { return (AudioStreams[0] != 0); }
 		int SynthID() { return 0x1411BA55; }
 
 		// Event handling system

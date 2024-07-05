@@ -28,9 +28,7 @@ static OMShared::Funcs MiscFuncs;
 static signed long long TickStart = 0;
 
 extern "C" {
-
-	EXPORT int APICALL DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved)
-	{
+	EXPORT int APICALL DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved) {
 		BOOL ret = FALSE;
 		switch (ReasonForCall)
 		{

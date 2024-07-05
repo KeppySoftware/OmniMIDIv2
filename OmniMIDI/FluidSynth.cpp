@@ -32,7 +32,7 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	if (!fDrv)
 		return false;
 
-	PSE tev = ShortEvents->PopSe();
+	PSE tev = ShortEvents->PopItem();
 
 	if (!tev)
 		return false;

@@ -9,6 +9,8 @@
 
 #include <ksynth.h>
 
+void (*ksynth_free_samples)(struct Sample** samples, unsigned long count);
+struct Sample** (*ksynth_allocate_samples)(const char* path, unsigned char keys, int sample_rate);
 struct KSynth* (*ksynth_new)(const char* ksmpf, unsigned int sample_rate, unsigned int num_channel, unsigned long max_polyphony);
 void (*ksynth_note_on)(struct KSynth* ksynth_instance, unsigned char channel, unsigned char note, unsigned char velocity);
 void (*ksynth_note_off)(struct KSynth* ksynth_instance, unsigned char channel, unsigned char note);

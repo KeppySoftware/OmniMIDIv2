@@ -13,7 +13,7 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 	if (!Synth)
 		return false;
 
-	PSE tev = ShortEvents->PopSe();
+	PSE tev = ShortEvents->PopItem();
 
 	if (!tev)
 		return false;
@@ -162,9 +162,9 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		}
 
 		ShortEvents = new EvBuf(Settings->EvBufSize);
-		_AudThread = std::jthread(&KSynthM::AudioThread, this);
-		if (!_AudThread.joinable()) {
-			NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread.get_id());
+		_AudThread[0] = std::jthread(&KSynthM::AudioThread, this);
+		if (!_AudThread[0].joinable()) {
+			NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread[0].get_id());
 			StopSynthModule();
 			return false;
 		}
@@ -201,8 +201,8 @@ bool OmniMIDI::KSynthM::StopSynthModule() {
 	if (_DatThread.joinable())
 		_DatThread.join();
 
-	if (_AudThread.joinable())
-		_AudThread.join();
+	if (_AudThread[0].joinable())
+		_AudThread[0].join();
 
 	if (_LogThread.joinable())
 		_LogThread.join();
