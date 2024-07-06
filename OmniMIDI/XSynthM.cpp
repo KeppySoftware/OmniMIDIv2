@@ -77,16 +77,21 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 	return false;
 }
 
-void OmniMIDI::XSynth::PlayShortEvent(unsigned int ev) {
+void OmniMIDI::XSynth::XPlayShortEvent(unsigned int ev) {
 	if (!XLib->IsOnline())
 		return;
 
-	UPlayShortEvent(ev);
-}
-
-void OmniMIDI::XSynth::UPlayShortEvent(unsigned int ev) {
 	SendData(ev);
 }
+
+void OmniMIDI::XSynth::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+	PlayShortEvent(status, param1, param2);
+}
+
+void OmniMIDI::XSynth::UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+	XPlayShortEvent(status | param1 << 8 | param2 << 16);
+}
+
 
 OmniMIDI::SynthResult OmniMIDI::XSynth::PlayLongEvent(char* ev, unsigned int size) {
 	unsigned char tLRS = 0;
@@ -97,7 +102,7 @@ OmniMIDI::SynthResult OmniMIDI::XSynth::PlayLongEvent(char* ev, unsigned int siz
 			tLRS = ev[i] & 0xFF;
 		
 		tev = tLRS | (ev[i + 1] & 0xFF) << 8 | (ev[i + 2] & 0xFF) << 16;
-		UPlayShortEvent(tev);
+		XPlayShortEvent(tev);
 	}
 	return Ok;
 }

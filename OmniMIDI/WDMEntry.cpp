@@ -132,7 +132,7 @@ extern "C" {
 	EXPORT MMRESULT APICALL modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, DWORD_PTR Param1, DWORD_PTR Param2) {
 		switch (Message) {
 		case MODM_DATA:
-			Host->PlayShortEvent((DWORD)Param1);
+			Host->PlayShortEvent(Param1 & 0xFF, (Param1 >> 8) & 0xFF, (Param1 >> 16) & 0xFF);
 			return MMSYSERR_NOERROR;
 
 		case MODM_LONGDATA:
@@ -380,7 +380,7 @@ extern "C" {
 				return MMSYSERR_NOTENABLED;
 
 			Host->SpStart();
-			Host->PlayShortEvent(0x0101FF);
+			Host->PlayShortEvent(0xFF, 0x01, 0x01);
 
 			return MMSYSERR_NOERROR;
 
@@ -397,7 +397,7 @@ extern "C" {
 				return MMSYSERR_NOTENABLED;
 
 			if (Host->SpEmptyQueue()) {
-				Host->PlayShortEvent(0x0101FF);
+				Host->PlayShortEvent(0xFF, 0x01, 0x01);
 				return MMSYSERR_NOERROR;
 			}
 
@@ -445,11 +445,11 @@ extern "C" {
 	}
 
 	EXPORT void APICALL ResetKDMAPIStream() {
-		Host->PlayShortEvent(0x010101FF);
+		Host->PlayShortEvent(0xFF, 0x01, 0x01);
 	}
 
 	EXPORT void APICALL SendDirectData(unsigned int ev) {
-		Host->PlayShortEvent(ev);
+		Host->PlayShortEvent(ev & 0xFF, (ev >> 8) & 0xFF, (ev >> 16) & 0xFF);
 	}
 
 	EXPORT void APICALL SendDirectDataNoBuf(unsigned int ev) {
@@ -463,14 +463,17 @@ extern "C" {
 	}
 
 	EXPORT unsigned int APICALL SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+		// redirect to normal function
 		return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
 	}
 
 	EXPORT unsigned int APICALL PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+		// not needed with KDMAPI
 		return 0;
 	}
 
 	EXPORT unsigned int APICALL UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+		// not needed with KDMAPI
 		return 0;
 	}
 

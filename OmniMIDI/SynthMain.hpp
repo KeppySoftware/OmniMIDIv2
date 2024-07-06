@@ -339,7 +339,7 @@ namespace OmniMIDI {
 			}
 
 			SettingsPath = new wchar_t[MAX_PATH];
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(SettingsPath))) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(wchar_t) * MAX_PATH)) {
 				swprintf(SettingsPath, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
 
 				if (!JSONStream) JSONStream = new std::fstream;
@@ -605,13 +605,18 @@ namespace OmniMIDI {
 
 
 		// Event handling system
-		virtual void PlayShortEvent(unsigned int ev) { return; }
-		virtual void UPlayShortEvent(unsigned int ev) { return; }
+		virtual void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+			if (!ShortEvents)
+				return;
+
+			UPlayShortEvent(status, param1, param2);
+		}
+		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { ShortEvents->Push(status, param1, param2); }
 
 		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return Ok; }
 		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return Ok; }
 
-		virtual SynthResult Reset() { PlayShortEvent(0x0101FF); return Ok; }
+		virtual SynthResult Reset() { PlayShortEvent(0x01, 0x01, 0xFF); return Ok; }
 
 		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};

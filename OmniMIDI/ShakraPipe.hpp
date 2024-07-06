@@ -80,10 +80,6 @@ namespace OmniMIDI {
 		int SynthID() { return 0x12345678; }
 		std::wstring GenerateID();
 
-		// Event handling system
-		void PlayShortEvent(unsigned int ev);
-		void UPlayShortEvent(unsigned int ev);
-
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);
 

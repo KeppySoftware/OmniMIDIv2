@@ -253,17 +253,6 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	return true;
 }
 
-void OmniMIDI::FluidSynth::PlayShortEvent(unsigned int ev) {
-	if (!ShortEvents || !IsSynthInitialized())
-		return;
-
-	UPlayShortEvent(ev);
-}
-
-void OmniMIDI::FluidSynth::UPlayShortEvent(unsigned int ev) {
-	ShortEvents->Push(ev);
-}
-
 OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!FluiLib || !FluiLib->IsOnline())
 		return LibrariesOffline;

@@ -108,10 +108,8 @@ namespace OmniMIDI {
 		void HostHealthCheck();
 
 		// Event handling system
-		void PlayShortEvent(unsigned int ev) { Synth->PlayShortEvent(ev); }
-		void UPlayShortEvent(unsigned int ev) { Synth->UPlayShortEvent(ev); }
-		SynthResult PlayLongEvent(char* ev, unsigned int size) { return Synth->PlayLongEvent(ev, size); }
-		SynthResult UPlayLongEvent(char* ev, unsigned int size) { return Synth->UPlayLongEvent(ev, size); }
+		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
+		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult Reset() { return Synth->Reset(); }
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Synth->TalkToSynthDirectly(evt, chan, param); }
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return Synth->SettingsManager(setting, get, var, size); }

@@ -106,15 +106,6 @@ bool OmniMIDI::ShakraPipe::StopSynthModule() {
 	return true;
 }
 
-void OmniMIDI::ShakraPipe::PlayShortEvent(unsigned int ev) {
-	if (ShortEvents)
-		UPlayShortEvent(ev);
-}
-
-void OmniMIDI::ShakraPipe::UPlayShortEvent(unsigned int ev) {
-	ShortEvents->Push(ev);
-}
-
 OmniMIDI::SynthResult OmniMIDI::ShakraPipe::PlayLongEvent(char* ev, unsigned int size) {
 	if (LongEvents)
 		return UPlayLongEvent(ev, size);

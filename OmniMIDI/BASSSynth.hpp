@@ -285,10 +285,6 @@ namespace OmniMIDI {
 		bool IsSynthInitialized() { return (AudioStreams[0] != 0); }
 		int SynthID() { return 0x1411BA55; }
 
-		// Event handling system
-		void PlayShortEvent(unsigned int ev);
-		void UPlayShortEvent(unsigned int ev);
-
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult UPlayLongEvent(char* ev, unsigned int size);
 

@@ -176,17 +176,6 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 	return true;
 }
 
-void OmniMIDI::TinySFSynth::PlayShortEvent(unsigned int ev) {
-	if (!ShortEvents || !IsSynthInitialized())
-		return;
-
-	UPlayShortEvent(ev);
-}
-
-void OmniMIDI::TinySFSynth::UPlayShortEvent(unsigned int ev) {
-	ShortEvents->Push(ev);
-}
-
 OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
 	return Ok;
 }

@@ -227,3 +227,45 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 
 	return tSynth;
 }
+
+void OmniMIDI::SynthHost::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+	Synth->PlayShortEvent(status, param1, param2);
+}
+
+OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int size) {
+	if (!Synth->IsSynthInitialized())
+		return NotInitialized;
+
+	if (size < 4)
+		return InvalidBuffer;
+
+	for (int i = 0, n = size - 1; i < n; ) {
+		switch (ev[i] & 0xF0) {
+		case SystemMessageStart:
+			switch (ev[i + 1]) {
+				// GM, GS and XG should go here
+			case 0x7E:
+			case 0x41:
+			case 0x43: {
+				return Synth->PlayLongEvent(ev, size);
+			}
+
+			default:
+				break;
+			}
+
+			i += 5;
+			continue;
+
+		case SystemMessageEnd:
+			break;
+
+		default:
+			Synth->PlayShortEvent(ev[i], ev[i + 1], ev[i + 2]);
+			i += 3;
+			continue;
+		}
+	}
+
+	return Ok;
+}

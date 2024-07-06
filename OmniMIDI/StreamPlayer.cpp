@@ -86,7 +86,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 			switch (MEVT_EVENTTYPE(event->dwEvent)) {
 			case MEVT_SHORTMSG:
-				synthModule->PlayShortEvent(event->dwEvent);
+				synthModule->PlayShortEvent((event->dwEvent >> 16) & 0xFF, (event->dwEvent >> 8) & 0xFF, event->dwEvent & 0xFF);
 				break;
 			case MEVT_LONGMSG:
 				synthModule->PlayLongEvent((char*)event->dwParms, event->dwEvent & 0xFFFFFF);

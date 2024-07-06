@@ -52,47 +52,17 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		break;
 	default:
 		switch (status) {
-			// Let's go!
-		case SystemMessageStart:
-			sysev = ShortEvents->CreateDword(tev) << 8;
-
-			LOG(SynErr, "SysEx Begin: 0x%x", sysev);
-			BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &sysev, 2);
-
-			while (GetStatus(sysev) != SystemMessageEnd) {
-				sysev = ShortEvents->Peek();
-
-				if (GetStatus(sysev) != SystemMessageEnd) {
-					sysev =  ShortEvents->Pop();
-					LOG(SynErr, "SysEx Ev: 0x%x", sysev);
-					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &sysev, 3);
-				}
-			}
-
-			LOG(SynErr, "SysEx End", sysev);
-			return true;
-
-		case SystemMessageEnd:
-			LOG(SynErr, "How did we get here? Received SystemMessageEnd with no SystemMessageStart?");
-			return false;
-
+		// Let's go!
 		case SystemReset:
 			// This is 0xFF, which is a system reset.
 			BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT);
 			return true;
 
-		case Unknown1:
-		case Unknown2:
-		case Unknown3:
-		case Unknown4:
-			return false;
-
-		default: {
-			unsigned int d = ShortEvents->CreateDword(tev);
-			if (!((d - 0xC0) & 0xE0)) len = 2;
-			BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &d, len);
-			return true;
-		}		
+		default:
+			sysev = ShortEvents->CreateDword(tev);
+			if (!((sysev - 0xC0) & 0xE0)) len = 2;
+			BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &sysev, len);
+			return true;			
 		}
 	}
 
@@ -890,17 +860,6 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 	return true;
 }
 
-void OmniMIDI::BASSSynth::PlayShortEvent(unsigned int ev) {
-	if (!ShortEvents)
-		return;
-
-	UPlayShortEvent(ev);
-}
-
-void OmniMIDI::BASSSynth::UPlayShortEvent(unsigned int ev) {
-	ShortEvents->Push(ev);
-}
-
 OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!BMidLib || !BMidLib->IsOnline())
 		return LibrariesOffline;
@@ -913,8 +872,12 @@ OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int 
 }
 
 OmniMIDI::SynthResult OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	unsigned int r = BASS_MIDI_StreamEvents(AudioStreams[0], BASS_MIDI_EVENTS_RAW | (Settings->AsyncMode ? BASS_MIDI_EVENTS_ASYNC : 0), ev, size);
-	return (r != -1) ? Ok : InvalidBuffer;
+	for (int si = 0; si < AudioStreamSize; si++) {
+		if (BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_NORSTATUS, ev, size) == -1)
+			return InvalidBuffer;
+	}
+
+	return Ok;
 }
 
 OmniMIDI::SynthResult OmniMIDI::BASSSynth::TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) {

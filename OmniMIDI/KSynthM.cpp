@@ -224,17 +224,6 @@ bool OmniMIDI::KSynthM::StopSynthModule() {
 	return true;
 }
 
-void OmniMIDI::KSynthM::PlayShortEvent(unsigned int ev) {
-	if (!ShortEvents)
-		return;
-
-	UPlayShortEvent(ev);
-}
-
-void OmniMIDI::KSynthM::UPlayShortEvent(unsigned int ev) {
-	ShortEvents->Push(ev);
-}
-
 OmniMIDI::SynthResult OmniMIDI::KSynthM::Reset() {
 	if (Synth) {
 		LOG(SynErr, "SR!");
