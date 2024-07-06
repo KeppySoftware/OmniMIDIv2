@@ -458,20 +458,20 @@ extern "C" {
 	}
 
 	EXPORT unsigned int APICALL SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-		return modMessage(0, MODM_LONGDATA, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
-	}
-
-	EXPORT unsigned int APICALL SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
 		return Host->PlayLongEvent(IIMidiHdr->lpData, IIMidiHdr->dwBytesRecorded) == SYNTH_OK ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 	}
 
+	EXPORT unsigned int APICALL SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+		return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
+	}
+
 	EXPORT unsigned int APICALL PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-		return modMessage(0, MODM_PREPARE, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
+		return 0;
 	}
 
 	EXPORT unsigned int APICALL UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-		return modMessage(0, MODM_UNPREPARE, 0, (DWORD_PTR)IIMidiHdr, (DWORD_PTR)IIMidiHdrSize);
+		return 0;
 	}
 
 	EXPORT int APICALL InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {

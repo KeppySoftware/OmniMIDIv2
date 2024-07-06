@@ -285,7 +285,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 			}
 		}
 
-		RenderingTime = rtr / 16;
+		RenderingTime = rtr / AudioStreamSize;
 		ActiveVoices = itv;
 		itv = 0;
 		rtr = 0.0f;
@@ -396,8 +396,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		streamFlags |= BASS_SAMPLE_FLOAT;
 	}
 
-	if (Settings->ExperimentalMultiThreaded)
+	if (Settings->ExperimentalMultiThreaded) {
 		LOG(SynErr, "EXPERIMENTAL MULTI-THREADED RENDERING ENABLED!!!");
+		AudioStreamSize = sizeof(AudioStreams) / sizeof(unsigned int);
+	}
+	else AudioStreamSize = 1;
 
 	switch (Settings->AudioEngine) {
 	case Internal:
@@ -443,10 +446,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread[i].get_id());
 				return false;
 			}
-
-			// If not enabled, stop allocating more renderers
-			if (!Settings->ExperimentalMultiThreaded)
-				break;
 		}
 
 

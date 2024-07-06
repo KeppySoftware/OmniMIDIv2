@@ -339,7 +339,7 @@ namespace OmniMIDI {
 			}
 
 			SettingsPath = new wchar_t[MAX_PATH];
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(SettingsPath) * MAX_PATH)) {
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(SettingsPath))) {
 				swprintf(SettingsPath, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
 
 				if (!JSONStream) JSONStream = new std::fstream;
