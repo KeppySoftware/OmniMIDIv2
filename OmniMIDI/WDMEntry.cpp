@@ -548,13 +548,13 @@ extern "C" {
 					clearS = false;
 				}
 
-				buffer->Push(0x101010);
+				buffer->Push(0x10, 0x10, 0x10);
 				senderBufProc = senderBufProc + 1;
 			}
 			});
 
 		receiver = std::jthread([&, stoken = ssource.get_token()]() {
-			unsigned int ev;
+			OmniMIDI::PSE ev = 0;
 
 			while (stop) d.uSleep(-1);
 
@@ -564,7 +564,7 @@ extern "C" {
 					clearR = false;
 				}
 
-				ev = buffer->Pop();
+				ev = buffer->PopItem();
 				receiverBufProc = receiverBufProc + 1;
 			}
 			});

@@ -236,33 +236,184 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 	if (!Synth->IsSynthInitialized())
 		return NotInitialized;
 
-	if (size < 4)
+	if (!ev || size < 4 || (unsigned char)ev[size - 1] != 0xF7)
 		return InvalidBuffer;
 
-	for (int i = 0, n = size - 1; i < n; ) {
-		switch (ev[i] & 0xF0) {
+	for (int readHead = 0, n = size - 1; readHead < n; ) {
+		switch (ev[readHead] & 0xF0) {
 		case SystemMessageStart:
-			switch (ev[i + 1]) {
-				// GM, GS and XG should go here
-			case 0x7E:
-			case 0x41:
-			case 0x43: {
-				return Synth->PlayLongEvent(ev, size);
+		{
+			char pos = 0;
+			char vendor = ev[readHead + 1] & 0xFF;
+			unsigned int buf = ev[readHead] << 8 | ev[readHead + 1];
+
+			if (vendor < 0x80) {
+				switch (vendor) {
+				// Universal
+				case 0x7F:
+				{
+					char command = ev[readHead + 3];
+					if (command == 0x06) {
+						readHead += 4;
+
+						char subcommand = ev[readHead];
+						while (subcommand != 0x7F) {
+							switch (subcommand) {
+							case 0x01:
+								StreamPlayer->Stop();
+								StreamPlayer->EmptyQueue();
+								break;
+							case 0x02:
+							case 0x03:
+								StreamPlayer->Start();
+								break;
+							case 0x09:
+								StreamPlayer->Stop();
+								break;
+							case 0x0D:
+								return Synth->Reset();
+							default:
+								if (ev[readHead + 1] == 0x7F)
+									return Ok;
+
+								return NotSupported;
+							}
+
+							subcommand = ev[readHead++];
+						}
+					}
+					else return NotSupported;
+
+					return Ok;
+				}
+
+				// Roland
+				case 0x41:
+				{
+					char devid = ev[readHead + 2];
+					char modid = ev[readHead + 3];
+					char command = ev[readHead + 4];
+
+					if (devid > 0x1F)
+						return InvalidBuffer;
+
+					if (command == 0x12) {
+						char addrBlock = ev[readHead + 5];
+						char synthPart = ev[readHead + 6];
+						char addrPt3 = ev[readHead + 7];
+
+						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | addrPt3;
+
+						if (addr == 0x40007F) {
+							char resetType = ev[readHead + 8];
+							return Synth->Reset(!resetType ? resetType : vendor);
+						}
+
+						switch (modid) {
+						case 0x42:
+							switch (addrBlock) {
+							case 0x00:
+
+							}
+
+						case 0x45:
+							switch (addrBlock) {
+							// Display data
+							case 0x10:
+							{
+								char mult = 0;
+
+								addrPt3 = ev[readHead + (7 * mult)];
+								char dataType = ev[readHead + (10 * mult)];
+
+								switch (dataType) {
+								case 0x20:
+									for (/* tit */; mult < 32; mult++) {
+										if (addrPt3 > 0x1F)
+											break;
+
+										addrPt3 = ev[readHead + (7 * mult)];
+									}
+
+									if (char* asciiStream = new char[mult]) {
+										for (int i = 0; i < mult; i++) {
+											asciiStream[i] = ev[i + (13 * i)];
+										}
+
+										LOG(SHErr, "Roland Display Data: %s", asciiStream);
+
+										delete[] asciiStream;
+									}
+									return Ok;
+
+								case 0x40:
+									return NotSupported;
+								}
+
+								return Ok;
+							}
+
+							default:
+								return NotSupported;
+							}
+						
+						default:
+							return NotSupported;
+						}
+					}
+					else return NotSupported;
+
+					return Ok;
+				}
+
+				default:
+					readHead += 5;
+					break;
+				}
+
+				LOG(SHErr, "SysEx Begin: 0x%x", buf);
+
+				while ((buf & 0xFF) != SystemMessageEnd) {
+
+					switch (pos) {
+					case 0:
+						buf = ev[readHead + pos];
+						break;
+
+					case 1:
+					case 2:
+						buf = buf << 8 | ev[readHead + pos];
+						break;
+					}
+
+					pos++;
+
+					if (pos == 3) {
+						LOG(SHErr, "SysEx Ev: 0x%x", buf);
+
+						if (Synth->PlayLongEvent(ev, 3))
+							return InvalidParameter;
+
+						pos = 0;
+
+						readHead += 3;
+					}
+				}
+
+				LOG(SHErr, "SysEx End: 0x%x", buf);
+				return Ok;
 			}
 
-			default:
-				break;
-			}
-
-			i += 5;
 			continue;
+		}
 
+		case ActiveSensing:
 		case SystemMessageEnd:
 			break;
 
 		default:
-			Synth->PlayShortEvent(ev[i], ev[i + 1], ev[i + 2]);
-			i += 3;
+			Synth->PlayShortEvent(ev[readHead], ev[readHead + 1], ev[readHead + 2]);
+			readHead += 3;
 			continue;
 		}
 	}

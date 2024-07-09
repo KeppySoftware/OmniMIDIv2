@@ -163,8 +163,8 @@ namespace OmniMIDI {
 		bool IsSynthInitialized() { return (fDrv != nullptr); }
 		int SynthID() { return 0x6F704EC6; }
 
-		SynthResult PlayLongEvent(char* ev, unsigned int size);
-		SynthResult UPlayLongEvent(char* ev, unsigned int size);
+		unsigned int PlayLongEvent(char* ev, unsigned int size);
+		unsigned int UPlayLongEvent(char* ev, unsigned int size);
 
 		// Not supported in FluidSynth
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }

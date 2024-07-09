@@ -613,10 +613,10 @@ namespace OmniMIDI {
 		}
 		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { ShortEvents->Push(status, param1, param2); }
 
-		virtual SynthResult PlayLongEvent(char* ev, unsigned int size) { return Ok; }
-		virtual SynthResult UPlayLongEvent(char* ev, unsigned int size) { return Ok; }
+		virtual unsigned int PlayLongEvent(char* ev, unsigned int size) { return 0; }
+		virtual unsigned int UPlayLongEvent(char* ev, unsigned int size) { return 0; }
 
-		virtual SynthResult Reset() { PlayShortEvent(0x01, 0x01, 0xFF); return Ok; }
+		virtual SynthResult Reset(char type = 0) { PlayShortEvent(0xFF, type, 0); return Ok; }
 
 		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};

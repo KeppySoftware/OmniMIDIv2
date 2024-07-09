@@ -92,23 +92,4 @@ void OmniMIDI::XSynth::UPlayShortEvent(unsigned char status, unsigned char param
 	XPlayShortEvent(status | param1 << 8 | param2 << 16);
 }
 
-
-OmniMIDI::SynthResult OmniMIDI::XSynth::PlayLongEvent(char* ev, unsigned int size) {
-	unsigned char tLRS = 0;
-	unsigned int tev = 0;
-
-	for (unsigned int i = 0; i < size; i++) {
-		if ((ev[i] - 0xC0) & 0xE0) 
-			tLRS = ev[i] & 0xFF;
-		
-		tev = tLRS | (ev[i + 1] & 0xFF) << 8 | (ev[i + 2] & 0xFF) << 16;
-		XPlayShortEvent(tev);
-	}
-	return Ok;
-}
-
-OmniMIDI::SynthResult OmniMIDI::XSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	return Ok;
-}
-
 #endif

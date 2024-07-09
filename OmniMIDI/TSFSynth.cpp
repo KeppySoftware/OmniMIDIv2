@@ -176,10 +176,10 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
-	return Ok;
+unsigned int OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
+	return 1;
 }
 
-OmniMIDI::SynthResult OmniMIDI::TinySFSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	return Ok;
+unsigned int OmniMIDI::TinySFSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	return 1;
 }

@@ -253,24 +253,21 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
+unsigned int OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!FluiLib || !FluiLib->IsOnline())
-		return LibrariesOffline;
+		return 0;
 
 	if (!IsSynthInitialized())
-		return NotInitialized;
-
-	// The size has to be between 1B and 64KB!
-	if (size < 1 || size > 65536)
-		return InvalidParameter;
+		return 0;
 
 	return UPlayLongEvent(ev, size);
 }
 
-OmniMIDI::SynthResult OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
-	int handled = 0;
+unsigned int OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	int resp_len = 0;
 
-	fluid_synth_sysex(fSyn, ev, size, 0, 0, &handled, 0);
+	// Ignore 0xF0 and 0xF7
+	fluid_synth_sysex(fSyn, ev + 1, size - 2, 0, &resp_len, 0, 0);
 
-	return handled ? Ok : InvalidParameter;
+	return resp_len;
 }

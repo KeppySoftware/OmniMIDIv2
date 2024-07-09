@@ -107,9 +107,6 @@ namespace OmniMIDI {
 		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 		void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 
-		SynthResult PlayLongEvent(char* ev, unsigned int size);
-		SynthResult UPlayLongEvent(char* ev, unsigned int size);
-
 		// Not supported in XSynth
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};

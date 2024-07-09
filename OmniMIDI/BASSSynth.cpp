@@ -55,7 +55,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		// Let's go!
 		case SystemReset:
 			// This is 0xFF, which is a system reset.
-			BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, MIDI_SYSTEM_DEFAULT);
+			BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
 			return true;
 
 		default:
@@ -860,24 +860,29 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {
+unsigned int OmniMIDI::BASSSynth::PlayLongEvent(char* ev, unsigned int size) {
 	if (!BMidLib || !BMidLib->IsOnline())
-		return LibrariesOffline;
+		return 0;
 
 	// The size has to be more than 1B!
 	if (size < 1)
-		return InvalidParameter;
+		return 0;
 
 	return UPlayLongEvent(ev, size);
 }
 
-OmniMIDI::SynthResult OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
+unsigned int OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
+	unsigned int data = 0;
+
 	for (int si = 0; si < AudioStreamSize; si++) {
-		if (BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_NORSTATUS, ev, size) == -1)
-			return InvalidBuffer;
+		unsigned int tmp = BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_NORSTATUS, ev, size);
+		if (tmp == -1)
+			break;
+
+		data += tmp;
 	}
 
-	return Ok;
+	return data;
 }
 
 OmniMIDI::SynthResult OmniMIDI::BASSSynth::TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) {

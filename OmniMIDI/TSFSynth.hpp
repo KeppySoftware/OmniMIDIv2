@@ -143,8 +143,8 @@ namespace OmniMIDI {
 		bool IsSynthInitialized() { return (g_TinySoundFont != nullptr); }
 		int SynthID() { return 0xA0A0A0A0; }
 
-		SynthResult PlayLongEvent(char* ev, unsigned int size);
-		SynthResult UPlayLongEvent(char* ev, unsigned int size);
+		unsigned int PlayLongEvent(char* ev, unsigned int size);
+		unsigned int UPlayLongEvent(char* ev, unsigned int size);
 
 		// Not supported in XSynth
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
