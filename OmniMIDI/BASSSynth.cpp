@@ -55,7 +55,47 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		// Let's go!
 		case SystemReset:
 			// This is 0xFF, which is a system reset.
-			BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
+			switch (param1) {
+			case 0x01:
+				evt = MIDI_SYSTEM_GS;
+				break;
+
+			case 0x02:
+				evt = MIDI_SYSTEM_GM1;
+				break;
+
+			case 0x03:
+				evt = MIDI_SYSTEM_GM2;
+				break;
+
+			case 0x04:
+				evt = MIDI_SYSTEM_XG;
+				break;
+
+			default:
+				evt = MIDI_SYSTEM_DEFAULT;
+				break;
+			}
+
+			return BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
+
+		case MasterVolume:
+			evt = MIDI_EVENT_MASTERVOL;
+			ev = param1 * 128;
+			break;
+
+		case MasterKey:
+			evt = MIDI_EVENT_MASTER_COARSETUNE;
+			ev = param1;
+			break;
+
+		case MasterPan:
+			evt = MIDI_EVENT_PAN;
+			ev = param1;
+
+			for (int i = 0; i < 16; i++)
+				BASS_MIDI_StreamEvent(targetStream, i, evt, ev);
+
 			return true;
 
 		default:
@@ -66,8 +106,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		}
 	}
 
-	BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
-	return true;
+	return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 }
 
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {

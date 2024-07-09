@@ -243,13 +243,14 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 		switch (ev[readHead] & 0xF0) {
 		case SystemMessageStart:
 		{
+			bool notSpecial = false;
 			char pos = 0;
 			char vendor = ev[readHead + 1] & 0xFF;
-			unsigned int buf = ev[readHead] << 8 | ev[readHead + 1];
 
+			readHead += 2;
 			if (vendor < 0x80) {
 				switch (vendor) {
-				// Universal
+					// Universal
 				case 0x7F:
 				{
 					char command = ev[readHead + 3];
@@ -290,49 +291,175 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 				// Roland
 				case 0x41:
 				{
-					char devid = ev[readHead + 2];
-					char modid = ev[readHead + 3];
-					char command = ev[readHead + 4];
+					// Size of 3
+					char devid = ev[readHead];
+					char modid = ev[readHead + 1];
+					char command = ev[readHead + 2];
 
-					if (devid > 0x1F)
+					if (devid > PartMax)
 						return InvalidBuffer;
 
-					if (command == 0x12) {
-						char addrBlock = ev[readHead + 5];
-						char synthPart = ev[readHead + 6];
-						char addrPt3 = ev[readHead + 7];
+					readHead += 3;
+					if (command == Receive) {
+						unsigned int varLen = 1;
 
-						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | addrPt3;
+						char addrBlock = ev[readHead];
+						char synthPart = ev[readHead + 1];
+						char commandPart = ev[readHead + 2];
+						char status = 0;
+						char p1 = 0;
+						char p2 = 0;
 
-						if (addr == 0x40007F) {
+						unsigned int lastPos = 0;
+						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
+						unsigned int modeSet = addr & 0xFFFF;
+
+						unsigned char sum = addrBlock + synthPart + commandPart;
+						unsigned char checksum = 0;
+						unsigned char calcChecksum = 0;
+
+						if (addr == MIDIReset) {
 							char resetType = ev[readHead + 8];
 							return Synth->Reset(!resetType ? resetType : vendor);
 						}
 
+						readHead += 3;
 						switch (modid) {
 						case 0x42:
-							switch (addrBlock) {
-							case 0x00:
+							switch (addr & BlockDiscrim) {
+							case PatchCommonA:
+							case PatchCommonB: {
+								switch (synthPart) {
+								case 0:
+								{
+									switch (commandPart) {
+									case 0:
+									case 1:
+									case 2:
+									case 3: {
+										varLen = 4;
+										if ((commandPart & 0xF) == 0)
+											lastPos = readHead;
 
+										for (int i = 0; i < varLen; i++) {
+											if (i == 1)
+												p1 = ev[lastPos + i];
+
+											if (i == 2)
+												p2 = ev[lastPos + i];
+										}
+
+										checksum = ev[lastPos + (varLen + 1)];
+
+										sum += p1 + p2;
+										status = MasterTune;
+
+										break;
+									}
+
+									case 4:
+										p1 = ev[readHead++];
+										checksum = ev[readHead++];
+										sum += p1;
+										status = MasterVolume;
+										break;
+
+									case 5:
+										p1 = ev[readHead++];
+										checksum = ev[readHead++];
+										sum += p1;
+										status = MasterKey;
+										break;
+
+									case 6:
+										p1 = ev[readHead++];
+										checksum = ev[readHead++];
+										sum += p1;
+										status = MasterPan;
+										break;
+									}
+
+									break;
+								}
+
+								default:
+									switch (modeSet) {
+									case PatchName:
+										varLen = 16;
+										checksum = ev[(readHead++) + varLen];
+										break;
+
+									case ReverbMacro:
+									case ReverbCharacter:
+									case ReverbPreLpf:
+									case ReverbLevel:
+									case ReverbTime:
+									case ReverbDelayFeedback:
+									case ReverbPredelayTime:
+									case ChorusMacro:
+									case ChorusPreLpf:
+									case ChorusLevel:
+									case ChorusFeedback:
+									case ChorusDelay:
+									case ChorusRate:
+									case ChorusDepth:
+									case ChorusSendLevelToReverb:
+									case ChorusSendLevelToDelay:
+									case DelayMacro:
+									case DelayPreLpf:
+									case DelayTimeCenter:
+									case DelayTimeRatioLeft:
+									case DelayTimeRatioRight:
+									case DelayLevelCenter:
+									case DelayLevelLeft:
+									case DelayLevelRight:
+									case DelayLevel:
+									case DelayFeedback:
+									case DelaySendLevelToReverb:
+									case EQLowFreq:
+									case EQLowGain:
+									case EQHighFreq:
+									case EQHighGain:
+										// placeholder
+										status = Unknown1;
+										p1 = ev[readHead++];
+										sum += p1;
+										checksum = ev[readHead++];
+										break;
+									}
+
+									break;
+								}
+							}
+
+							case 0:
+								switch (modeSet) {
+								case MIDISetup:
+									status = SystemReset;
+									checksum = ev[(readHead++) + varLen];
+									Synth->Reset(0x01);
+									break;
+								}
+								break;
 							}
 
 						case 0x45:
-							switch (addrBlock) {
-							// Display data
-							case 0x10:
+							switch (addr) {
+								// Display data
+							case DisplayData:
 							{
 								char mult = 0;
 
-								addrPt3 = ev[readHead + (7 * mult)];
+								commandPart = ev[readHead + (7 * mult)];
 								char dataType = ev[readHead + (10 * mult)];
 
 								switch (dataType) {
-								case 0x20:
-									for (/* tit */; mult < 32; mult++) {
-										if (addrPt3 > 0x1F)
+								case ASCIIMode:
+									for (/* damn son */; mult < 32; mult++) {
+										if (commandPart > 0x1F)
 											break;
 
-										addrPt3 = ev[readHead + (7 * mult)];
+										commandPart = ev[readHead + (7 * mult)];
 									}
 
 									if (char* asciiStream = new char[mult]) {
@@ -344,63 +471,58 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 										delete[] asciiStream;
 									}
-									return Ok;
+									break;
 
-								case 0x40:
-									return NotSupported;
+								case BitmapMode:
+									// TODO
+									break;
 								}
 
-								return Ok;
+								break;
+							}
+							}
+						}
+
+						if (status) {
+							if (varLen > 1)
+								sum += varLen;
+
+							if (sum > 0x7F)
+								sum = sum % ChecksumDividend;
+
+							calcChecksum = ChecksumDividend - sum;
+
+							if (calcChecksum != checksum) {
+								LOG(SHErr, "Checksum invalid! Expected 0x%X, but got 0x%X.", checksum, calcChecksum);
+								return InvalidBuffer;
 							}
 
-							default:
-								return NotSupported;
-							}
-						
-						default:
-							return NotSupported;
+							LOG(SHErr, "Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
+							Synth->PlayShortEvent(status, p1, p2);
+							break;
 						}
+
+						LOG(SHErr, "Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
+						return NotSupported;
+					}
+					else if (command == Send) {
+						// TODO
+						return NotSupported;
 					}
 					else return NotSupported;
 
-					return Ok;
+					break;
 				}
 
 				default:
+					notSpecial = true;
 					readHead += 5;
 					break;
 				}
 
-				LOG(SHErr, "SysEx Begin: 0x%x", buf);
+				if (notSpecial)
+					continue;
 
-				while ((buf & 0xFF) != SystemMessageEnd) {
-
-					switch (pos) {
-					case 0:
-						buf = ev[readHead + pos];
-						break;
-
-					case 1:
-					case 2:
-						buf = buf << 8 | ev[readHead + pos];
-						break;
-					}
-
-					pos++;
-
-					if (pos == 3) {
-						LOG(SHErr, "SysEx Ev: 0x%x", buf);
-
-						if (Synth->PlayLongEvent(ev, 3))
-							return InvalidParameter;
-
-						pos = 0;
-
-						readHead += 3;
-					}
-				}
-
-				LOG(SHErr, "SysEx End: 0x%x", buf);
 				return Ok;
 			}
 

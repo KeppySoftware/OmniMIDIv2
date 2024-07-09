@@ -51,6 +51,11 @@
 
 namespace OmniMIDI {
 	enum MIDIEventType {
+		MasterVolume = 0x01,
+		MasterTune = 0x02,
+		MasterKey = 0x03,
+		MasterPan = 0x04,
+
 		NoteOff = 0x80,
 		NoteOn = 0x90,
 		Aftertouch = 0xA0,
@@ -77,6 +82,86 @@ namespace OmniMIDI {
 		Unknown2 = 0xF5,
 		Unknown3 = 0xF9,
 		Unknown4 = 0xFD
+	};
+
+	enum RolandMsg {
+		Receive = 0x12,
+		Send = 0x11,
+
+		AddressMSB = 0xFF0000,
+		Address = 0x00FF00,
+		AddressLSB = 0x0000FF,
+		PartMax = 0x1F,
+		ChecksumDividend = 0x80,
+
+		System = 0x000000,
+
+		BlockDiscrim = 0xFF0000,
+		BlockTypeDiscrim = 0xF00000,
+		BlockIDDiscrim = 0x0F0000,
+
+		PatchPartStart = 0x001000,
+		BPort = 0x100000,
+
+		DisplayData = 0x100000,
+		DisplayDataBlockDiscrim = AddressLSB,
+		ASCIIMode = 0x20,
+		BitmapMode = 0x40,
+
+		UserToneBank = 0x200000,
+		UserDrumSet = 0x210000,
+		UserEFX = 0x220000,
+		UserPatchCommon = 0x230000,
+		UserPatchPartB01a = 0x240000,
+		UserPatchPartB01b = 0x250000,
+		UserPatchPartB02a = 0x260000,
+		UserPatchPartB02b = 0x270000,
+
+		MIDISetup = 0x00007F,
+		MIDIReset = MIDISetup | 0x400000,
+
+		PatchCommonStart = 0x400000,
+		PatchCommonA = PatchCommonStart,
+		PatchPartA = PatchCommonA | PatchPartStart,
+		PatchCommonB = PatchCommonStart | BPort,
+		PatchPartB = PatchCommonB | PatchPartStart,
+
+		PatchName = 0x0100,
+
+		ReverbMacro = 0x0130,
+		ReverbCharacter = 0x0131,
+		ReverbPreLpf = 0x0132,
+		ReverbLevel = 0x0133,
+		ReverbTime = 0x0134,
+		ReverbDelayFeedback = 0x0135,
+		ReverbPredelayTime = 0x0137,
+
+		ChorusMacro = 0x0138,
+		ChorusPreLpf = 0x0139,
+		ChorusLevel = 0x013A,
+		ChorusFeedback = 0x013B,
+		ChorusDelay = 0x013C,
+		ChorusRate = 0x013D,
+		ChorusDepth = 0x013E,
+		ChorusSendLevelToReverb = 0x013F,
+		ChorusSendLevelToDelay = 0x0140,
+
+		DelayMacro = 0x0150,
+		DelayPreLpf = 0x0151,
+		DelayTimeCenter = 0x0152,
+		DelayTimeRatioLeft = 0x0153,
+		DelayTimeRatioRight = 0x0154,
+		DelayLevelCenter = 0x0155,
+		DelayLevelLeft = 0x0156,
+		DelayLevelRight = 0x0157,
+		DelayLevel = 0x0158,
+		DelayFeedback = 0x0159,
+		DelaySendLevelToReverb = 0x0160,
+
+		EQLowFreq = 0x0200,
+		EQLowGain = 0x0201,
+		EQHighFreq = 0x0202,
+		EQHighGain = 0x0203
 	};
 
 	enum SynthResult {
