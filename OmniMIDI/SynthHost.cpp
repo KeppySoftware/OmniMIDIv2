@@ -292,9 +292,9 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 				case 0x41:
 				{
 					// Size of 3
-					char devid = ev[readHead];
-					char modid = ev[readHead + 1];
-					char command = ev[readHead + 2];
+					unsigned char devid = ev[readHead];
+					unsigned char modid = ev[readHead + 1];
+					unsigned char command = ev[readHead + 2];
 
 					if (devid > PartMax)
 						return InvalidBuffer;
@@ -303,12 +303,12 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 					if (command == Receive) {
 						unsigned int varLen = 1;
 
-						char addrBlock = ev[readHead];
-						char synthPart = ev[readHead + 1];
-						char commandPart = ev[readHead + 2];
-						char status = 0;
-						char p1 = 0;
-						char p2 = 0;
+						unsigned char addrBlock = ev[readHead];
+						unsigned char synthPart = ev[readHead + 1];
+						unsigned char commandPart = ev[readHead + 2];
+						unsigned char status = 0;
+						unsigned char p1 = 0;
+						unsigned char p2 = 0;
 
 						unsigned int lastPos = 0;
 						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
@@ -318,192 +318,202 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 						unsigned char checksum = 0;
 						unsigned char calcChecksum = 0;
 
-						if (addr == MIDIReset) {
-							char resetType = ev[readHead + 8];
-							return Synth->Reset(!resetType ? resetType : vendor);
-						}
-
 						readHead += 3;
-						switch (modid) {
-						case 0x42:
-							switch (addr & BlockDiscrim) {
-							case PatchCommonA:
-							case PatchCommonB: {
-								switch (synthPart) {
-								case 0:
-								{
-									switch (commandPart) {
+						while (addrBlock != SystemMessageEnd) {
+							if (addr == MIDIReset) {
+								char resetType = ev[readHead + 2];
+								return Synth->Reset(!resetType ? resetType : vendor);
+							}
+
+							switch (modid) {
+							case 0x42:
+								switch (addr & BlockDiscrim) {
+								case PatchCommonA:
+								case PatchCommonB: {
+									switch (synthPart) {
 									case 0:
-									case 1:
-									case 2:
-									case 3: {
-										varLen = 4;
-										if ((commandPart & 0xF) == 0)
-											lastPos = readHead;
+									{
+										switch (commandPart) {
+										case 0:
+										case 1:
+										case 2:
+										case 3: {
+											varLen = 4;
+											if ((commandPart & 0xF) == 0)
+												lastPos = readHead;
 
-										for (int i = 0; i < varLen; i++) {
-											if (i == 1)
-												p1 = ev[lastPos + i];
+											for (int i = 0; i < varLen; i++) {
+												if (i == 1)
+													p1 = ev[lastPos + i];
 
-											if (i == 2)
-												p2 = ev[lastPos + i];
+												if (i == 2)
+													p2 = ev[lastPos + i];
+											}
+
+											checksum = ev[lastPos + (varLen + 1)];
+
+											sum += p1 + p2;
+											status = MasterTune;
+
+											break;
 										}
 
-										checksum = ev[lastPos + (varLen + 1)];
-
-										sum += p1 + p2;
-										status = MasterTune;
-
-										break;
-									}
-
-									case 4:
-										p1 = ev[readHead++];
-										checksum = ev[readHead++];
-										sum += p1;
-										status = MasterVolume;
-										break;
-
-									case 5:
-										p1 = ev[readHead++];
-										checksum = ev[readHead++];
-										sum += p1;
-										status = MasterKey;
-										break;
-
-									case 6:
-										p1 = ev[readHead++];
-										checksum = ev[readHead++];
-										sum += p1;
-										status = MasterPan;
-										break;
-									}
-
-									break;
-								}
-
-								default:
-									switch (modeSet) {
-									case PatchName:
-										varLen = 16;
-										checksum = ev[(readHead++) + varLen];
-										break;
-
-									case ReverbMacro:
-									case ReverbCharacter:
-									case ReverbPreLpf:
-									case ReverbLevel:
-									case ReverbTime:
-									case ReverbDelayFeedback:
-									case ReverbPredelayTime:
-									case ChorusMacro:
-									case ChorusPreLpf:
-									case ChorusLevel:
-									case ChorusFeedback:
-									case ChorusDelay:
-									case ChorusRate:
-									case ChorusDepth:
-									case ChorusSendLevelToReverb:
-									case ChorusSendLevelToDelay:
-									case DelayMacro:
-									case DelayPreLpf:
-									case DelayTimeCenter:
-									case DelayTimeRatioLeft:
-									case DelayTimeRatioRight:
-									case DelayLevelCenter:
-									case DelayLevelLeft:
-									case DelayLevelRight:
-									case DelayLevel:
-									case DelayFeedback:
-									case DelaySendLevelToReverb:
-									case EQLowFreq:
-									case EQLowGain:
-									case EQHighFreq:
-									case EQHighGain:
-										// placeholder
-										status = Unknown1;
-										p1 = ev[readHead++];
-										sum += p1;
-										checksum = ev[readHead++];
-										break;
-									}
-
-									break;
-								}
-							}
-
-							case 0:
-								switch (modeSet) {
-								case MIDISetup:
-									status = SystemReset;
-									checksum = ev[(readHead++) + varLen];
-									Synth->Reset(0x01);
-									break;
-								}
-								break;
-							}
-
-						case 0x45:
-							switch (addr) {
-								// Display data
-							case DisplayData:
-							{
-								char mult = 0;
-
-								commandPart = ev[readHead + (7 * mult)];
-								char dataType = ev[readHead + (10 * mult)];
-
-								switch (dataType) {
-								case ASCIIMode:
-									for (/* damn son */; mult < 32; mult++) {
-										if (commandPart > 0x1F)
+										case 4:
+											p1 = ev[readHead++];
+											checksum = ev[readHead++];
+											sum += p1;
+											status = MasterVolume;
 											break;
 
-										commandPart = ev[readHead + (7 * mult)];
-									}
+										case 5:
+											p1 = ev[readHead++];
+											checksum = ev[readHead++];
+											sum += p1;
+											status = MasterKey;
+											break;
 
-									if (char* asciiStream = new char[mult]) {
-										for (int i = 0; i < mult; i++) {
-											asciiStream[i] = ev[i + (13 * i)];
+										case 6:
+											p1 = ev[readHead++];
+											checksum = ev[readHead++];
+											sum += p1;
+											status = MasterPan;
+											break;
 										}
 
-										LOG(SHErr, "Roland Display Data: %s", asciiStream);
-
-										delete[] asciiStream;
+										break;
 									}
-									break;
 
-								case BitmapMode:
-									// TODO
+									default:
+										switch (modeSet) {
+										case PatchName:
+											varLen = 16;
+											checksum = ev[(readHead++) + varLen];
+											break;
+
+										case ReverbMacro:
+										case ReverbCharacter:
+										case ReverbPreLpf:
+										case ReverbLevel:
+										case ReverbTime:
+										case ReverbDelayFeedback:
+										case ReverbPredelayTime:
+										case ChorusMacro:
+										case ChorusPreLpf:
+										case ChorusLevel:
+										case ChorusFeedback:
+										case ChorusDelay:
+										case ChorusRate:
+										case ChorusDepth:
+										case ChorusSendLevelToReverb:
+										case ChorusSendLevelToDelay:
+										case DelayMacro:
+										case DelayPreLpf:
+										case DelayTimeCenter:
+										case DelayTimeRatioLeft:
+										case DelayTimeRatioRight:
+										case DelayLevelCenter:
+										case DelayLevelLeft:
+										case DelayLevelRight:
+										case DelayLevel:
+										case DelayFeedback:
+										case DelaySendLevelToReverb:
+										case EQLowFreq:
+										case EQLowGain:
+										case EQHighFreq:
+										case EQHighGain:
+											// placeholder
+											status = Unknown1;
+											p1 = ev[readHead++];
+											sum += p1;
+											checksum = ev[readHead++];
+											break;
+										}
+
+										break;
+									}
+								}
+
+								case 0:
+									switch (modeSet) {
+									case MIDISetup:
+										status = SystemReset;
+										checksum = ev[(readHead++) + varLen];
+										Synth->Reset(0x01);
+										break;
+									}
 									break;
 								}
 
+							case 0x45:
+								switch (addr) {
+								case DisplayData:
+								{
+									char mult = 0;
+
+									commandPart = ev[readHead + (7 * mult)];
+									char dataType = ev[readHead + (10 * mult)];
+
+									switch (dataType) {
+									case ASCIIMode:
+										for (/* damn son */; mult < 32; mult++) {
+											if (commandPart > 0x1F)
+												break;
+
+											commandPart = ev[readHead + (7 * mult)];
+										}
+
+										if (char* asciiStream = new char[mult]) {
+											for (int i = 0; i < mult; i++) {
+												asciiStream[i] = ev[readHead + (13 * i)];
+											}
+
+											LOG(SHErr, "Roland Display Data: %s", asciiStream);
+
+											delete[] asciiStream;
+										}
+										break;
+
+									case BitmapMode:
+										// TODO
+										break;
+									}
+
+									break;
+								}
+								}
+							}
+
+							if (status) {
+								if (varLen > 1)
+									sum += varLen;
+
+								if (sum > 0x7F)
+									sum = sum % ChecksumDividend;
+
+								calcChecksum = ChecksumDividend - sum;
+
+								if (calcChecksum != checksum) {
+									LOG(SHErr, "Checksum invalid! Expected 0x%X, but got 0x%X.", checksum, calcChecksum);
+									return InvalidBuffer;
+								}
+
+								LOG(SHErr, "Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
+								Synth->PlayShortEvent(status, p1, p2);
+
+								addrBlock = ev[readHead];
+								synthPart = ev[readHead + 1];
+								commandPart = ev[readHead + 2];
+
+								addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
+								modeSet = addr & 0xFFFF;
+
 								break;
 							}
-							}
+
+							LOG(SHErr, "Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
+							return NotSupported;
 						}
 
-						if (status) {
-							if (varLen > 1)
-								sum += varLen;
-
-							if (sum > 0x7F)
-								sum = sum % ChecksumDividend;
-
-							calcChecksum = ChecksumDividend - sum;
-
-							if (calcChecksum != checksum) {
-								LOG(SHErr, "Checksum invalid! Expected 0x%X, but got 0x%X.", checksum, calcChecksum);
-								return InvalidBuffer;
-							}
-
-							LOG(SHErr, "Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
-							Synth->PlayShortEvent(status, p1, p2);
-							break;
-						}
-
-						LOG(SHErr, "Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
-						return NotSupported;
 					}
 					else if (command == Send) {
 						// TODO
