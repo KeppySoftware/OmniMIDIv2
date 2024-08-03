@@ -15,6 +15,7 @@
 #define EvBuf				EvBuf_t
 #define LEvBuf				LEvBuf_t
 
+#define DEF_EVBUF_SIZE		4096
 #define MAX_EVBUF_SIZE		UINT_MAX / 2
 #define MAX_LEVBUF_SIZE		64
 
@@ -30,46 +31,49 @@
 #endif
 
 namespace OmniMIDI {
-	typedef struct {
-		unsigned char status;
-		unsigned char param1;
-		unsigned char param2;
-	} ShortEvent, ShortEv, * PShortEv, SE, * PSE;
+	typedef struct ShortEvent {
+		unsigned char status = 0;
+		unsigned char param1 = 0;
+		unsigned char param2 = 0;
+	} ShortEv, *PShortEv, SE, *PSE;
 
-	typedef struct {
-		char ev[MAX_MIDIHDR_BUF];
-		int len;
-	} LongEvent, LongEv, * PLongEv, LE, * PLE;
+	typedef struct LongEvent {
+		char ev[MAX_MIDIHDR_BUF] = { 0 };
+		int len = 0;
+	} LongEv, *PLongEv, LE, *PLE;
 
 	class BaseEvBuf_t {
 	protected:
 		std::atomic<size_t> readHead = 0;
 		std::atomic<size_t> writeHead = 0;
+		size_t size = 0;
 
-		SE shortDummyStruct = { .status = 0xFF, .param1 = 0xFF, .param2 = 0xFF };
+	private:
 		unsigned int shortDummy = 0xFFFFFF;
-		char longDummy = 'C';
+		char longDummy = 'p';
 
 	public:
-		virtual ~BaseEvBuf_t() { }
+		BaseEvBuf_t() { }
+		BaseEvBuf_t(size_t size) { Allocate(size); }
+		virtual ~BaseEvBuf_t() { Free(); }
 
-		bool Allocate(size_t ReqSize) { return true; }
-		bool Free() { return true; }
-		constexpr unsigned int CreateDword(PSE shortEv) { return shortEv->status | shortEv->param1 << 8 | shortEv->param2 << 16; }
+		virtual bool Allocate(size_t ReqSize) { return true; }
+		virtual bool Free() { return true; }
 
 		// Short messages
-		virtual void Push(unsigned int ev) { }
-		virtual void Push(unsigned char status, unsigned char param1, unsigned char param2) { }
-		virtual unsigned int Pop() { return shortDummy; }
-		virtual unsigned int Peek() { return shortDummy; }
+		virtual void Write(unsigned int ev) { }
+		virtual void Write(unsigned char status, unsigned char param1, unsigned char param2) { }
+		virtual void PushSlow(unsigned char status, unsigned char param1, unsigned char param2) { }
+		virtual unsigned int ReadDword() { return shortDummy; }
+		virtual unsigned int PeekDword() { return shortDummy; }
 
-		virtual PSE PopItem() { return &shortDummyStruct; }
-		virtual PSE PeekItem() { return &shortDummyStruct; }
+		virtual unsigned int Read() { return 0; }
+		virtual unsigned int Peek() { return 0; }
 
 		// Long messages
-		virtual void Push(char* ev, size_t len) { }
-		virtual void Pop(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
-		virtual void Peek(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void Write(char* ev, size_t len) { }
+		virtual void ReadDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void PeekDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
 
 		virtual bool NewEventsAvailable() { return false; }
 		virtual size_t GetReadHeadPos() { return 0; }
@@ -78,7 +82,6 @@ namespace OmniMIDI {
 
 	class LEvBuf_t : public BaseEvBuf_t {
 	private:
-		size_t size = 0;
 		PLE buf = nullptr;
 
 	public:
@@ -121,7 +124,7 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Push(char* ev, size_t len) {
+		void Write(char* ev, size_t len) {
 			auto tWriteHead = writeHead + 1;
 			if (tWriteHead >= size)
 				tWriteHead = 0;
@@ -133,7 +136,7 @@ namespace OmniMIDI {
 			buf[writeHead].len = len;
 		}
 
-		void Pop(char* ev, size_t* len) {
+		void ReadDword(char* ev, size_t* len) {
 			if (readHead != writeHead)
 			{
 				if (++readHead >= size) readHead = 0;
@@ -142,7 +145,7 @@ namespace OmniMIDI {
 			}
 		}
 
-		void Peek(char* ev, size_t* len) {
+		void PeekDword(char* ev, size_t* len) {
 			auto tNextHead = readHead + 1;
 
 			if (tNextHead >= size)
@@ -162,7 +165,7 @@ namespace OmniMIDI {
 
 	class EvBuf_t : public BaseEvBuf_t {
 	private:
-		unsigned char lastRunningStatus = 0;
+		unsigned char midiRS = 0;
 
 #ifdef _STATSDEV
 		FILE* dummy;
@@ -170,20 +173,21 @@ namespace OmniMIDI {
 		size_t evSkipped = 0;
 #endif
 
-		size_t size = 0;
-		PSE* buf = nullptr;
+		unsigned int* buf = nullptr;
+		bool dontMiss = false;
 
-		constexpr unsigned char ApplyLastRunningStatus(unsigned char status) {
-			unsigned char tStatus = status;
+		constexpr bool IsRunningStatus(unsigned int ev) { return ((ev & 0xFF) & 0x80) < 1; }
+		constexpr unsigned int ApplyRunningStatus(unsigned int ev) {
+			if (ev & 0x80) {
+				midiRS = ev & 0xFF;
+				return ev;
+			}
 
-			if ((tStatus & 0x80) != 0) lastRunningStatus = tStatus;
-			else return tStatus;
-
-			return status;
+			return (ev << 8) | midiRS;
 		}
-		constexpr unsigned int GetStatus(unsigned int ev) { return (ev & 0xFF); }
-		constexpr unsigned int GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
-		constexpr unsigned int GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
+		constexpr unsigned char GetStatus(unsigned int ev) { return (ev & 0xFF) & 0x80; }
+		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
+		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
 	public:
 		EvBuf_t() { }
@@ -194,6 +198,10 @@ namespace OmniMIDI {
 
 		~EvBuf_t() {
 			Free();
+		}
+
+		void SetMissMode(bool val) {
+			dontMiss = val;
 		}
 
 		bool Allocate(size_t ReqSize) {		
@@ -210,9 +218,7 @@ namespace OmniMIDI {
 				size = MAX_EVBUF_SIZE;
 #endif
 
-			buf = new PSE[ReqSize]();
-			for (size_t i = 0; i < size; i++)
-				buf[i] = new SE();
+			buf = new unsigned int[size]();
 
 			return true;
 		}
@@ -229,9 +235,6 @@ namespace OmniMIDI {
 			readHead = 0;
 			writeHead = 0;
 
-			for (size_t i = 0; i < size; i++)
-				delete buf[i];
-
 			delete[] buf;
 			buf = nullptr;
 
@@ -239,7 +242,11 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Push(unsigned char status, unsigned char param1, unsigned char param2) {
+		void Write(unsigned char status, unsigned char param1, unsigned char param2) {
+			Write(status | (param1 << 8) | (param2 << 16));
+		}
+
+		void Write(unsigned int ev) {
 			auto tReadHead = (size_t)readHead;
 			auto tWriteHead = writeHead + 1;
 
@@ -257,23 +264,18 @@ namespace OmniMIDI {
 				return;
 			}
 
-			buf[tWriteHead]->status = ApplyLastRunningStatus(status);
-			buf[tWriteHead]->param1 = param1;
-			buf[tWriteHead]->param2 = param2;
+			buf[tWriteHead] = ev;
 			writeHead = tWriteHead;
 		}
 
-		void Push(unsigned int ev) {
-			Push(GetStatus(ev), GetFirstParam(ev), GetSecondParam(ev));
-		}
-
-		PSE PopItem() {
+		unsigned int Read() {
+			auto tReadHead = (size_t)readHead;
 			auto tWriteHead = (size_t)writeHead;
 
-			if (readHead == tWriteHead)
-				return nullptr;
+			if (tReadHead == tWriteHead)
+				return 0;
 
-			auto tNextHead = readHead + 1;
+			size_t tNextHead = tReadHead + 1;
 			if (tNextHead >= size)
 				tNextHead = 0;
 
@@ -281,13 +283,8 @@ namespace OmniMIDI {
 			return buf[tNextHead];
 		}
 
-		unsigned int Pop() {
-			PSE t = PopItem();
-			return t ? CreateDword(t) : 0;
-		}
-
-		PSE PeekItem() {
-			auto tNextHead = readHead + 1;
+		unsigned int Peek() {
+			auto tNextHead = (size_t)readHead + 1;
 
 			if (tNextHead >= size)
 				tNextHead = 0;
@@ -295,17 +292,13 @@ namespace OmniMIDI {
 			return buf[tNextHead];
 		}
 
-		unsigned int Peek() {
-			PSE t = PeekItem();
-			return t ? CreateDword(t) : 0;
-		}
 
 		bool NewEventsAvailable() {
-			return (readHead != writeHead);
+			return ((size_t)readHead != (size_t)writeHead);
 		}
 
-		size_t GetReadHeadPos() { return readHead; }
-		size_t GetWriteHeadPos() { return writeHead; }
+		size_t GetReadHeadPos() { return (size_t)readHead; }
+		size_t GetWriteHeadPos() { return (size_t)writeHead; }
 	};
 }
 

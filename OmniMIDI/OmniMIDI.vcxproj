@@ -65,7 +65,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
   </PropertyGroup>
@@ -74,7 +75,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>LLVM_v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>16</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
   </PropertyGroup>
@@ -84,7 +86,8 @@
     <PlatformToolset>ClangCL</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>true</DisableAdvancedSupport>
     <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>6.0.6000.0</WindowsTargetPlatformMinVersion>
@@ -96,7 +99,8 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>16</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
     <WindowsTargetPlatformMinVersion>
@@ -108,7 +112,8 @@
     <PlatformToolset>LLVM_v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>16</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>true</DisableAdvancedSupport>
     <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>6.0.6000.0</WindowsTargetPlatformMinVersion>
@@ -120,7 +125,8 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>16</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
     <WindowsTargetPlatformMinVersion>
@@ -131,7 +137,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
   </PropertyGroup>
@@ -140,7 +147,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>ClangCL</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
   </PropertyGroup>
@@ -150,7 +158,8 @@
     <PlatformToolset>ClangCL</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>true</DisableAdvancedSupport>
     <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>6.0.6000.0</WindowsTargetPlatformMinVersion>
@@ -174,7 +183,8 @@
     <PlatformToolset>ClangCL</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>17.0.1</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>true</DisableAdvancedSupport>
     <SupportLTL>true</SupportLTL>
     <WindowsTargetPlatformMinVersion>6.0.6000.0</WindowsTargetPlatformMinVersion>
@@ -186,7 +196,8 @@
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
-    <LLVMToolsVersion>16</LLVMToolsVersion>
+    <LLVMInstallDir>C:\Program Files\LLVM</LLVMInstallDir>
+    <LLVMToolsVersion>18</LLVMToolsVersion>
     <DisableAdvancedSupport>false</DisableAdvancedSupport>
     <SupportLTL>false</SupportLTL>
     <WindowsTargetPlatformMinVersion>
@@ -321,6 +332,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -347,6 +359,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -519,6 +532,7 @@
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <ControlFlowGuard>false</ControlFlowGuard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -547,6 +561,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <ControlFlowGuard>false</ControlFlowGuard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

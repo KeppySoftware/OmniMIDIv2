@@ -11,8 +11,33 @@
 
 #include "XSynthM.hpp"
 
+void OmniMIDI::XSynth::XSynthThread() {
+	while (!IsSynthInitialized())
+		MiscFuncs.uSleep(-1);
+
+	while (IsSynthInitialized()) {
+		auto data = XSynth_Realtime_GetStats();
+
+		RenderingTime = data.render_time * 100.0f;
+		ActiveVoices = data.voice_count;
+
+		if (IsSynthInitialized() && SFSystem.ListModified()) {
+			LoadSoundFonts();
+		}
+
+		MiscFuncs.uSleep(-10000);
+	}
+}
+
+bool OmniMIDI::XSynth::IsSynthInitialized() {
+	if (!XLib)
+		return false;
+
+	return XSynth_Realtime_IsActive();
+}
+
 bool OmniMIDI::XSynth::LoadSynthModule() {
-	auto ptr = (LibImport**)&xLibImp;
+	auto ptr = (LibImport*)xLibImp;
 
 	if (!Settings) {
 		Settings = new XSynthSettings;
@@ -20,7 +45,7 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	}
 
 	if (!XLib)
-		XLib = new Lib(L"xsynth", ptr, xLibImpLen);
+		XLib = new Lib(L"xsynth", &ptr, xLibImpLen);
 
 	if (XLib->IsOnline())
 		return true;
@@ -42,54 +67,149 @@ bool OmniMIDI::XSynth::UnloadSynthModule() {
 }
 
 bool OmniMIDI::XSynth::StartSynthModule() {
-	if (Running)
+	if (XSynth_Realtime_IsActive())
 		return true;
 
 	if (!Settings)
 		return false;
 
-	if (StartModule(Settings->BufSize))
-	{
-		std::vector<OmniMIDI::SoundFont>* SFv = SFSystem.LoadList();
-		if (SFv != nullptr) {
-			std::vector<SoundFont>& dSFv = *SFv;
+	realtimeConf = XSynth_GenDefault_RealtimeConfig();
 
-			for (int i = 0; i < SFv->size(); i++) {
-				LoadSoundFont(dSFv[i].path.c_str());
-				break;
-			}
+	realtimeConf.fade_out_killing = Settings->FadeOutKilling;
+	realtimeConf.render_window_ms = Settings->RenderWindow;
+	realtimeConf.use_threadpool = Settings->ThreadPool;
+
+	XSynth_Realtime_Init(realtimeConf);
+	XSynth_Realtime_SetLayerCount(Settings->LayerCount);
+	realtimeParams = XSynth_Realtime_GetStreamParams();
+
+	LoadSoundFonts();
+
+	if (Settings->IsDebugMode()) {
+		_XSyThread = std::jthread(&XSynth::XSynthThread, this);
+		if (!_XSyThread.joinable()) {
+			NERROR(SynErr, "_XSyThread failed. (ID: %x)", true, _XSyThread.get_id());
+			return false;
 		}
 
-		Running = true;
-		return true;
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
+		if (!_LogThread.joinable()) {
+			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			return false;
+		}
 	}
 
-	return false;
+	return true;
 }
 
 bool OmniMIDI::XSynth::StopSynthModule() {
-	if (StopModule()) {
-		// FIXME: Waiting for Arduano to fix a ghost thread
-		Sleep(4000);
-		return true;
+	if (XSynth_Realtime_IsActive()) {
+		XSynth_Soundfont_RemoveAll();
+		XSynth_Realtime_Drop();
 	}
 
-	return false;
+	if (_LogThread.joinable())
+		_LogThread.join();
+
+	if (_XSyThread.joinable())
+		_XSyThread.join();
+
+	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
+		Settings->CloseConsole();
+
+	return true;
 }
 
-void OmniMIDI::XSynth::XPlayShortEvent(unsigned int ev) {
-	if (!XLib->IsOnline())
-		return;
+void OmniMIDI::XSynth::LoadSoundFonts() {
+	if (SoundFonts.size() > 0)
+	{
+		XSynth_Soundfont_RemoveAll();
+		SoundFonts.clear();
+	}
 
-	SendData(ev);
+	if (SFSystem.ClearList()) {
+		int retry = 0;
+		std::vector<OmniMIDI::SoundFont>* SFv = nullptr;
+
+		while (SFv == nullptr || retry++ != 30)
+			SFv = SFSystem.LoadList();
+
+		if (SFv != nullptr) {
+			auto& dSFv = *SFv;
+
+			for (int i = 0; i < SFv->size(); i++) {
+				if (!dSFv[i].enabled)
+					continue;
+
+				auto sf = XSynth_GenDefault_SoundfontOptions();
+
+				sf.stream_params.audio_channels = realtimeParams.audio_channels;
+				sf.stream_params.sample_rate = realtimeParams.sample_rate;
+				sf.preset = dSFv[i].spreset;
+				sf.bank = dSFv[i].sbank;
+				sf.interpolator = INTERPOLATION_LINEAR;
+				sf.use_effects = dSFv[i].minfx;
+				sf.linear_release = dSFv[i].linattmod;
+
+				SoundFonts.push_back(XSynth_Soundfont_LoadNew(dSFv[i].path.c_str(), sf));
+			}
+		}
+	}
+
+	if (SoundFonts.size() > 0)
+		XSynth_Realtime_SetSoundfonts(&SoundFonts[0], SoundFonts.size());
+}
+
+void OmniMIDI::XSynth::PlayShortEvent(unsigned int ev) {
+	PlayShortEvent(ev & 0xFF, (ev >> 8) & 0xFF, (ev >> 16) & 0xFF);
+}
+
+void OmniMIDI::XSynth::UPlayShortEvent(unsigned int ev) {
+	UPlayShortEvent(ev & 0xFF, (ev >> 8) & 0xFF, (ev >> 16) & 0xFF);
 }
 
 void OmniMIDI::XSynth::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
-	PlayShortEvent(status, param1, param2);
+	if (!XLib->IsOnline() && XSynth_Realtime_IsActive())
+		return;
+
+	UPlayShortEvent(status, param1, param2);
 }
 
 void OmniMIDI::XSynth::UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
-	XPlayShortEvent(status | param1 << 8 | param2 << 16);
+	uint16_t evt = MIDI_EVENT_NOTEON;
+	uint16_t ev = 0;
+
+	switch (status & 0xF0) {
+	case NoteOn:
+		ev = param2 << 8 | param1;
+		break;
+	case NoteOff:
+		evt = MIDI_EVENT_NOTEOFF;
+		ev = param1;
+		break;
+	case PatchChange:
+		evt = MIDI_EVENT_PROGRAMCHANGE;
+		ev = param1;
+		break;
+	case CC:
+		evt = MIDI_EVENT_CONTROL;
+		ev = param2 << 8 | param1;
+		break;
+	case PitchBend:
+		evt = MIDI_EVENT_PITCH;
+		ev = param2 << 7 | param1;
+		break;
+	default:
+		switch (status) {
+		case SystemReset:
+			evt = MIDI_EVENT_RESETCONTROL;
+			break;
+		default:
+			break;
+		}
+	}
+
+	XSynth_Realtime_SendEvent(status & 0xF, evt, ev);
 }
 
 #endif

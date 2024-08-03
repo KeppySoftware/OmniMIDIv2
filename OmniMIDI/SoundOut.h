@@ -54,7 +54,7 @@ public:
 	SoundOutVirtualWindow* MsgWnd = nullptr;
 
 	virtual ~SoundOut() {}
-	virtual SoundOutResult Init(HMODULE m_hModule, SOAudioFlags flags, unsigned sample_rate, unsigned spf, unsigned sr, unsigned chks) = 0;
+	virtual SoundOutResult Init(HMODULE m_hModule, SOAudioFlags flags, unsigned int sample_rate, unsigned spf, unsigned chks) = 0;
 	virtual SoundOutResult Stop() = 0;
 	virtual SoundOutResult Update(void* buf, size_t len) = 0;
 };

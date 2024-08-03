@@ -108,6 +108,7 @@ namespace OmniMIDI {
 		void HostHealthCheck();
 
 		// Event handling system
+		void PlayShortEvent(unsigned int ev);
 		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult Reset() { return Synth->Reset(); }

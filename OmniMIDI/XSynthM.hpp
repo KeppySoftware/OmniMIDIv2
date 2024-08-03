@@ -38,7 +38,10 @@ namespace OmniMIDI {
 	class XSynthSettings : public OMSettings {
 	public:
 		// Global settings
-		double BufSize = 5.0;
+		bool ThreadPool = false;
+		bool FadeOutKilling = false;
+		double RenderWindow = 5.0;
+		uint64_t LayerCount = 2;
 
 		XSynthSettings() {
 			LoadSynthConfig();
@@ -49,7 +52,10 @@ namespace OmniMIDI {
 			if (InitConfig(true, XSYNTH_STR, sizeof(XSYNTH_STR))) {
 				nlohmann::json DefConfig = {
 					{
-						ConfGetVal(BufSize)
+						ConfGetVal(ThreadPool),
+						ConfGetVal(FadeOutKilling),
+						ConfGetVal(RenderWindow),
+						ConfGetVal(LayerCount)
 					}
 				};
 
@@ -64,7 +70,10 @@ namespace OmniMIDI {
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
 		void LoadSynthConfig() {
 			if (InitConfig(false, XSYNTH_STR, sizeof(XSYNTH_STR))) {
-				SynthSetVal(double, BufSize);
+				SynthSetVal(bool, ThreadPool);
+				SynthSetVal(bool, FadeOutKilling);
+				SynthSetVal(double, RenderWindow);
+				SynthSetVal(uint64_t, LayerCount);
 				return;
 			}
 
@@ -78,13 +87,30 @@ namespace OmniMIDI {
 	private:
 		Lib* XLib = nullptr;
 
-		LibImport xLibImp[5] = {
+		OMShared::Funcs MiscFuncs;
+		std::vector<uint64_t> SoundFonts;
+		uint64_t StreamHandle = 0;
+		XSynth_RealtimeConfig realtimeConf;
+		XSynth_RealtimeStats realtimeStats;
+		XSynth_StreamParams realtimeParams;
+		std::jthread _XSyThread;
+
+		LibImport xLibImp[14] = {
 			// BASS
-			ImpFunc(StartModule),
-			ImpFunc(StopModule),
-			ImpFunc(SendData),
-			ImpFunc(LoadSoundFont),
-			ImpFunc(ResetModule)
+			ImpFunc(XSynth_GenDefault_RealtimeConfig),
+			ImpFunc(XSynth_GenDefault_SoundfontOptions),
+			ImpFunc(XSynth_Realtime_Drop),
+			ImpFunc(XSynth_Realtime_GetStats),
+			ImpFunc(XSynth_Realtime_GetStreamParams),
+			ImpFunc(XSynth_Realtime_Init),
+			ImpFunc(XSynth_Realtime_IsActive),
+			ImpFunc(XSynth_Realtime_Reset),
+			ImpFunc(XSynth_Realtime_SendEvent),
+			ImpFunc(XSynth_Realtime_SetLayerCount),
+			ImpFunc(XSynth_Realtime_SetSoundfonts),
+			ImpFunc(XSynth_Soundfont_LoadNew),
+			ImpFunc(XSynth_Soundfont_Remove),
+			ImpFunc(XSynth_Soundfont_RemoveAll)
 		};
 		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
 
@@ -99,11 +125,14 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return 48000; }
-		bool IsSynthInitialized() { return 0; }
+		bool IsSynthInitialized();
 		int SynthID() { return 0x9AF3812A; }
+		void LoadSoundFonts();
+		void XSynthThread();
 
 		// Event handling system
-		void XPlayShortEvent(unsigned int ev);
+		void PlayShortEvent(unsigned int ev);
+		void UPlayShortEvent(unsigned int ev);
 		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 		void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 

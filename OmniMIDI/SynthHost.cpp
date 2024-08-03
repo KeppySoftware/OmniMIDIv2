@@ -61,6 +61,8 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 					chktime = std::filesystem::last_write_time(confPath);
 				}
 			}
+
+			Sleep(100);
 		}
 	}
 }
@@ -228,6 +230,10 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	return tSynth;
 }
 
+void OmniMIDI::SynthHost::PlayShortEvent(unsigned int ev) {
+	Synth->PlayShortEvent(ev);
+}
+
 void OmniMIDI::SynthHost::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
 	Synth->PlayShortEvent(status, param1, param2);
 }
@@ -254,7 +260,9 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 				case 0x7F:
 				{
 					char command = ev[readHead + 3];
-					if (command == 0x06) {
+
+					switch (command) {
+					case 0x06: {
 						readHead += 4;
 
 						char subcommand = ev[readHead];
@@ -282,8 +290,17 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 							subcommand = ev[readHead++];
 						}
+
+						break;
 					}
-					else return NotSupported;
+
+					case 0x7F:
+						readHead += 5;
+						break;
+
+					default:
+						return NotSupported;
+					}
 
 					return Ok;
 				}
@@ -301,14 +318,15 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 					readHead += 3;
 					if (command == Receive) {
+						PSE params = new SE[256];
+						unsigned char pseWriteHead = -1;
+
 						unsigned int varLen = 1;
 
 						unsigned char addrBlock = ev[readHead];
 						unsigned char synthPart = ev[readHead + 1];
 						unsigned char commandPart = ev[readHead + 2];
 						unsigned char status = 0;
-						unsigned char p1 = 0;
-						unsigned char p2 = 0;
 
 						unsigned int lastPos = 0;
 						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
@@ -318,9 +336,15 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 						unsigned char checksum = 0;
 						unsigned char calcChecksum = 0;
 
+						bool error = false;
+						bool noParams = false;
+
 						readHead += 3;
 						while (addrBlock != SystemMessageEnd) {
 							if (addr == MIDIReset) {
+								delete[] params;
+
+								LOG(SHErr, "Detected 0x%X! MIDI reset triggered.", MIDIReset);
 								char resetType = ev[readHead + 2];
 								return Synth->Reset(!resetType ? resetType : vendor);
 							}
@@ -330,7 +354,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 								switch (addr & BlockDiscrim) {
 								case PatchCommonA:
 								case PatchCommonB: {
-									switch (synthPart) {
+									switch (synthPart & 0xF0) {
 									case 0:
 									{
 										switch (commandPart) {
@@ -339,71 +363,133 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 										case 2:
 										case 3: {
 											varLen = 4;
+											pseWriteHead++;
+
 											if ((commandPart & 0xF) == 0)
 												lastPos = readHead;
 
+											params[pseWriteHead].status = MasterTune;
 											for (int i = 0; i < varLen; i++) {
 												if (i == 1)
-													p1 = ev[lastPos + i];
+													params[pseWriteHead].param1 = ev[lastPos + i];
 
 												if (i == 2)
-													p2 = ev[lastPos + i];
+													params[pseWriteHead].param2 = ev[lastPos + i];
 											}
 
-											checksum = ev[lastPos + (varLen + 1)];
+											readHead += varLen + 1;
+											sum += params[pseWriteHead].param1 + params[pseWriteHead].param2;
 
-											sum += p1 + p2;
-											status = MasterTune;
-
+											readHead++;
 											break;
 										}
 
 										case 4:
-											p1 = ev[readHead++];
-											checksum = ev[readHead++];
-											sum += p1;
-											status = MasterVolume;
+											pseWriteHead++;
+											params[pseWriteHead].status = MasterVolume;
+											params[pseWriteHead].param1 = ev[readHead++];
+											sum += params[pseWriteHead].param1;
+											status = params[pseWriteHead].status;
+											readHead++;
 											break;
 
 										case 5:
-											p1 = ev[readHead++];
-											checksum = ev[readHead++];
-											sum += p1;
-											status = MasterKey;
+											pseWriteHead++;
+											params[pseWriteHead].status = MasterKey;
+											params[pseWriteHead].param1 = ev[readHead++];
+											sum += params[pseWriteHead].param1;
+											status = params[pseWriteHead].status;
+											readHead++;
 											break;
 
 										case 6:
-											p1 = ev[readHead++];
-											checksum = ev[readHead++];
-											sum += p1;
-											status = MasterPan;
+											pseWriteHead++;
+											params[pseWriteHead].status = MasterPan;
+											params[pseWriteHead].param1 = ev[readHead++];
+											sum += params[pseWriteHead].param1;
+											status = params[pseWriteHead].status;
+											readHead++;
 											break;
 										}
 
 										break;
 									}
 
+									case 10:
+										switch (commandPart & 0xF0) {
+										// Scale tuning
+										case 0x40:
+										{
+											varLen = 0x0C;
+
+											for (int i = 0; i < varLen; i++) {
+												char tmp = ev[readHead + (4 * i)];
+												if ((tmp & 0xF0) != 0x40)
+													break;
+
+												pseWriteHead++;
+												params[pseWriteHead].status = RolandScaleTuning;
+												params[pseWriteHead].param1 = tmp;
+												sum += tmp;
+											}
+
+											readHead += varLen + 1;
+											break;
+										}
+										}
+										break;
+
 									default:
 										switch (modeSet) {
 										case PatchName:
 											varLen = 16;
-											checksum = ev[(readHead++) + varLen];
+											readHead += varLen + 1;
 											break;
 
 										case ReverbMacro:
+											status = RolandReverbMacro;
+											goto var1param;
+
+										case ReverbLevel:
+											status = RolandReverbLevel;
+											goto var1param;
+
+										case ReverbTime:
+											status = RolandReverbTime;
+											goto var1param;
+
+										case ReverbDelayFeedback:
+											status = RolandReverbDelay;
+											goto var1param;
+
+										case ChorusMacro:
+											status = RolandChorusMacro;
+											goto var1param;
+
+										case ChorusLevel:
+											status = RolandChorusLevel;
+											goto var1param;
+
+										case ChorusFeedback:
+											status = RolandChorusFeedback;
+											goto var1param;
+
+										case ChorusDelay:
+											status = RolandChorusDelay;
+											goto var1param;
+
+										case ChorusRate:
+											status = RolandChorusRate;
+											goto var1param;
+
+										case ChorusDepth:
+											status = RolandChorusDepth;
+											goto var1param;
+
+										case ReverbPredelayTime:
 										case ReverbCharacter:
 										case ReverbPreLpf:
-										case ReverbLevel:
-										case ReverbTime:
-										case ReverbDelayFeedback:
-										case ReverbPredelayTime:
-										case ChorusMacro:
 										case ChorusPreLpf:
-										case ChorusLevel:
-										case ChorusFeedback:
-										case ChorusDelay:
-										case ChorusRate:
-										case ChorusDepth:
 										case ChorusSendLevelToReverb:
 										case ChorusSendLevelToDelay:
 										case DelayMacro:
@@ -421,11 +507,12 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 										case EQLowGain:
 										case EQHighFreq:
 										case EQHighGain:
-											// placeholder
-											status = Unknown1;
-											p1 = ev[readHead++];
-											sum += p1;
-											checksum = ev[readHead++];
+										var1param:
+											pseWriteHead++;
+											params[pseWriteHead].status = status;
+											params[pseWriteHead].param1 = ev[readHead++];
+											sum += params[pseWriteHead].param1;
+											readHead++;
 											break;
 										}
 
@@ -436,9 +523,9 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 								case 0:
 									switch (modeSet) {
 									case MIDISetup:
-										status = SystemReset;
-										checksum = ev[(readHead++) + varLen];
-										Synth->Reset(0x01);
+										params[pseWriteHead++].status = SystemReset;
+										params[pseWriteHead].param1 = 0x01;
+										readHead += varLen + 1;
 										break;
 									}
 									break;
@@ -450,40 +537,48 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 								{
 									char mult = 0;
 
-									commandPart = ev[readHead + (7 * mult)];
-									char dataType = ev[readHead + (10 * mult)];
+									commandPart = ev[readHead + 7];
+									char dataType = ev[readHead + 10];
 
-									switch (dataType) {
-									case ASCIIMode:
-										for (/* damn son */; mult < 32; mult++) {
-											if (commandPart > 0x1F)
-												break;
+									for (mult = 0; mult < dataType; mult++) {
+										if (commandPart > 0x1F)
+											break;
 
-											commandPart = ev[readHead + (7 * mult)];
-										}
-
-										if (char* asciiStream = new char[mult]) {
-											for (int i = 0; i < mult; i++) {
-												asciiStream[i] = ev[readHead + (13 * i)];
-											}
-
-											LOG(SHErr, "Roland Display Data: %s", asciiStream);
-
-											delete[] asciiStream;
-										}
-										break;
-
-									case BitmapMode:
-										// TODO
-										break;
+										commandPart = ev[readHead + (7 * mult)];
 									}
 
+									checksum = ev[readHead + (12 * mult)];
+
+									if (char* asciiStream = new char[mult]) {
+										if (dataType == ASCIIMode) {
+											for (int i = 0; i < mult; i++) {
+												asciiStream[i] = ev[readHead + (11 * i)];
+											}
+
+											LOG(SHErr, "MSG: % s", asciiStream);								
+										}
+										else if (dataType == BitmapMode) {
+											for (int i = 0; i < mult; i++) {
+												asciiStream[i] = ev[readHead + (11 * i)];
+											}
+
+											for (int i = 0; i < mult; i = i * 16) {
+
+											}
+											LOG(SHErr, "BITMAP: % s", asciiStream);
+										}
+
+										delete[] asciiStream;
+									}
+									
+									readHead += 12 * mult;
 									break;
 								}
 								}
 							}
 
-							if (status) {
+							checksum = ev[readHead];
+							if (pseWriteHead != 0 && !noParams) {
 								if (varLen > 1)
 									sum += varLen;
 
@@ -497,8 +592,11 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 									return InvalidBuffer;
 								}
 
-								LOG(SHErr, "Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
-								Synth->PlayShortEvent(status, p1, p2);
+								LOG(SHErr, "Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X, Checksum 0x%X)", addrBlock, synthPart, commandPart, checksum);
+
+								for (unsigned char i = 0; i < pseWriteHead; i++) {
+									Synth->PlayShortEvent(params[i].status, params[i].param1, params[i].param2);
+								}
 
 								addrBlock = ev[readHead];
 								synthPart = ev[readHead + 1];
@@ -507,13 +605,22 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 								addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
 								modeSet = addr & 0xFFFF;
 
-								break;
+								if (addrBlock == SystemMessageEnd ||
+									synthPart == SystemMessageEnd ||
+									commandPart == SystemMessageEnd)
+									break;
 							}
+							else if (noParams) break;
 
+							delete[] params;
 							LOG(SHErr, "Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
-							return NotSupported;
+							error = true;
 						}
+					
+						delete[] params;
 
+						if (error)
+							return NotSupported;
 					}
 					else if (command == Send) {
 						// TODO

@@ -106,6 +106,9 @@ namespace OMShared {
 		}
 
 		unsigned int uSleep(signed long long v) {
+			if (!v)
+				return 0;
+
 #ifdef _WIN32
 			return pNtDelayExecution(0, &v);
 #else

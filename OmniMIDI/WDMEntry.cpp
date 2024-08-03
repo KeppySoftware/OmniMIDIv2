@@ -449,7 +449,7 @@ extern "C" {
 	}
 
 	EXPORT void APICALL SendDirectData(unsigned int ev) {
-		Host->PlayShortEvent(ev & 0xFF, (ev >> 8) & 0xFF, (ev >> 16) & 0xFF);
+		Host->PlayShortEvent(ev);
 	}
 
 	EXPORT void APICALL SendDirectDataNoBuf(unsigned int ev) {
@@ -463,7 +463,7 @@ extern "C" {
 	}
 
 	EXPORT unsigned int APICALL SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
-		// redirect to normal function
+		// Unsupported, forward to SendDirectLongData
 		return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
 	}
 
@@ -518,19 +518,33 @@ extern "C" {
 		return (unsigned long long)((CurrentTime)-TickStart) / 10000.0;
 	}
 
-#ifdef _DEBUG
+#ifdef WIN32
 	// Internal benchmark tools for myself!!!
 
 	EXPORT void WINAPI BufferThroughput(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow) {
-		volatile bool stop = true;
-		volatile bool clearS = false, clearR = false;
+#ifndef _DEBUG
+		if (AllocConsole()) {
+			FILE* dummy;
+			freopen_s(&dummy, "CONOUT$", "w", stdout);
+			freopen_s(&dummy, "CONOUT$", "w", stderr);
+			freopen_s(&dummy, "CONIN$", "r", stdin);
+			std::cout.clear();
+			std::clog.clear();
+			std::cerr.clear();
+			std::cin.clear();
+		}
+		else exit(0);
+#endif
 
-		std::vector<size_t> mesS, mesR;
-		size_t avgS = 0, avgR = 0;
-		volatile size_t senderBufProc = 0, receiverBufProc = 0;
+		volatile bool stop = true;
+		volatile bool waitThread = false;
+
+		std::vector<size_t> mesS, mesR, mesW;
+		size_t avgS = 0, avgR = 0, avgW = 0;
+		std::atomic<size_t> senderBufProc = 0, receiverBufProc = 0, waitingBufProc = 0;
 
 		OMShared::Funcs d;
-		OmniMIDI::EvBuf* buffer = new OmniMIDI::EvBuf(0x7FFFFFFF);
+		OmniMIDI::EvBuf* buffer = new OmniMIDI::EvBuf(0x7FFFFF);
 		int count = 0;
 		int interval = 5;
 
@@ -543,45 +557,48 @@ extern "C" {
 			while (stop) d.uSleep(-1);
 
 			while (!stoken.stop_requested()) {
-				if (clearS) {
-					senderBufProc = 0;
-					clearS = false;
-				}
+				while (waitThread);
 
-				buffer->Push(0x10, 0x10, 0x10);
-				senderBufProc = senderBufProc + 1;
+				buffer->Write(0x10, 0x10, 0x10);
+				senderBufProc++;
 			}
 			});
 
 		receiver = std::jthread([&, stoken = ssource.get_token()]() {
-			OmniMIDI::PSE ev = 0;
-
 			while (stop) d.uSleep(-1);
 
 			while (!stoken.stop_requested()) {
-				if (clearS) {
-					receiverBufProc = 0;
-					clearR = false;
-				}
+				while (waitThread);
 
-				ev = buffer->PopItem();
-				receiverBufProc = receiverBufProc + 1;
+				if (buffer->Read())
+					receiverBufProc++;
+				else
+					waitingBufProc++;
 			}
 			});
 
 		checker = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop);
+			while (stop) d.uSleep(-1);
 
 			while (!stoken.stop_requested()) {
 				d.uSleep(-10000000);
-				auto s = senderBufProc;
-				auto r = receiverBufProc;
-				clearS = true;
-				clearR = true;
+				waitThread = true;
+
+				auto s = (size_t)senderBufProc;
+				auto r = (size_t)receiverBufProc;
+				auto w = (size_t)waitingBufProc;
 				mesS.push_back(s);
 				mesR.push_back(r);
-				LOG(WDMErr, "S %llu - R %llu", mesS[count], mesR[count]);
+				mesW.push_back(w);
+
+				LOG(WDMErr, "sent %llu - received %llu (lost %llu)", mesS[count] * 3, mesR[count] * 3, mesW[count] * 3);
 				count++;
+
+				senderBufProc = 0;
+				receiverBufProc = 0;
+				waitingBufProc = 0;
+
+				waitThread = false;
 			}
 			});
 
@@ -597,15 +614,26 @@ extern "C" {
 		for (int i = 0; i < mesS.size(); i++) {
 			avgS += mesS[i];
 			avgR += mesR[i];
+			avgW += mesW[i];
 		}
 
 		auto totalS = avgS;
 		auto totalR = avgR;
+		auto totalW = avgW;
+		auto potential = totalR + totalW;
 		avgS = avgS / mesS.size();
 		avgR = avgR / mesS.size();
+		avgW = avgW / mesW.size();
+		auto avgPotential = avgR + avgW;
 
-		LOG(WDMErr, "Sender processed %llu events (%llu/sec), receiver processed %llu events (%llu/sec).", totalS, avgS, totalR, avgR);
-		MessageBoxA(NULL, "Check console then press OK.", "OMB", MB_OK | MB_SYSTEMMODAL);
+		int perc = 10000 - (totalW * 10000 + potential / 2) / potential;
+
+		char* Text = new char[256];
+		char percSym = '%';
+
+		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %.2f)", avgS * 3, avgR * 3, totalS * 3, totalR * 3, (long long)(totalR - totalS) * 3, avgPotential, 100.0f - (perc / 100.0f));
+		LOG(WDMErr, Text);
+		MessageBoxA(NULL, Text, "OMB", MB_OK | MB_SYSTEMMODAL);
 	}
 
 

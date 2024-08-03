@@ -60,7 +60,7 @@ XAudio2Output::~XAudio2Output() {
 #endif
 }
 
-SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsigned strmSampleRate, unsigned mspf, unsigned spf, unsigned chks) {
+SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsigned int strmSampleRate, unsigned spf, unsigned chks) {
 #ifndef _M_ARM64
 	if (!xa2Create)
 		return Fail;
@@ -68,13 +68,13 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 
 	Stop();
 
-	WAVEFORMATEX wfx = { 0 };
+	WAVEFORMATEXTENSIBLE wfx = { 0 };
 	HRESULT hr = 0;
 
 	this->sampleRate = strmSampleRate;
 	this->nCh = (flags & SOAudioFlags::MonoAudio) ? 1 : 2;
-	this->maxSamplesPerFrame = mspf;
 	this->samplesPerFrame = spf;
+
 	this->nChks = chks;
 
 	if (flags & SOAudioFlags::ShortData)
@@ -90,26 +90,28 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 
 	switch (bitDepth) {
 	case 4:
-		wfx.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
+		wfx.Format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
 		break;
 	default:
-		wfx.wFormatTag = WAVE_FORMAT_PCM;
+		wfx.Format.wFormatTag = WAVE_FORMAT_PCM;
 		break;
 	}
 
-	audioBuf = new float[mspf]();
-	LOG(XAErr, "audioBuf allocated with a size of %d", mspf);
+	audioBuf = new float[maxSamplesPerFrame]();
+	LOG(XAErr, "audioBuf allocated with a size of %d", spf);
 
-	wfx.nChannels = nCh;
-	wfx.nSamplesPerSec = sampleRate;
-	wfx.wBitsPerSample = bitDepth * 8;
-	wfx.nBlockAlign = nCh * bitDepth;
-	wfx.nAvgBytesPerSec = wfx.nSamplesPerSec * wfx.nBlockAlign;
+	wfx.Format.nChannels = nCh;
+	wfx.Format.nSamplesPerSec = sampleRate;
+	wfx.Format.wBitsPerSample = bitDepth * 8;
+	wfx.Format.nBlockAlign = (wfx.Format.nChannels * wfx.Format.wBitsPerSample) / 8;
+	wfx.Format.nAvgBytesPerSec = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
+	wfx.Format.cbSize = 0;
+	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 
-	auto lat = (((double)samplesPerFrame / (double)strmSampleRate) * 1000.0);
+	auto lat = (((double)maxSamplesPerFrame / (double)strmSampleRate) * 1000.0);
 	LOG(XAErr, "SPF limit set to %dSPFs, with a query  value of %dSPFs. Buffer will be split in chunks of %d. Latency will be around %0.1fms.", maxSamplesPerFrame, samplesPerFrame, nChks, lat + 40.0);
 	LOG(XAErr, "wfxStruct -> wFT: %d, nCh: %d, nSaPS: %d, nBlAlign: %d, nAvgByPS: %d, wBiPS: %d",
-		wfx.wFormatTag, wfx.nChannels, wfx.nSamplesPerSec, wfx.nBlockAlign, wfx.nAvgBytesPerSec, wfx.wBitsPerSample);
+		wfx.Format.wFormatTag, wfx.Format.nChannels, wfx.Format.nSamplesPerSec, wfx.Format.nBlockAlign, wfx.Format.nAvgBytesPerSec, wfx.Format.wBitsPerSample);
 
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 
@@ -139,8 +141,8 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	}
 	LOG(XAErr, "CreateMasteringVoice succeeded.", true, xaudDev);
 
-	hr = xaudDev->CreateSourceVoice(&sourceVoice, &wfx, 0, 4.0f, &bufNotifier);
-	if (FAILED(hr)) {
+	hr = xaudDev->CreateSourceVoice(&sourceVoice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &bufNotifier);
+	if (FAILED(hr) || !sourceVoice) {
 		NERROR(XAErr, "Error 0x%08x has occurred while creating the source voice for the XAudio2 device.", true, hr);
 		return SourceVoiceFailed;
 	}
@@ -157,15 +159,7 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	bufReadHead = 0;
 	bufWriteHead = 0;
 
-	sampleBuffer = new unsigned char[maxSamplesPerFrame * samplesPerFrame * bitDepth]();
-
-	if (sampleBuffer) {
-		LOG(XAErr, "Allocated buffer.");
-		return Success;
-	}
-
-	NERROR(XAErr, "sampleBuffer returned a value of %d.", true, sampleBuffer != nullptr);
-	Stop();
+	return Success;
 }
 
 SoundOutResult XAudio2Output::Stop() {
@@ -187,11 +181,6 @@ SoundOutResult XAudio2Output::Stop() {
 		xaudDev = nullptr;
 	}
 
-	if (sampleBuffer) {
-		delete[] sampleBuffer;
-		sampleBuffer = nullptr;
-	}
-
 	CoUninitialize();
 
 	return Success;
@@ -208,7 +197,7 @@ SoundOutResult XAudio2Output::Update(void* buf, size_t len) {
 
 	if (devChanged)
 	{
-		while (Init(nullptr, flagsS, sampleRate, maxSamplesPerFrame, samplesPerFrame, nChks))
+		while (Init(nullptr, flagsS, sampleRate, samplesPerFrame, nChks))
 			Funcs.uSleep(50000);
 
 		devChanged = false;
@@ -218,7 +207,7 @@ SoundOutResult XAudio2Output::Update(void* buf, size_t len) {
 		sourceVoice->GetState(&voiceState, XAUDIO2_VOICE_NOSAMPLESPLAYED);
 		if (voiceState.BuffersQueued < samplesPerFrame) break;
 		else {
-			const DWORD sleepms = (maxSamplesPerFrame / nCh) * samplesPerFrame * 1000 / sampleRate;
+			const DWORD sleepms = (samplesPerFrame / nCh) * samplesPerFrame * 1000 / sampleRate;
 			if (WaitForSingleObject(bufNotifier.hBufferEndEvent, sleepms) == WAIT_TIMEOUT)
 			{
 				devChanged = true;
@@ -227,23 +216,16 @@ SoundOutResult XAudio2Output::Update(void* buf, size_t len) {
 		}
 	}
 
-	size_t num_bytes = len * bitDepth;
+	audBuf.AudioBytes = len * bitDepth;
+	audBuf.pAudioData = (BYTE*)buf;
+	audBuf.pContext = this;
 
-	XAUDIO2_BUFFER xaudioBuf = { 0 };
-	xaudioBuf.AudioBytes = num_bytes;
-	xaudioBuf.pAudioData = sampleBuffer + maxSamplesPerFrame * bufWriteHead * bitDepth;
-	xaudioBuf.pContext = this;
-	bufWriteHead = (bufWriteHead + 1) % samplesPerFrame;
-
-	memcpy((void*)xaudioBuf.pAudioData, buf, num_bytes);
-
-	if (sourceVoice->SubmitSourceBuffer(&xaudioBuf) == S_OK)
-	{
+	bool success = sourceVoice->SubmitSourceBuffer(&audBuf) == S_OK;
+	if (success)
 		xaudDev->CommitChanges(XAUDIO2_COMMIT_NOW);
-		return Success;
-	}
 
-	return Fail;
+	audBuf = { 0 };
+	return success ? Success : Fail;
 }
 
 void XAudio2Output::OnDeviceChanged() {

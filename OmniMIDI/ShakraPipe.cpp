@@ -114,7 +114,7 @@ unsigned int OmniMIDI::ShakraPipe::PlayLongEvent(char* ev, unsigned int size) {
 }
 
 unsigned int OmniMIDI::ShakraPipe::UPlayLongEvent(char* ev, unsigned int size) {
-	LongEvents->Push(ev, size);
+	LongEvents->Write(ev, size);
 	return size;
 }
 

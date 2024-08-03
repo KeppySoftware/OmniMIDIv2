@@ -25,16 +25,16 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 	if (!IsSynthInitialized())
 		return false;
 
-	PSE tev = ShortEvents->PopItem();
+	auto tev = ShortEvents->Read();
 
 	if (!tev)
 		return false;
 
-	unsigned char status = tev->status;
-	unsigned char cmd = GetCommandChar(status);
-	unsigned char ch = GetChannelChar(status);
-	unsigned char param1 = tev->param1;
-	unsigned char param2 = tev->param2;
+	unsigned char status = GetStatus(tev);
+	unsigned char cmd = GetCommand(status);
+	unsigned char ch = GetChannel(status);
+	unsigned char param1 = GetFirstParam(tev);
+	unsigned char param2 = GetSecondParam(tev);
 
 	SDL_LockMutex(g_Mutex);
 

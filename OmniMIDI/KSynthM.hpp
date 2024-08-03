@@ -39,8 +39,7 @@ namespace OmniMIDI {
 		unsigned int EvBufSize = 32768;
 
 		// XAudio2
-		unsigned int XAMaxSamplesPerFrame = 88;
-		unsigned int XASamplesPerFrame = 15;
+		unsigned int XASamplesPerFrame = 128;
 		unsigned int XAChunksDivision = 1;
 
 		std::string SampleSet = "sample.ksmp";
@@ -53,7 +52,6 @@ namespace OmniMIDI {
 						ConfGetVal(EvBufSize),
 						ConfGetVal(SampleRate),
 						ConfGetVal(VoiceLimit),
-						ConfGetVal(XAMaxSamplesPerFrame),
 						ConfGetVal(XASamplesPerFrame),
 						ConfGetVal(SampleSet)
 					}
@@ -73,15 +71,11 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, SampleRate);
 				SynthSetVal(unsigned int, VoiceLimit);
-				SynthSetVal(unsigned int, XAMaxSamplesPerFrame);
 				SynthSetVal(unsigned int, XASamplesPerFrame);
 				SynthSetVal(std::string, SampleSet);
 
-				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 32 || XAMaxSamplesPerFrame > 512)
-					XAMaxSamplesPerFrame = 88;
-
-				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / 8 || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
-					XASamplesPerFrame = 15;
+				if (!XASamplesPerFrame || XASamplesPerFrame < 32 || XASamplesPerFrame > 1024)
+					XASamplesPerFrame = 64;
 
 				if (XAChunksDivision > 4 || !XAChunksDivision)
 					XAChunksDivision = 1;
@@ -139,7 +133,7 @@ namespace OmniMIDI {
 		bool IsSynthInitialized() { return Synth != nullptr && !Terminate; }
 		int SynthID() { return 0xFEFEFEFE; }
 
-		SynthResult Reset();
+		SynthResult Reset(char);
 
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
 	};

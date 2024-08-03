@@ -56,14 +56,14 @@ namespace OmniMIDI {
 		bool StreamDirectFeed = false;
 
 		// XAudio2
-		unsigned int XAMaxSamplesPerFrame = 88;
-		unsigned int XASamplesPerFrame = 15;
+		unsigned int XASamplesPerFrame = 128;
 		unsigned int XAChunksDivision = false;
 
 		// WASAPI
 		float WASAPIBuf = 32.0f;
 
 		// ASIO
+		unsigned int ASIOChunksDivision = 4;
 		std::string ASIODevice = "None";
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
@@ -81,6 +81,7 @@ namespace OmniMIDI {
 						ConfGetVal(FloatRendering),
 						ConfGetVal(MonoRendering),
 						ConfGetVal(XAChunksDivision),
+						ConfGetVal(ASIOChunksDivision),
 						ConfGetVal(OneThreadMode),
 						ConfGetVal(ExperimentalMultiThreaded),
 						ConfGetVal(FollowOverlaps),
@@ -90,7 +91,6 @@ namespace OmniMIDI {
 						ConfGetVal(LoudMax),
 						ConfGetVal(RenderTimeLimit),
 						ConfGetVal(VoiceLimit),
-						ConfGetVal(XAMaxSamplesPerFrame),
 						ConfGetVal(XASamplesPerFrame),
 						ConfGetVal(WASAPIBuf)
 					}
@@ -123,19 +123,16 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, SampleRate);
 				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, RenderTimeLimit);
-				SynthSetVal(unsigned int, XAMaxSamplesPerFrame);
 				SynthSetVal(unsigned int, XASamplesPerFrame);
 				SynthSetVal(unsigned int, VoiceLimit);
 				SynthSetVal(unsigned int, XAChunksDivision);
+				SynthSetVal(unsigned int, ASIOChunksDivision);
 
-				if (!XAMaxSamplesPerFrame || XAMaxSamplesPerFrame < 16 || XAMaxSamplesPerFrame > 1024)
-					XAMaxSamplesPerFrame = 96;
+				if (!XASamplesPerFrame || XASamplesPerFrame < 16 || XASamplesPerFrame > 1024)
+					XASamplesPerFrame = 128;
 
-				if (XAChunksDivision > XAMaxSamplesPerFrame || !XAChunksDivision)
+				if (XAChunksDivision > XASamplesPerFrame || !XAChunksDivision)
 					XAChunksDivision = 4;
-
-				if (!XASamplesPerFrame || XASamplesPerFrame < XAMaxSamplesPerFrame / XAChunksDivision || XASamplesPerFrame > XAMaxSamplesPerFrame / 2)
-					XASamplesPerFrame = 24;
 
 				if (SampleRate == 0 || SampleRate > 384000)
 					SampleRate = 48000;
@@ -244,6 +241,10 @@ namespace OmniMIDI {
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
+#ifdef _WIN32
+		SoundOut** WinAudioEngine = new SoundOut*[16] { 0 };
+#endif
+		unsigned char ASIOBuf[2048] = { 0 };
 		unsigned int AudioStreams[16] = { 0 };
 		size_t AudioStreamSize = sizeof(AudioStreams) / sizeof(unsigned int);
 		std::jthread _BASThread;
@@ -252,26 +253,23 @@ namespace OmniMIDI {
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
 		BASSSettings* Settings = nullptr;
 
-#ifdef _WIN32
-		SoundOut* WinAudioEngine;
-#endif
-
 		bool RestartSynth = false;
 
 		// BASS system
 		bool LoadFuncs();
 		bool ClearFuncs();
-		void StreamSettings(bool restart);
 		void LoadSoundFonts();
 		bool ProcessEvBuf();
 		void ProcessEvBufChk();
 
-		void AudioThread(HSTREAM hStream);
+		void AudioThread(unsigned int id);
 		void EventsThread();
 		void BASSThread();
 
-		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, void*);
-		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, void*);
+		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, BASSSynth*);
+		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, BASSSynth*);
+		static unsigned long CALLBACK WasapiProc(void*, unsigned long, void*);
+		static unsigned long CALLBACK WasapiEvProc(void*, unsigned long, void*);
 		static unsigned long CALLBACK AsioProc(int, unsigned long, void*, unsigned long, void*);
 		static unsigned long CALLBACK AsioEvProc(int, unsigned long, void*, unsigned long, void*);
 

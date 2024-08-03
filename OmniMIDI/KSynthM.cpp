@@ -13,16 +13,16 @@ bool OmniMIDI::KSynthM::ProcessEvBuf() {
 	if (!Synth)
 		return false;
 
-	PSE tev = ShortEvents->PopItem();
+	auto tev = ShortEvents->Read();
 
 	if (!tev)
 		return false;
 
-	unsigned char status = tev->status;
-	unsigned char cmd = GetCommandChar(status);
-	unsigned char ch = GetChannelChar(status);
-	unsigned char param1 = tev->param1;
-	unsigned char param2 = tev->param2;
+	unsigned char status = GetStatus(tev);
+	unsigned char cmd = GetCommand(status);
+	unsigned char ch = GetChannel(status);
+	unsigned char param1 = GetFirstParam(tev);
+	unsigned char param2 = GetSecondParam(tev);
 
 	switch (cmd) {
 	case NoteOn:
@@ -60,7 +60,7 @@ void OmniMIDI::KSynthM::ProcessEvBufChk() {
 void OmniMIDI::KSynthM::AudioThread() {
 	// If bufsize is 64, div will be 32, so the chunk will be 2
 	unsigned div = Settings->XAChunksDivision;
-	size_t arrsize = Settings->XAMaxSamplesPerFrame;
+	size_t arrsize = Settings->XASamplesPerFrame;
 	size_t chksize = arrsize / div;
 	float* buf = nullptr;
 	float* cbuf = nullptr;
@@ -153,7 +153,7 @@ bool OmniMIDI::KSynthM::StartSynthModule() {
 		if (!WinAudioEngine)
 			WinAudioEngine = (SoundOut*)CreateXAudio2Output();
 
-		auto xar = WinAudioEngine->Init(nullptr, SOAudioFlags::FloatData | SOAudioFlags::StereoAudio, Settings->SampleRate, Settings->XAMaxSamplesPerFrame, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
+		auto xar = WinAudioEngine->Init(nullptr, SOAudioFlags::FloatData | SOAudioFlags::StereoAudio, Settings->SampleRate, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
 		if (xar != SoundOutResult::Success) {
 			NERROR(SynErr, "WinAudioEngine->Init failed. %u", true, xar);
 
@@ -224,7 +224,7 @@ bool OmniMIDI::KSynthM::StopSynthModule() {
 	return true;
 }
 
-OmniMIDI::SynthResult OmniMIDI::KSynthM::Reset() {
+OmniMIDI::SynthResult OmniMIDI::KSynthM::Reset(char) {
 	if (Synth) {
 		LOG(SynErr, "SR!");
 		ksynth_note_off_all(Synth);

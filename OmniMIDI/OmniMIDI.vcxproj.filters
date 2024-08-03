@@ -55,7 +55,7 @@
     <Filter Include="Source Files\Synthesizer\External modules">
       <UniqueIdentifier>{f343fbfc-10ae-424c-8711-99a3f43a0687}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\MPSupport">
+    <Filter Include="Source Files\Mandatory\MPSupport">
       <UniqueIdentifier>{0a03db74-c8cb-4511-a65a-6bfda5ef5c24}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -176,11 +176,8 @@
     <ClCompile Include="ksynth.cpp">
       <Filter>Source Files\Synthesizer\External modules</Filter>
     </ClCompile>
-    <ClCompile Include="xsynth.cpp">
-      <Filter>Source Files\Synthesizer\External modules</Filter>
-    </ClCompile>
     <ClCompile Include="UnixEntry.cpp">
-      <Filter>Source Files\MPSupport</Filter>
+      <Filter>Source Files\Mandatory\MPSupport</Filter>
     </ClCompile>
     <ClCompile Include="ShakraPipe.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
@@ -193,6 +190,9 @@
     </ClCompile>
     <ClCompile Include="ErrSys.cpp">
       <Filter>Source Files\Mandatory</Filter>
+    </ClCompile>
+    <ClCompile Include="xsynth.cpp">
+      <Filter>Source Files\Synthesizer\External modules</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

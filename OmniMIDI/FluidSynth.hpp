@@ -40,6 +40,7 @@ namespace OmniMIDI {
 		unsigned int Periods = 2;
 		unsigned int ThreadsCount = 1;
 		unsigned int MinimumNoteLength = 10;
+		bool ExperimentalMultiThreaded = false;
 		double OverflowVolume = 10000.0;
 		double OverflowPercussion = 10000.0;
 		double OverflowReleased = -10000.0;
@@ -68,7 +69,8 @@ namespace OmniMIDI {
 						ConfGetVal(OverflowReleased),
 						ConfGetVal(OverflowImportant),
 						ConfGetVal(Driver),
-						ConfGetVal(SampleFormat)
+						ConfGetVal(SampleFormat),
+						ConfGetVal(ExperimentalMultiThreaded)
 					}
 				};
 
@@ -90,6 +92,7 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, Periods);
 				SynthSetVal(unsigned int, ThreadsCount);
 				SynthSetVal(unsigned int, MinimumNoteLength);
+				SynthSetVal(bool, ExperimentalMultiThreaded);
 				SynthSetVal(double, OverflowVolume);
 				SynthSetVal(double, OverflowPercussion);
 				SynthSetVal(double, OverflowReleased);
@@ -146,8 +149,11 @@ namespace OmniMIDI {
 		SoundFontSystem SFSystem;
 		FluidSettings* Settings = nullptr;
 		fluid_settings_t* fSet = nullptr;
-		fluid_synth_t* fSyn = nullptr;
-		fluid_audio_driver_t* fDrv = nullptr;
+
+		fluid_synth_t** AudioStreams = new fluid_synth_t*[16] {0};
+		fluid_audio_driver_t** AudioDrivers = new fluid_audio_driver_t*[16] {0};
+		size_t AudioStreamSize = 16;
+
 		std::vector<int> SoundFonts;
 
 		void EventsThread();
@@ -160,7 +166,7 @@ namespace OmniMIDI {
 		bool StopSynthModule();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return Settings->SampleRate; }
-		bool IsSynthInitialized() { return (fDrv != nullptr); }
+		bool IsSynthInitialized() { return (AudioDrivers[0] != nullptr); }
 		int SynthID() { return 0x6F704EC6; }
 
 		unsigned int PlayLongEvent(char* ev, unsigned int size);

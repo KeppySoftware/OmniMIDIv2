@@ -182,8 +182,6 @@ private:
 
 	SOAudioFlags			flagsS = (SOAudioFlags)0;
 
-	unsigned char*			sampleBuffer = 0;
-
 	HMODULE					XALib = nullptr;
 	OMShared::Funcs			Funcs;
 	OMShared::SysPath		Utils;
@@ -191,13 +189,14 @@ private:
 	IXAudio2*				xaudDev = nullptr;
 	IXAudio2MasteringVoice* masterVoice = nullptr;
 	IXAudio2SourceVoice*	sourceVoice = nullptr;
+	XAUDIO2_BUFFER			audBuf = { 0 };
 	XAUDIO2_VOICE_STATE		voiceState = { 0 };
 	ErrorSystem::Logger		XAErr;
 
 public:
 	XAudio2Output();
 	~XAudio2Output();
-	SoundOutResult Init(HMODULE m_hModule, SOAudioFlags flags, unsigned sample_rate, unsigned spf, unsigned sr, unsigned chks);
+	SoundOutResult Init(HMODULE m_hModule, SOAudioFlags flags, unsigned int sample_rate, unsigned spf, unsigned chks);
 	SoundOutResult Stop();
 	SoundOutResult Update(void* buf, size_t len);
 	void OnDeviceChanged();

@@ -4,24 +4,22 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 	if (!AudioStreams[0])
 		return false;
 
-	PSE tev = ShortEvents->PopItem();
+	auto tev = ShortEvents->Read();
 
-	if (!tev)
+	if (tev == 0)
 		return false;
-
-	unsigned int sysev = 0;
 
 	unsigned int evt = MIDI_SYSTEM_DEFAULT;
 	unsigned int ev = 0;
-	unsigned char status = tev->status;
-	unsigned char command = GetCommandChar(tev->status);
-	unsigned char chan = GetChannelChar(tev->status);
-	unsigned char param1 = tev->param1;
-	unsigned char param2 = tev->param2;
+	unsigned char status = GetStatus(tev);
+	unsigned char command = GetCommand(status);
+	unsigned char chan = GetChannel(status);
+	unsigned char param1 = GetFirstParam(tev);
+	unsigned char param2 = GetSecondParam(tev);
 
-	unsigned int len = 3;
+	unsigned char len = 3;
 
-	HSTREAM targetStream = Settings->ExperimentalMultiThreaded ? AudioStreams[chan] : AudioStreams[0];
+	HSTREAM targetStream = AudioStreams[Settings->ExperimentalMultiThreaded ? chan : 0];
 
 	switch (command) {
 	case NoteOn:
@@ -37,18 +35,22 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 	case Aftertouch:
 		evt = MIDI_EVENT_KEYPRES;
 		ev = param2 << 8 | param1;
+		// LOG(SynErr, "Aftertouch %u (%X, %X - %X)", ev, ev, param1, param2);
 		break;
 	case PatchChange:
 		evt = MIDI_EVENT_PROGRAM;
 		ev = param1;
+		// LOG(SynErr, "PatchChange %u (%X)", ev, param1);
 		break;
 	case ChannelPressure:
 		evt = MIDI_EVENT_CHANPRES;
 		ev = param1;
+		// LOG(SynErr, "ChannelPressure %u (%X)", ev, param1);
 		break;
 	case PitchBend:
 		evt = MIDI_EVENT_PITCH;
 		ev = param2 << 7 | param1;
+		// LOG(SynErr, "PitchBend %u (%X, %X - %X)", ev, ev, param1, param2);
 		break;
 	default:
 		switch (status) {
@@ -92,21 +94,74 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		case MasterPan:
 			evt = MIDI_EVENT_PAN;
 			ev = param1;
+			chan = 255;
+			break;
 
-			for (int i = 0; i < 16; i++)
-				BASS_MIDI_StreamEvent(targetStream, i, evt, ev);
+		case RolandReverbMacro:
+			evt = MIDI_EVENT_REVERB_MACRO;
+			ev = param1;
+			break;
 
-			return true;
+		case RolandReverbTime:
+			evt = MIDI_EVENT_REVERB_TIME;
+			ev = param1;
+			break;
+
+		case RolandReverbLevel:
+			evt = MIDI_EVENT_REVERB_LEVEL;
+			ev = param1;
+			break;
+
+		case RolandReverbLoCutOff:
+			evt = MIDI_EVENT_REVERB_LOCUTOFF;
+			ev = 200 * (param1 + 1);
+			break;
+
+		case RolandReverbHiCutOff:
+			evt = MIDI_EVENT_REVERB_HICUTOFF;
+			ev = 3000 * (param1 + 1);
+			break;
+
+		case RolandChorusMacro:
+			evt = MIDI_EVENT_CHORUS_MACRO;
+			ev = param1;
+			break;
+
+		case RolandChorusDelay:
+			evt = MIDI_EVENT_CHORUS_DELAY;
+			ev = param1;
+			break;
+
+		case RolandChorusDepth:
+			evt = MIDI_EVENT_CHORUS_DEPTH;
+			ev = param1;
+			break;
+
+		case RolandChorusReverb:
+			evt = MIDI_EVENT_CHORUS_REVERB;
+			ev = param1;
+			break;
+
+		case RolandChorusFeedback:
+			evt = MIDI_EVENT_CHORUS_FEEDBACK;
+			ev = param1;
+			break;
 
 		default:
-			sysev = ShortEvents->CreateDword(tev);
-			if (!((sysev - 0xC0) & 0xE0)) len = 2;
-			BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &sysev, len);
+			if (!((tev - 0xC0) & 0xE0)) len = 2;
+			BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
 			return true;			
 		}
 	}
 
-	return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+	if (chan == 255) {
+		for (int i = 0; i < 16; i++) 
+			BASS_MIDI_StreamEvent(targetStream, i, evt, ev);
+
+		return true;
+	}
+
+	return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev) ? true : false;
 }
 
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {
@@ -114,22 +169,41 @@ void OmniMIDI::BASSSynth::ProcessEvBufChk() {
 	while (ShortEvents->NewEventsAvailable());
 }
 
-unsigned long CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, unsigned long length, void* user) {
-	auto tdata = BASS_ChannelGetData(((BASSSynth*)user)->AudioStreams[0], (float*)buffer, length);
-	return (tdata == -1) ? 0 : tdata;
+unsigned long CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, unsigned long length, BASSSynth* me) {
+	auto buf = (unsigned char*)buffer;
+	unsigned long len = 0;
+	unsigned div = me->Settings->ASIOChunksDivision;
+	auto chksize = length / div;
+
+	for (int j = 0; j < div; j++) {
+		len += BASS_ChannelGetData(me->AudioStreams[0], me->ASIOBuf, chksize);
+		for (int k = 0; k < chksize; k++) {
+			buf[(j * chksize) + k] = me->ASIOBuf[k];
+		}
+	}
+
+	return len;
 }
 
-unsigned long CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void* buffer, unsigned long length, void* user) {
-	((BASSSynth*)user)->ProcessEvBufChk();
-	return AudioProcesser(buffer, length, user);
+unsigned long CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void* buffer, unsigned long length, BASSSynth* me) {
+	me->ProcessEvBufChk();
+	return AudioProcesser(buffer, length, me);
+}
+
+unsigned long CALLBACK OmniMIDI::BASSSynth::WasapiProc(void* buffer, unsigned long length, void* user) {
+	return AudioProcesser(buffer, length, (BASSSynth*)user);
+}
+
+unsigned long CALLBACK OmniMIDI::BASSSynth::WasapiEvProc(void* buffer, unsigned long length, void* user) {
+	return AudioEvProcesser(buffer, length, (BASSSynth*)user);
 }
 
 unsigned long CALLBACK OmniMIDI::BASSSynth::AsioProc(int, unsigned long, void* buffer, unsigned long length, void* user) {
-	return AudioProcesser(buffer, length, user);
+	return AudioProcesser(buffer, length, (BASSSynth*)user);
 }
 
 unsigned long CALLBACK OmniMIDI::BASSSynth::AsioEvProc(int, unsigned long, void* buffer, unsigned long length, void* user) {
-	return AudioEvProcesser(buffer, length, user);
+	return AudioEvProcesser(buffer, length, (BASSSynth*)user);
 }
 
 bool OmniMIDI::BASSSynth::LoadFuncs() {
@@ -184,76 +258,57 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 	return true;
 }
 
-void OmniMIDI::BASSSynth::StreamSettings(bool restart) {
-	if (restart) {
-		RestartSynth = true;
-
-		if (StopSynthModule()) {
-			if (StartSynthModule()) {
-				return;
-			}
-		}
-
-		NERROR(SynErr, "An error has occurred while restarting the synthesizer.", true);
-		return;
-	}
-
-	for (int i = 0; i < AudioStreamSize; i++) {
-		if (AudioStreams[i] != 0) {
-			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_SRC, 0);
-			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_KILL, 0);
-			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_VOICES, (float)Settings->VoiceLimit);
-			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
-			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, 1 << 24);
-		}
-	}
-}
-
-
-void OmniMIDI::BASSSynth::AudioThread(HSTREAM hStream) {
+void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 	switch (Settings->AudioEngine) {
 	case Internal:
 		while (IsSynthInitialized()) {
 			if (Settings->OneThreadMode && !Settings->ExperimentalMultiThreaded)
 				ProcessEvBufChk();
 
-			BASS_ChannelUpdate(hStream, 1);
+			BASS_ChannelUpdate(AudioStreams[id], 0);
 			MiscFuncs.uSleep(-1);
 		}
 		break;
 
 	case XAudio2:
 	{	
-		// Not supported
-		if (Settings->ExperimentalMultiThreaded)
-			break;
-
 		unsigned div = Settings->XAChunksDivision;
-		size_t arrsize = Settings->XAMaxSamplesPerFrame;
+		size_t arrsize = Settings->XASamplesPerFrame;
 		size_t chksize = arrsize / div;
-		float* buf = nullptr;
-		float* cBuf = nullptr;
 
-		buf = new float[arrsize];
-		cBuf = new float[chksize];
+		size_t count = 128;
+		auto buf = new float*[count] { 0 };
+		auto cBuf = new float[chksize] { 0 };
+		char pos = 0;
+
+		for (int i = 0; i != count; i++)
+			buf[i] = new float[arrsize];
 
 		while (IsSynthInitialized()) {
 			for (int i = 0; i < div; i++) {
 				if (Settings->OneThreadMode)
 					ProcessEvBufChk();
 
-				BASS_ChannelGetData(hStream, cBuf, BASS_DATA_FLOAT | (chksize * sizeof(float)));
-				for (int j = 0; j < chksize; j++) {
-					buf[(i * chksize) + j] = cBuf[j];
+				BASS_ChannelGetData(AudioStreams[id], cBuf, BASS_DATA_FLOAT | (chksize * sizeof(float)));
+				for (int k = 0; k < chksize; k++) {
+					buf[pos][(i * chksize) + k] = cBuf[k];
 				}
 			}
 
-			WinAudioEngine->Update(buf, arrsize);
-			MiscFuncs.uSleep(-1);
+			WinAudioEngine[id]->Update(buf[pos], arrsize);
+
+			pos++;
+			if (pos >= count)
+				pos = 0;
 		}
 
-		delete[] cBuf;
+		while (WinAudioEngine[id]);
+
+		for (int i = 0; i != count; i++)
+			delete[] buf[i];
+
 		delete[] buf;
+		delete[] cBuf;
 		break;
 	}
 
@@ -269,7 +324,7 @@ void OmniMIDI::BASSSynth::EventsThread() {
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			MiscFuncs.uSleep(-1);
+			MiscFuncs.uSleep(0);
 	}
 }
 
@@ -303,7 +358,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 			LoadSoundFonts();
 		}
 
-		MiscFuncs.uSleep(-1);
+		MiscFuncs.uSleep(-10000);
 	}
 }
 
@@ -389,12 +444,10 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		(Settings->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
 
 	unsigned int streamFlags = 
-		(Settings->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
-		(Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) | 
-		(Settings->MonoRendering ? BASS_SAMPLE_MONO : 0) | 
-		(Settings->FloatRendering ? BASS_SAMPLE_FLOAT : 0);
-
-	SOAudioFlags xaFlags = (Settings->MonoRendering ? SOAudioFlags::MonoAudio : SOAudioFlags::StereoAudio);
+		(Settings->MonoRendering ? BASS_SAMPLE_MONO : 0) |
+		(Settings->FloatRendering ? BASS_SAMPLE_FLOAT : 0) |
+		(Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) |
+		(Settings->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0);
 
 	// If the audio stream is not 0, then stream is allocated already
 	if (AudioStreams[0])
@@ -406,7 +459,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 
 	if (Settings->ExperimentalMultiThreaded) {
-		LOG(SynErr, "EXPERIMENTAL MULTI-THREADED RENDERING ENABLED!!!");
+		LOG(SynErr, "Experimental multi BASS stream mode enabled.");
+
 		AudioStreamSize = sizeof(AudioStreams) / sizeof(unsigned int);
 	}
 	else AudioStreamSize = 1;
@@ -417,7 +471,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 		if (BASS_Init(-1, Settings->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
-			if ((bInfoGood = BASS_GetInfo(&defInfo))) 
+			if ((bInfoGood = BASS_GetInfo(&defInfo)))
 				LOG(SynErr, "minbuf %d", defInfo.minbuf);
 
 			BASS_Free();
@@ -450,13 +504,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				return false;
 			}
 
-			_AudThread[i] = std::jthread(&BASSSynth::AudioThread, this, AudioStreams[i]);
+			_AudThread[i] = std::jthread(&BASSSynth::AudioThread, this, i);
 			if (!_AudThread[i].joinable()) {
 				NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread[i].get_id());
 				return false;
 			}
 		}
-
 
 		LOG(SynErr, "bassDev %d >> devFreq %d", -1, Settings->SampleRate);
 		break;
@@ -468,7 +521,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-		auto proc = Settings->OneThreadMode ? &BASSSynth::AudioEvProcesser : &BASSSynth::AudioProcesser;
+		auto proc = Settings->OneThreadMode ? &BASSSynth::WasapiEvProc : &BASSSynth::WasapiProc;
 
 		streamFlags |= BASS_STREAM_DECODE;
 
@@ -500,39 +553,37 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #ifdef _WIN32
 	case XAudio2:
 	{
-		if (Settings->ExperimentalMultiThreaded) {
-			NERROR(SynErr, "Experimental multi-threaded rendering is not supported by XAudio2.", true);
-			return false;
-		}
-
-		WinAudioEngine = CreateXAudio2Output();
-
+		SOAudioFlags xaFlags = (Settings->MonoRendering ? SOAudioFlags::MonoAudio : SOAudioFlags::StereoAudio) | SOAudioFlags::FloatData;
 		streamFlags |= BASS_STREAM_DECODE;
-		xaFlags |= SOAudioFlags::FloatData;
 
 		if (!BASS_Init(0, Settings->SampleRate, deviceFlags, 0, nullptr)) {
 			NERROR(SynErr, "BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
 
-		AudioStreams[0] = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
-		if (!AudioStreams[0]) {
-			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
-			return false;
+		for (int i = 0; i < AudioStreamSize; i++) {
+			WinAudioEngine[i] = CreateXAudio2Output();
+
+			auto xar = WinAudioEngine[i]->Init(m_hModule, xaFlags, Settings->SampleRate, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
+			if (xar != SoundOutResult::Success) {
+				NERROR(SynErr, "WinAudioEngine[%d]->Init failed. %u", true, i, xar);
+				return false;
+			}
+			LOG(SynErr, "WinAudioEngine[%d]->Init succeeded.", i);
+
+			AudioStreams[i] = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
+			if (!AudioStreams[i]) {
+				NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
+				return false;
+			}
+
+			_AudThread[i] = std::jthread(&BASSSynth::AudioThread, this, i);
+			if (!_AudThread[i].joinable()) {
+				NERROR(SynErr, "_AudThread[i] failed. (ID: %x)", true, i, _AudThread[i].get_id());
+				return false;
+			}
 		}
 
-		auto xar = WinAudioEngine->Init(m_hModule, xaFlags, Settings->SampleRate, Settings->XAMaxSamplesPerFrame, Settings->XASamplesPerFrame, Settings->XAChunksDivision);
-		if (xar != SoundOutResult::Success) {
-			NERROR(SynErr, "WinAudioEngine->Init failed. %u", true, xar);
-			return false;
-		}
-		LOG(SynErr, "WinAudioEngine->Init succeeded.");
-
-		_AudThread[0] = std::jthread(&BASSSynth::AudioThread, this, AudioStreams[0]);
-		if (!_AudThread[0].joinable()) {
-			NERROR(SynErr, "_AudThread failed. (ID: %x)", true, _AudThread[0].get_id());
-			return false;
-		}
 
 		break;
 	}
@@ -574,13 +625,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				asioInfo.name, asioInfo.bufpref, asioInfo.bufmin, asioInfo.bufmax, asioInfo.bufgran, asioInfo.outputs);
 		}
 
-		if (BASS_ASIO_CheckRate(asioFreq)) {
-			if (!BASS_ASIO_SetRate(asioFreq)) {
-				LOG(SynErr, "BASS_ASIO_SetRate failed, falling back to BASS_ASIO_ChannelSetRate... BASSERR: %d", BASS_ErrorGetCode());
-				if (!BASS_ASIO_ChannelSetRate(0, 0, asioFreq)) {
-					LOG(SynErr, "BASS_ASIO_ChannelSetRate failed as well, BASSERR: %d... This ASIO device does not want OmniMIDI to change its output frequency.", BASS_ErrorGetCode());
-					noFreqChange = true;
-				}
+		if (!BASS_ASIO_SetRate(asioFreq)) {
+			LOG(SynErr, "BASS_ASIO_SetRate failed, falling back to BASS_ASIO_ChannelSetRate... BASSERR: %d", BASS_ErrorGetCode());
+			if (!BASS_ASIO_ChannelSetRate(0, 0, asioFreq)) {
+				LOG(SynErr, "BASS_ASIO_ChannelSetRate failed as well, BASSERR: %d... This ASIO device does not want OmniMIDI to change its output frequency.", BASS_ErrorGetCode());
+				noFreqChange = true;
 			}
 		}
 
@@ -633,10 +682,13 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		}
 		else LOG(SynErr, "BASS_Init returned true. (freq: %d, dFlags: %d)", (int)asioFreq, deviceFlags);
 
-		AudioStreams[0] = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
-		if (!AudioStreams[0]) {
-			NERROR(SynErr, "BASS_MIDI_StreamCreate w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
-			return false;
+		AudioStreamSize = 1;
+		for (int i = 0; i < AudioStreamSize; i++) {
+			AudioStreams[i] = BASS_MIDI_StreamCreate(16, streamFlags, Settings->SampleRate);
+			if (!AudioStreams[i]) {
+				NERROR(SynErr, "BASS_MIDI_StreamCreate[%d] w/ BASS_STREAM_DECODE failed with error 0x%x.", true, i, BASS_ErrorGetCode());
+				return false;
+			}
 		}
 
 		if (!noFreqChange) BASS_ASIO_SetRate(asioFreq);
@@ -703,7 +755,17 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #endif
 #endif
 
-	StreamSettings(false);
+	for (int i = 0; i < AudioStreamSize; i++) {
+		if (AudioStreams[i] != 0) {
+			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_SRC, 0);
+			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_KILL, 1);
+			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_VOICES, (float)Settings->VoiceLimit);
+			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
+			
+			if (Settings->AsyncMode)
+				BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, 1 << 24);
+		}
+	}
 	LOG(SynErr, "Stream settings loaded.");
 
 	LoadSoundFonts();
@@ -732,6 +794,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		Settings->OpenConsole();
 	}
+	
+	PlayShortEvent(SystemReset, 0x00, 0x00);
+	PlayShortEvent(PitchBend, 0x00, 0x40);
 
 	LOG(SynErr, "BASSMIDI ready.");
 	return true;
@@ -804,12 +869,6 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		SFSystem.ClearList();
 	}
 
-	for (int i = 0; i < AudioStreamSize; i++) {
-		if (_AudThread[i].joinable()) {
-			_AudThread[i].join();
-		}
-	}
-
 	if (_LogThread.joinable())
 		_LogThread.join();
 
@@ -829,10 +888,14 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		break;
 
 	case XAudio2:
-		if (WinAudioEngine) {
-			WinAudioEngine->Stop();
-			delete WinAudioEngine;
+		for (int i = 0; i < AudioStreamSize; i++) {
+			if (WinAudioEngine[i]) {
+				WinAudioEngine[i]->Stop();
+				delete WinAudioEngine[i];
+				WinAudioEngine[i] = nullptr;
+			}
 		}
+
 		break;
 
 	case ASIO:
@@ -847,6 +910,12 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	}
 
 	BASS_Free();
+
+	for (int i = 0; i < AudioStreamSize; i++) {
+		if (_AudThread[i].joinable()) {
+			_AudThread[i].join();
+		}
+	}
 
 	return true;
 }
@@ -914,7 +983,7 @@ unsigned int OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
 	unsigned int data = 0;
 
 	for (int si = 0; si < AudioStreamSize; si++) {
-		unsigned int tmp = BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_NORSTATUS, ev, size);
+		unsigned int tmp = BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_ASYNC | BASS_MIDI_EVENTS_NORSTATUS, ev, size);
 		if (tmp == -1)
 			break;
 

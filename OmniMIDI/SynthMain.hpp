@@ -56,6 +56,23 @@ namespace OmniMIDI {
 		MasterKey = 0x03,
 		MasterPan = 0x04,
 
+		RolandReverbTime = 0x05,
+		RolandReverbDelay = 0x06,
+		RolandReverbLoCutOff = 0x07,
+		RolandReverbHiCutOff = 0x08,
+		RolandReverbLevel = 0x09,
+		RolandReverbMacro = 0x0A,
+
+		RolandChorusDelay = 0x0B,
+		RolandChorusDepth = 0x0C,
+		RolandChorusRate = 0x0D,
+		RolandChorusFeedback = 0x0E,
+		RolandChorusLevel = 0x0F,
+		RolandChorusReverb = 0x10,
+		RolandChorusMacro = 0x11,
+
+		RolandScaleTuning = 0x12,
+
 		NoteOff = 0x80,
 		NoteOn = 0x90,
 		Aftertouch = 0xA0,
@@ -596,15 +613,11 @@ namespace OmniMIDI {
 		BEvBuf* LongEvents = new BaseEvBuf_t;
 
 	public:
-		constexpr unsigned int GetStatus(unsigned int ev) { return (ev & 0xFF); }
-		constexpr unsigned int GetCommand(unsigned int ev) { return (ev & 0xF0); }
-		constexpr unsigned int GetChannel(unsigned int ev) { return (ev & 0xF); }
-		constexpr unsigned int GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
-		constexpr unsigned int GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
-
-		constexpr unsigned int GetStatusChar(unsigned char ev) { return (ev & 0xFF); }
-		constexpr unsigned int GetCommandChar(unsigned char ev) { return (ev & 0xF0); }
-		constexpr unsigned int GetChannelChar(unsigned char ev) { return (ev & 0xF); }
+		constexpr unsigned char GetStatus(unsigned int ev) { return (ev & 0xFF); }
+		constexpr unsigned char GetCommand(unsigned char status) { return (status & 0xF0); }
+		constexpr unsigned char GetChannel(unsigned char status) { return (status & 0xF); }
+		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
+		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
 		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }
@@ -690,13 +703,20 @@ namespace OmniMIDI {
 
 
 		// Event handling system
+		virtual void PlayShortEvent(unsigned int ev) {
+			if (!ShortEvents)
+				return;
+
+			UPlayShortEvent(ev);
+		}
 		virtual void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
 			if (!ShortEvents)
 				return;
 
 			UPlayShortEvent(status, param1, param2);
 		}
-		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { ShortEvents->Push(status, param1, param2); }
+		virtual void UPlayShortEvent(unsigned int ev) { ShortEvents->Write(ev); }
+		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { ShortEvents->Write(status, param1, param2); }
 
 		virtual unsigned int PlayLongEvent(char* ev, unsigned int size) { return 0; }
 		virtual unsigned int UPlayLongEvent(char* ev, unsigned int size) { return 0; }
