@@ -97,6 +97,8 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			return false;
 		}
+
+		Settings->OpenConsole();
 	}
 
 	return true;
