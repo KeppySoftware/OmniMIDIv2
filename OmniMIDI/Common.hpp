@@ -10,5 +10,6 @@
 #define _COMMON_H
 
 #define MAX_PATH_LONG	32767
+#define RANGE(variable, minv, maxv) ((variable) >= minv && (value) <= maxv)
 
 #endif

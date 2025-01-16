@@ -28,6 +28,8 @@ namespace OmniMIDI {
 		// Global settings
 		unsigned int EvBufSize = 32768;
 
+		WSPSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
+
 		void RewriteSynthConfig() {
 			CloseConfig();
 			if (InitConfig(true, WSP_STR, sizeof(WSP_STR))) {
@@ -70,6 +72,7 @@ namespace OmniMIDI {
 		HANDLE PShortEvents = nullptr, PLongEvents = nullptr;
 
 	public:
+		ShakraPipe(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
 		bool LoadSynthModule() { return true; }
 		bool UnloadSynthModule() { return true; }
 		bool StartSynthModule();

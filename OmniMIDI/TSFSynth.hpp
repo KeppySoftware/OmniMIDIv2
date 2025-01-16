@@ -44,7 +44,7 @@ namespace OmniMIDI {
 		unsigned int EvBufSize = 32768;
 		unsigned int Samples = 4096;
 
-		TinySFSettings() {
+		TinySFSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
 			LoadSynthConfig();
 		}
 
@@ -88,10 +88,11 @@ namespace OmniMIDI {
 
 	class TinySFSynth : public SynthModule {
 	private:
-		ErrorSystem::Logger SynErr;
 		OMShared::Funcs MiscFuncs;
 
 		std::jthread _EvtThread;
+
+		SDL_AudioSpec OutputAudioSpec = { 0 };
 
 		// Holds the global instance pointer
 		tsf* g_TinySoundFont = nullptr;
@@ -134,10 +135,12 @@ namespace OmniMIDI {
 		bool ProcessEvBuf();
 
 	public:
+		TinySFSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
 		bool LoadSynthModule();
 		bool UnloadSynthModule();
 		bool StartSynthModule();
 		bool StopSynthModule();
+		void LoadSoundFonts();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return Settings->SampleRate; }
 		bool IsSynthInitialized() { return (g_TinySoundFont != nullptr); }

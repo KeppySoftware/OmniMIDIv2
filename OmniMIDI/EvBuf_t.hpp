@@ -55,7 +55,7 @@ namespace OmniMIDI {
 	public:
 		BaseEvBuf_t() { }
 		BaseEvBuf_t(size_t size) { Allocate(size); }
-		virtual ~BaseEvBuf_t() { Free(); }
+		virtual ~BaseEvBuf_t() { }
 
 		virtual bool Allocate(size_t ReqSize) { return true; }
 		virtual bool Free() { return true; }
@@ -74,6 +74,7 @@ namespace OmniMIDI {
 		virtual void Write(char* ev, size_t len) { }
 		virtual void ReadDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
 		virtual void PeekDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void ResetHeads() { writeHead = 0; readHead = 0; }
 
 		virtual bool NewEventsAvailable() { return false; }
 		virtual size_t GetReadHeadPos() { return 0; }
@@ -125,9 +126,7 @@ namespace OmniMIDI {
 		}
 
 		void Write(char* ev, size_t len) {
-			auto tWriteHead = writeHead + 1;
-			if (tWriteHead >= size)
-				tWriteHead = 0;
+			auto tWriteHead = (writeHead + 1) % size;
 
 			if (tWriteHead != readHead)
 				writeHead = tWriteHead;
@@ -146,10 +145,7 @@ namespace OmniMIDI {
 		}
 
 		void PeekDword(char* ev, size_t* len) {
-			auto tNextHead = readHead + 1;
-
-			if (tNextHead >= size)
-				tNextHead = 0;
+			auto tNextHead = (readHead + 1) % size;
 
 			ev = buf[readHead].ev;
 			*len = buf[readHead].len;
@@ -248,10 +244,7 @@ namespace OmniMIDI {
 
 		void Write(unsigned int ev) {
 			auto tReadHead = (size_t)readHead;
-			auto tWriteHead = writeHead + 1;
-
-			if (tWriteHead >= size)
-				tWriteHead = 0;
+			auto tWriteHead = (writeHead + 1) % size;
 
 #ifdef _STATSDEV
 			evSent++;
@@ -275,19 +268,14 @@ namespace OmniMIDI {
 			if (tReadHead == tWriteHead)
 				return 0;
 
-			size_t tNextHead = tReadHead + 1;
-			if (tNextHead >= size)
-				tNextHead = 0;
+			auto tNextHead = (tReadHead + 1) % size;
 
 			readHead = tNextHead;
 			return buf[tNextHead];
 		}
 
 		unsigned int Peek() {
-			auto tNextHead = (size_t)readHead + 1;
-
-			if (tNextHead >= size)
-				tNextHead = 0;
+			auto tNextHead = (readHead + 1) % size;
 
 			return buf[tNextHead];
 		}

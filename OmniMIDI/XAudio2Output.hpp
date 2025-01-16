@@ -191,7 +191,7 @@ private:
 	IXAudio2SourceVoice*	sourceVoice = nullptr;
 	XAUDIO2_BUFFER			audBuf = { 0 };
 	XAUDIO2_VOICE_STATE		voiceState = { 0 };
-	ErrorSystem::Logger		XAErr;
+	ErrorSystem::Logger*	ErrLog;
 
 public:
 	XAudio2Output();

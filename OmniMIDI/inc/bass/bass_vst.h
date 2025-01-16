@@ -13,6 +13,9 @@
 
 */
 
-#include <wtypes.h>
+#ifdef _WIN32
 
+#include <wtypes.h>
 extern DWORD(WINAPI* BASS_VST_ChannelSetDSP)(DWORD chHandle, const void* dllFile, DWORD flags, int priority);
+
+#endif

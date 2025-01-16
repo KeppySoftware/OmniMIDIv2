@@ -21,10 +21,6 @@ void OmniMIDI::XSynth::XSynthThread() {
 		RenderingTime = data.render_time * 100.0f;
 		ActiveVoices = data.voice_count;
 
-		if (IsSynthInitialized() && SFSystem.ListModified()) {
-			LoadSoundFonts();
-		}
-
 		MiscFuncs.uSleep(-10000);
 	}
 }
@@ -40,12 +36,12 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	auto ptr = (LibImport*)xLibImp;
 
 	if (!Settings) {
-		Settings = new XSynthSettings;
+		Settings = new XSynthSettings(ErrLog);
 		Settings->LoadSynthConfig();
 	}
 
 	if (!XLib)
-		XLib = new Lib(L"xsynth", &ptr, xLibImpLen);
+		XLib = new Lib(L"xsynth", ErrLog, &ptr, xLibImpLen);
 
 	if (XLib->IsOnline())
 		return true;
@@ -84,17 +80,18 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 	realtimeParams = XSynth_Realtime_GetStreamParams();
 
 	LoadSoundFonts();
+	SFSystem.RegisterCallback(this);
 
 	if (Settings->IsDebugMode()) {
 		_XSyThread = std::jthread(&XSynth::XSynthThread, this);
 		if (!_XSyThread.joinable()) {
-			NERROR(SynErr, "_XSyThread failed. (ID: %x)", true, _XSyThread.get_id());
+			NERROR("_XSyThread failed. (ID: %x)", true, _XSyThread.get_id());
 			return false;
 		}
 
 		_LogThread = std::jthread(&SynthModule::LogFunc, this);
 		if (!_LogThread.joinable()) {
-			NERROR(SynErr, "_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			NERROR("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			return false;
 		}
 
@@ -105,6 +102,8 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 }
 
 bool OmniMIDI::XSynth::StopSynthModule() {
+	SFSystem.RegisterCallback();
+
 	if (XSynth_Realtime_IsActive()) {
 		XSynth_Soundfont_RemoveAll();
 		XSynth_Realtime_Drop();
@@ -131,15 +130,14 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 
 	if (SFSystem.ClearList()) {
 		int retry = 0;
-		std::vector<OmniMIDI::SoundFont>* SFv = nullptr;
 
-		while (SFv == nullptr || retry++ != 30)
-			SFv = SFSystem.LoadList();
+		while (SoundFontsVector == nullptr || retry++ != 30)
+			SoundFontsVector = SFSystem.LoadList();
 
-		if (SFv != nullptr) {
-			auto& dSFv = *SFv;
+		if (SoundFontsVector != nullptr) {
+			auto& dSFv = *SoundFontsVector;
 
-			for (int i = 0; i < SFv->size(); i++) {
+			for (int i = 0; i < dSFv.size(); i++) {
 				if (!dSFv[i].enabled)
 					continue;
 

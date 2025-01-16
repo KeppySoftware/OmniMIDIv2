@@ -24,6 +24,7 @@
 namespace OmniMIDI {
 	class StreamPlayer {
 	protected:
+		ErrorSystem::Logger* ErrLog;
 		WinDriver::DriverCallback* drvCallback;
 
 	public:
@@ -42,13 +43,12 @@ namespace OmniMIDI {
 		unsigned short GetTicksPerQN() { return 0; }
 		void GetPosition(MMTIME* mmtime) { return; }
 
-		StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr) { drvCallback = dptr; }
+		StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr, ErrorSystem::Logger* PErr) { drvCallback = dptr; ErrLog = PErr; }
 		~StreamPlayer() { drvCallback = nullptr; }
 	};
 
 	class CookedPlayer : public StreamPlayer {
 	private:
-		ErrorSystem::Logger StrmErr;
 		OMShared::Funcs MiscFuncs;
 		OmniMIDI::SynthModule* synthModule;
 		WinDriver::DriverCallback* drvCallback;
@@ -86,11 +86,11 @@ namespace OmniMIDI {
 		bool IsDummy() { return false; }
 		void SetTempo(unsigned int ntempo);
 		void SetTicksPerQN(unsigned short ntimeDiv);
-		unsigned int GetTempo() { return tempo; }
-		unsigned short GetTicksPerQN() { return ticksPerQN; }
+		const unsigned int GetTempo() { return tempo; }
+		const unsigned short GetTicksPerQN() { return ticksPerQN; }
 		void GetPosition(MMTIME* mmtime);
 
-		CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr);
+		CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr, ErrorSystem::Logger* PErr);
 		~CookedPlayer();
 	};
 }

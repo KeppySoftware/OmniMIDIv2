@@ -19,7 +19,7 @@
 
 #include "WDMEntry.hpp"
 
-static ErrorSystem::Logger WDMErr;
+static ErrorSystem::Logger* ErrLog = nullptr;
 static WinDriver::DriverCallback* fDriverCallback = nullptr;
 static WinDriver::DriverComponent* DriverComponent = nullptr;
 static WinDriver::DriverMask* DriverMask = nullptr;
@@ -33,8 +33,11 @@ extern "C" {
 		switch (ReasonForCall)
 		{
 		case DLL_PROCESS_ATTACH:
+			if (!ErrLog) 
+				ErrLog = new ErrorSystem::Logger;
+
 			if (!DriverComponent) {
-				DriverComponent = new WinDriver::DriverComponent;
+				DriverComponent = new WinDriver::DriverComponent(ErrLog);
 
 				if ((ret = DriverComponent->SetLibraryHandle(hModule)) == true) {
 					if (!TickStart) {
@@ -44,7 +47,7 @@ extern "C" {
 						}
 					}
 
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(WIN7VERBOSE)
 					if (AllocConsole()) {
 						FILE* dummy;
 						freopen_s(&dummy, "CONOUT$", "w", stdout);
@@ -57,11 +60,11 @@ extern "C" {
 					}
 #endif
 
-					DriverMask = new WinDriver::DriverMask;
-					fDriverCallback = new WinDriver::DriverCallback;
+					DriverMask = new WinDriver::DriverMask(ErrLog);
+					fDriverCallback = new WinDriver::DriverCallback(ErrLog);
 
 					// Allocate a generic dummy synth for now
-					Host = new OmniMIDI::SynthHost(fDriverCallback, hModule);
+					Host = new OmniMIDI::SynthHost(fDriverCallback, hModule, ErrLog);
 				}
 			}
 
@@ -69,7 +72,7 @@ extern "C" {
 
 		case DLL_PROCESS_DETACH:
 			if (DriverComponent) {
-#ifdef _DEBUG
+#if defined(_DEBUG) || defined(WIN7VERBOSE)
 				FreeConsole();
 #endif
 
@@ -82,6 +85,12 @@ extern "C" {
 				delete DriverComponent;
 				DriverComponent = nullptr;
 			}
+
+			if (ErrLog) {
+				delete ErrLog;
+				ErrLog = nullptr;
+			}
+
 			break;
 
 		case DLL_THREAD_ATTACH:
@@ -98,12 +107,12 @@ extern "C" {
 		switch (Message) {
 		case DRV_OPEN:
 			v = DriverComponent->SetDriverHandle(DriverHandle);
-			LOG(WDMErr, "->SetDriverHandle(...) returned %d", v);
+			LOG("->SetDriverHandle(...) returned %d", v);
 			return v;
 
 		case DRV_CLOSE:
 			v = DriverComponent->UnsetDriverHandle();
-			LOG(WDMErr, "->UnsetDriverHandle() returned %d", v);
+			LOG("->UnsetDriverHandle() returned %d", v);
 			return v;
 
 		case DRV_LOAD:
@@ -125,14 +134,14 @@ extern "C" {
 		}
 
 		long r = DefDriverProc(DriverIdentifier, DriverHandle, Message, Param1, Param2);
-		LOG(WDMErr, "DefDriverProc returned %d", r);
+		LOG("DefDriverProc returned %d", r);
 		return r;
 	}
 
 	EXPORT MMRESULT APICALL modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, DWORD_PTR Param1, DWORD_PTR Param2) {
 		switch (Message) {
 		case MODM_DATA:
-			Host->PlayShortEvent(Param1 & 0xFF, (Param1 >> 8) & 0xFF, (Param1 >> 16) & 0xFF);
+			Host->PlayShortEvent(Param1);
 			return MMSYSERR_NOERROR;
 
 		case MODM_LONGDATA:
@@ -144,7 +153,7 @@ extern "C" {
 				!mhdr || !mhdr->lpData ||
 				mhdr->dwBufferLength < mhdr->dwBytesRecorded)
 			{
-				LOG(WDMErr, "SysEx event 0x%08x is invalid. (lpData: 0x%08x, dwBL: %d, dwBR: %d, dwBR4: %d, cbSize: 0x%08x)",
+				LOG("SysEx event 0x%08x is invalid. (lpData: 0x%08x, dwBL: %d, dwBR: %d, dwBR4: %d, cbSize: 0x%08x)",
 					mhdr->lpData, mhdr->dwBufferLength, mhdr->dwBytesRecorded, mhdr->dwBytesRecorded % 4, Param1, Param2);
 				return MMSYSERR_INVALPARAM;
 			}
@@ -152,14 +161,14 @@ extern "C" {
 			if (!(mhdr->dwFlags & MHDR_PREPARED))
 			{
 				fDriverCallback->CallbackFunction(0, 0, 0xFEEDF00D);
-				LOG(WDMErr, "Stream data 0x%08x has not been prepared.", Param1, Param2);
+				LOG("Stream data 0x%08x has not been prepared.", Param1, Param2);
 				return MIDIERR_UNPREPARED;
 			}
 
 			if (!(mhdr->dwFlags & MHDR_DONE))
 			{
 				if (mhdr->dwFlags & MHDR_INQUEUE) {
-					LOG(WDMErr, "SysEx event 0x%08x is still in queue for StreamPlayer.", Param1, Param2);
+					LOG("SysEx event 0x%08x is still in queue for StreamPlayer.", Param1, Param2);
 					return MIDIERR_STILLPLAYING;
 				}
 			}
@@ -168,10 +177,10 @@ extern "C" {
 			if (ret) {
 				switch (ret) {
 				case SYNTH_INVALPARAM:
-					LOG(WDMErr, "Invalid SysEx event. (Buf = 0x%08x, SynthResult = %d, bufsize = %d)", Param1, ret, mhdr->dwBufferLength);
+					LOG("Invalid SysEx event. (Buf = 0x%08x, SynthResult = %d, bufsize = %d)", Param1, ret, mhdr->dwBufferLength);
 					return MMSYSERR_INVALPARAM;
 				default:
-					LOG(WDMErr, "No idea! 0x%08x", Param1);
+					LOG("No idea! 0x%08x", Param1);
 					return MMSYSERR_ERROR;
 				}
 			}
@@ -295,29 +304,29 @@ extern "C" {
 
 			if (Host->Start(callbackMode & MIDI_IO_COOKED)) {
 				if (fDriverCallback->PrepareCallbackFunction(midiOpenDesc, callbackMode)) {
-					LOG(WDMErr, "PrepareCallbackFunction done.");
+					LOG("PrepareCallbackFunction done.");
 				}
 
-				LOG(WDMErr, "WinMM initialized.");
+				LOG("WinMM initialized.");
 				return MMSYSERR_NOERROR;
 			}
 
-			NERROR(WDMErr, "Failed to initialize synthesizer.", true);
+			NERROR("Failed to initialize synthesizer.", true);
 			return MMSYSERR_NOMEM;
 		}
 
 
 		case MODM_CLOSE:
 			if (Host->Stop()) {
-				LOG(WDMErr, "WinMM freed.");
+				LOG("WinMM freed.");
 				return MMSYSERR_NOERROR;
 			}
 
-			LOG(WDMErr, "Failed to free synthesizer.");
+			LOG("Failed to free synthesizer.");
 			return MMSYSERR_ERROR;
 
 		case MODM_GETNUMDEVS:
-			LOG(WDMErr, "MODM_GETNUMDEVS");
+			LOG("MODM_GETNUMDEVS");
 			return Host->IsBlacklistedProcess() ? 0 : 1;
 
 		case MODM_GETDEVCAPS:
@@ -426,21 +435,21 @@ extern "C" {
 
 	EXPORT int APICALL InitializeKDMAPIStream() {
 		if (Host->Start()) {
-			LOG(WDMErr, "KDMAPI initialized.");
+			LOG("KDMAPI initialized.");
 			return 1;
 		}
 
-		LOG(WDMErr, "KDMAPI failed to initialize.");
+		LOG("KDMAPI failed to initialize.");
 		return 0;
 	}
 
 	EXPORT int APICALL TerminateKDMAPIStream() {
 		if (Host->Stop()) {
-			LOG(WDMErr, "KDMAPI freed.");
+			LOG("KDMAPI freed.");
 			return 1;
 		}
 
-		LOG(WDMErr, "KDMAPI failed to free its resources.");
+		LOG("KDMAPI failed to free its resources.");
 		return 0;
 	}
 
@@ -518,6 +527,20 @@ extern "C" {
 		return (unsigned long long)((CurrentTime)-TickStart) / 10000.0;
 	}
 
+	EXPORT float GetRenderingTime() {
+		if (Host == nullptr)
+			return 0.0f;
+
+		return Host->GetRenderingTime();
+	}
+
+	EXPORT unsigned int GetActiveVoices() {
+		if (Host == nullptr)
+			return 0;
+
+		return Host->GetActiveVoices();
+	}
+
 #ifdef WIN32
 	// Internal benchmark tools for myself!!!
 
@@ -591,7 +614,7 @@ extern "C" {
 				mesR.push_back(r);
 				mesW.push_back(w);
 
-				LOG(WDMErr, "sent %llu - received %llu (lost %llu)", mesS[count] * 3, mesR[count] * 3, mesW[count] * 3);
+				LOG("sent %llu - received %llu (lost %llu)", mesS[count] * 3, mesR[count] * 3, mesW[count] * 3);
 				count++;
 
 				senderBufProc = 0;
@@ -629,10 +652,9 @@ extern "C" {
 		int perc = 10000 - (totalW * 10000 + potential / 2) / potential;
 
 		char* Text = new char[256];
-		char percSym = '%';
 
-		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %.2f)", avgS * 3, avgR * 3, totalS * 3, totalR * 3, (long long)(totalR - totalS) * 3, avgPotential, 100.0f - (perc / 100.0f));
-		LOG(WDMErr, Text);
+		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %.2f%%)", avgS * 3, avgR * 3, totalS * 3, totalR * 3, (long long)(totalR - totalS) * 3, avgPotential, 100.0f - (perc / 100.0f));
+		LOG(Text);
 		MessageBoxA(NULL, Text, "OMB", MB_OK | MB_SYSTEMMODAL);
 	}
 

@@ -43,7 +43,7 @@ namespace OmniMIDI {
 		double RenderWindow = 5.0;
 		uint64_t LayerCount = 2;
 
-		XSynthSettings() {
+		XSynthSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
 			LoadSynthConfig();
 		}
 
@@ -89,7 +89,6 @@ namespace OmniMIDI {
 
 		OMShared::Funcs MiscFuncs;
 		std::vector<uint64_t> SoundFonts;
-		uint64_t StreamHandle = 0;
 		XSynth_RealtimeConfig realtimeConf;
 		XSynth_RealtimeStats realtimeStats;
 		XSynth_StreamParams realtimeParams;
@@ -119,6 +118,7 @@ namespace OmniMIDI {
 		bool Running = false;
 
 	public:
+		XSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
 		bool LoadSynthModule();
 		bool UnloadSynthModule();
 		bool StartSynthModule();

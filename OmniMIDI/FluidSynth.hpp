@@ -48,9 +48,7 @@ namespace OmniMIDI {
 		std::string Driver = "wasapi";
 		std::string SampleFormat = "float";
 
-		FluidSettings() {
-			LoadSynthConfig();
-		}
+		FluidSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) { }
 
 		void RewriteSynthConfig() {
 			CloseConfig();
@@ -110,12 +108,11 @@ namespace OmniMIDI {
 
 	class FluidSynth : public SynthModule {
 	private:
-		ErrorSystem::Logger SynErr;
 		OMShared::Funcs MiscFuncs;
 
 		Lib* FluiLib = nullptr;
 
-		LibImport fLibImp[24] = {
+		LibImport fLibImp[25] = {
 			// BASS
 			ImpFunc(new_fluid_synth),
 			ImpFunc(new_fluid_settings),
@@ -135,6 +132,7 @@ namespace OmniMIDI {
 			ImpFunc(fluid_synth_program_select),
 			ImpFunc(fluid_synth_sysex),
 			ImpFunc(fluid_synth_system_reset),
+			ImpFunc(fluid_synth_sfunload),
 			ImpFunc(fluid_synth_sfload),
 			ImpFunc(fluid_settings_setint),
 			ImpFunc(fluid_settings_setnum),
@@ -150,6 +148,7 @@ namespace OmniMIDI {
 		FluidSettings* Settings = nullptr;
 		fluid_settings_t* fSet = nullptr;
 
+		std::vector<int> SoundFontIDs;
 		fluid_synth_t** AudioStreams = new fluid_synth_t*[16] {0};
 		fluid_audio_driver_t** AudioDrivers = new fluid_audio_driver_t*[16] {0};
 		size_t AudioStreamSize = 16;
@@ -160,10 +159,12 @@ namespace OmniMIDI {
 		bool ProcessEvBuf();
 
 	public:
+		FluidSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
 		bool LoadSynthModule();
 		bool UnloadSynthModule();
 		bool StartSynthModule();
 		bool StopSynthModule();
+		void LoadSoundFonts();
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		unsigned int GetSampleRate() { return Settings->SampleRate; }
 		bool IsSynthInitialized() { return (AudioDrivers[0] != nullptr); }

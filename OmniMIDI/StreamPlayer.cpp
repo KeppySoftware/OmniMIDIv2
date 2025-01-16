@@ -2,9 +2,10 @@
 
 #include "StreamPlayer.hpp"
 
-OmniMIDI::CookedPlayer::CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr) : StreamPlayer(sptr, dptr) {
+OmniMIDI::CookedPlayer::CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr, ErrorSystem::Logger* perr) : StreamPlayer(sptr, dptr, perr) {
 	synthModule = sptr;
 	drvCallback = dptr;
+	ErrLog = perr;
 
 	_CooThread = std::jthread(&CookedPlayer::PlayerThread, this);
 	if (!_CooThread.joinable()) {
@@ -23,7 +24,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 	bool noMoreDelta = false;
 	unsigned long long deltaMicroseconds = 0;
 
-	LOG(StrmErr, "PlayerThread is ready.");
+	LOG("PlayerThread is ready.");
 	while (!goToBed) {
 		while (paused || !mhdrQueue)
 		{
@@ -36,7 +37,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 		MIDIHDR* hdr = mhdrQueue;
 		if (hdr->dwFlags & MHDR_DONE)
 		{
-			LOG(StrmErr, "Moving onto next packet... %x >>> %x", mhdrQueue, hdr->lpNext);
+			LOG("Moving onto next packet... %x >>> %x", mhdrQueue, hdr->lpNext);
 			mhdrQueue = hdr->lpNext;
 			continue;
 		}
@@ -64,7 +65,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 			if (event->dwEvent & MEVT_F_CALLBACK) {
 				drvCallback->CallbackFunction(MOM_POSITIONCB, (DWORD_PTR)hdr, 0);
-				LOG(StrmErr, "MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
+				LOG("MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
 			}
 
 			if (!smpte && !noMoreDelta && event->dwDeltaTime) {
@@ -118,7 +119,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 void OmniMIDI::CookedPlayer::SetTempo(unsigned int ntempo) {
 	tempo = ntempo;
 	bpm = 60000000 / tempo;
-	LOG(StrmErr, "Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
+	LOG("Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
 void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
@@ -132,13 +133,13 @@ void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
 		smpte = true;
 		smpteFramerate = smptePortion;
 		smpteFrameTicks = qSmpteFrameTicks;
-		LOG(StrmErr, "Received new SMPTE setting. (framerate: %dFPS, %d ticks per frame)", smpteFramerate, qSmpteFrameTicks);
+		LOG("Received new SMPTE setting. (framerate: %dFPS, %d ticks per frame)", smpteFramerate, qSmpteFrameTicks);
 		return;
 	}
 
 	smpte = false;
 	ticksPerQN = nTicksPerQN;
-	LOG(StrmErr, "Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
+	LOG("Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
 bool OmniMIDI::CookedPlayer::AddToQueue(MIDIHDR* mhdr) {

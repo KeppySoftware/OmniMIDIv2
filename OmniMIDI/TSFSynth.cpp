@@ -71,12 +71,12 @@ bool OmniMIDI::TinySFSynth::ProcessEvBuf() {
 
 bool OmniMIDI::TinySFSynth::LoadSynthModule() {
 	if (!Settings) {
-		Settings = new TinySFSettings;
+		Settings = new TinySFSettings(ErrLog);
 		Settings->LoadSynthConfig();
 	}
 
 	if (!AllocateShortEvBuf(Settings->EvBufSize)) {
-		NERROR(SynErr, "AllocateShortEvBuf failed.", true);
+		NERROR("AllocateShortEvBuf failed.", true);
 		return false;
 	}
 
@@ -99,7 +99,6 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 		return false;
 
 	// Define the desired audio output format we request
-	SDL_AudioSpec OutputAudioSpec = { 0 };
 	SDL_AudioSpec FinalAudioSpec = { 0 };
 	OutputAudioSpec.freq = Settings->SampleRate;
 	OutputAudioSpec.format = AUDIO_F32;
@@ -112,57 +111,63 @@ bool OmniMIDI::TinySFSynth::StartSynthModule() {
 	// Initialize the audio system
 	if (sdlaudinit < 0)
 	{
-		NERROR(SynErr, "SDL_AutoInit failed with code %d.", true, sdlaudinit);
+		NERROR("SDL_AutoInit failed with code %d.", true, sdlaudinit);
 		return false;
 	}
-	LOG(SynErr, "SDL_AudioInit returned 0.");
+	LOG("SDL_AudioInit returned 0.");
 
-	std::vector<OmniMIDI::SoundFont>* SFv = SFSystem.LoadList();
-	if (SFv != nullptr) {
-		std::vector<SoundFont>& dSFv = *SFv;
-
-		for (int i = 0; i < SFv->size(); i++) {
-			g_TinySoundFont = tsf_load_filename(dSFv[i].path.c_str());
-			if (g_TinySoundFont) {
-				tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
-				LOG(SynErr, "tsf_set_max_voices set to %d", Settings->VoiceLimit);
-				break;
-			}
-		}
-	}
-
-	if (!g_TinySoundFont) {
-		LOG(SynErr, "No soundfont has been loaded, falling back to sine wave SoundFont...");
-		g_TinySoundFont = tsf_load_memory(MinimalSoundFont, sizeof(MinimalSoundFont));
-		if (!g_TinySoundFont)
-			LOG(SynErr, "Could not load built-in SoundFont. You will not get any audio.");
-	}
+	LoadSoundFonts();
+	SFSystem.RegisterCallback(this);
 
 	tsf_set_output(g_TinySoundFont, Settings->StereoRendering ? TSF_STEREO_INTERLEAVED : TSF_MONO, OutputAudioSpec.freq, 0);
 	tsf_set_max_voices(g_TinySoundFont, Settings->VoiceLimit);
-	LOG(SynErr, "tsf_set_max_voices set to %d", Settings->VoiceLimit);
+	LOG("tsf_set_max_voices set to %d", Settings->VoiceLimit);
 
 	g_Mutex = SDL_CreateMutex();
 
 	// Request the desired audio output format
 	if (SDL_OpenAudio(&OutputAudioSpec, &FinalAudioSpec) < 0)
 	{
-		NERROR(SynErr, "SDL_OpenAudio failed to open a target output device.", true);
+		NERROR("SDL_OpenAudio failed to open a target output device.", true);
 		return false;
 	}
 
-	LOG(SynErr, "Op: freq %d (stereo: %d), ch %d, samp %d - Got: freq %d, ch %d, samp %d", 
+	LOG("Op: freq %d (stereo: %d), ch %d, samp %d - Got: freq %d, ch %d, samp %d", 
 		OutputAudioSpec.freq, Settings->StereoRendering, OutputAudioSpec.channels, OutputAudioSpec.samples,
 		FinalAudioSpec.freq, FinalAudioSpec.channels, FinalAudioSpec.samples);
 
 	SDL_PauseAudio(0);
-	LOG(SynErr, "SDL audio stream is now playing.");
+	LOG("SDL audio stream is now playing.");
 
 	Running = true;
 	return true;
 }
 
+void OmniMIDI::TinySFSynth::LoadSoundFonts() {
+	if ((SoundFontsVector = SFSystem.LoadList()) != nullptr) {
+		std::vector<SoundFont>& dSFv = *SoundFontsVector;
+
+		for (int i = 0; i < SoundFontsVector->size(); i++) {
+			g_TinySoundFont = tsf_load_filename(dSFv[i].path.c_str());
+			if (g_TinySoundFont) {
+				tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
+				LOG("tsf_set_max_voices set to %d", Settings->VoiceLimit);
+				break;
+			}
+		}
+	}
+
+	if (!g_TinySoundFont) {
+		LOG("No soundfont has been loaded, falling back to sine wave SoundFont...");
+		g_TinySoundFont = tsf_load_memory(MinimalSoundFont, sizeof(MinimalSoundFont));
+		if (!g_TinySoundFont)
+			LOG("Could not load built-in SoundFont. You will not get any audio.");
+	}
+}
+
 bool OmniMIDI::TinySFSynth::StopSynthModule() {
+	SFSystem.RegisterCallback();
+
 	if (IsSynthInitialized()) {
 		SDL_PauseAudio(1);
 		SDL_CloseAudio();
@@ -170,7 +175,7 @@ bool OmniMIDI::TinySFSynth::StopSynthModule() {
 		SDL_AudioQuit();
 		tsf_close(g_TinySoundFont);
 		g_TinySoundFont = nullptr;
-		LOG(SynErr, "SDL stopped, tsf freed.");
+		LOG("SDL stopped, tsf freed.");
 	}
 
 	return true;

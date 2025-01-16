@@ -27,7 +27,7 @@ namespace OmniMIDI {
 	public:
 		std::vector<std::string> Blacklist;
 
-		SHSettings() {
+		SHSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
 			// When you initialize Settings(), load OM's own settings by default
 			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };

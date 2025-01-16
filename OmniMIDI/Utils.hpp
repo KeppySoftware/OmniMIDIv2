@@ -25,6 +25,7 @@
 
 #define loadLib				LoadLibraryA
 #define loadLibW			LoadLibraryW
+#define getError			GetLastError
 #define freeLib(x)			FreeLibrary((HMODULE)x)
 #define getLib				GetModuleHandleA
 #define getLibW				GetModuleHandleW
@@ -35,8 +36,9 @@
 
 #define loadLib(l)			dlopen(l, 0)
 #define loadLibW(l)			loadLib((const char*)l)
+#define getError()			0
 #define freeLib				dlclose
-#define getLib				// Unavailable
+#define getLib()			0
 #define getLibW				getLib
 #define getAddr				dlsym
 #endif

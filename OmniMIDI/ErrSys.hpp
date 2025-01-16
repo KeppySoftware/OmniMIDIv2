@@ -22,28 +22,28 @@
 #endif
 
 #ifdef _WIN32
-#define MsgBox					MessageBoxA
+#define MsgBox						MessageBoxA
 #else
 #define MsgBox
-#define MB_ICONERROR			0
-#define MB_SYSTEMMODAL			0
-#define MB_OK					0
+#define MB_ICONERROR				0
+#define MB_SYSTEMMODAL				0
+#define MB_OK						0
 #endif
 
-#define S2(x)					#x
-#define S1(x)					S2(x)
+#define S2(x)						#x
+#define S1(x)						S2(x)
 
-#define NERROR(x, y, z, ...)	x.ThrowError(y, z, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#define NERRORV(x, y, z, ...)	x.ThrowError(S1(y), z, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#define FNERROR(x, y)			x.ThrowFatalError(y, __FILE__, __func__, __LINE__)
+#define NERROR(text, fatal, ...)	ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define NERRORV(text, fatal, ...)	ErrLog->ThrowError(S1(text), fatal, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define FNERROR(text)				ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
 
-#define LOGI(x, y, ...)			x.Log(y, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#if _DEBUG
-#define LOG(x, y, ...)			x.Log(y, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#define LOGV(x, y, ...)			x.Log(S1(y), __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define LOGI(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#define LOG(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define LOGV(text, ...)				ErrLog->Log(S1(text), __FILE__, __func__, __LINE__, __VA_ARGS__)
 #else
-#define LOG(x, y, ...)
-#define LOGV(x, y, ...)
+#define LOG(...)
+#define LOGV(...)
 #endif
 
 namespace ErrorSystem {

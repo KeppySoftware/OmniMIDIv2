@@ -41,13 +41,18 @@
 #define DUMMY_STR			"dummy"
 #define EMPTYMODULE			0xDEADBEEF
 
+#include "Common.hpp"
 #include "ErrSys.hpp"
 #include "Utils.hpp"
 #include "EvBuf_t.hpp"
 #include "KDMAPI.hpp"
+#include "SoundFontSystem.hpp"
 #include "nlohmann\json.hpp"
 #include <thread>
 #include <fstream>
+#include <future>
+#include <string>
+#include <filesystem>
 
 namespace OmniMIDI {
 	enum MIDIEventType {
@@ -205,6 +210,25 @@ namespace OmniMIDI {
 		};
 	};
 
+	class SoundFont {
+	public:
+		std::string path;
+
+		bool enabled = true;
+		bool xgdrums = false;
+		bool linattmod = false;
+		bool lindecvol = false;
+		bool minfx = true;
+		bool nolimits = true;
+		bool norampin = false;
+
+		int spreset = -1;
+		int sbank = -1;
+		int dpreset = -1;
+		int dbank = 0;
+		int dbanklsb = 0;
+	};
+
 	class LibImport
 	{
 	protected:
@@ -257,7 +281,7 @@ namespace OmniMIDI {
 		bool Initialized = false;
 		bool LoadFailed = false;
 		bool AppSelfHosted = false;
-		ErrorSystem::Logger LibErr;
+		ErrorSystem::Logger* ErrLog;
 
 		LibImport* Funcs = nullptr;
 		size_t FuncsCount = 0;
@@ -266,10 +290,11 @@ namespace OmniMIDI {
 		void* Ptr() { return Library; }
 		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
 
-		Lib(const wchar_t* pName, LibImport** pFuncs, size_t pFuncsCount) {
+		Lib(const wchar_t* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
 			Name = pName;
 			Funcs = *pFuncs;
 			FuncsCount = pFuncsCount;
+			ErrLog = PErr;
 		}
 
 		~Lib() {
@@ -280,9 +305,15 @@ namespace OmniMIDI {
 			OMShared::SysPath Utils;
 
 			char CName[MAX_PATH] = { 0 };
+			char CDLLPath[MAX_PATH] = { 0 };
+
 			wchar_t SysDir[MAX_PATH] = { 0 };
 			wchar_t DLLPath[MAX_PATH] = { 0 };
+
 			int swp = 0;
+			int lastErr = 0;
+
+			wcstombs(CName, Name, MAX_PATH);
 
 			if (Library == nullptr) {
 #ifdef _WIN32
@@ -290,18 +321,19 @@ namespace OmniMIDI {
 				{
 					// (TODO) Make it so we can load our own version of it
 					// For now, just make the driver try and use that instead
+					LOG("%s already in memory.", CName);
 					return (AppSelfHosted = true);
 				}
 				else {
 #endif
 					if (CustomPath != nullptr) {
-						swp = swprintf(DLLPath, MAX_PATH, L"%s\\%s.dll\0", CustomPath, Name);
+						swp = swprintf(DLLPath, MAX_PATH, L"%s\\%s", CustomPath, Name);
 						assert(swp != -1);
 
 						if (swp != -1) {
-							wcstombs(CName, DLLPath, MAX_PATH);
-							LOG(LibErr, "Will it work? %s", CName);
+							LOG("Will it work? %s", CName);
 							Library = loadLibW(DLLPath);
+							lastErr = getError();
 
 							if (!Library)
 								return false;
@@ -309,24 +341,32 @@ namespace OmniMIDI {
 						else return false;
 					}
 					else {
-						swp = swprintf(DLLPath, MAX_PATH, L"%s.dll\0", Name);
+						swp = swprintf(DLLPath, MAX_PATH, L"%s", Name);
 						assert(swp != -1);
 
 						if (swp != -1) {
 							Library = loadLibW(DLLPath);
+							lastErr = getError();
 
 							if (!Library)
 							{
+								wcstombs(CDLLPath, DLLPath, MAX_PATH);
+								LOG("No %s at \"%s\" (ERR: %x), trying from system folder...", CName, CDLLPath, lastErr);
+
 								if (Utils.GetFolderPath(OMShared::FIDs::System, SysDir, sizeof(SysDir))) {
-									swp = swprintf(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s.dll\0", SysDir, Name);
+									swp = swprintf(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s", SysDir, Name);
+									assert(swp != -1);
+
+									wcstombs(CDLLPath, DLLPath, MAX_PATH);
+									LOG("No %s at \"%s\"!!! ERROR %x!", CName, CDLLPath, lastErr);
+
 									assert(swp != -1);
 									if (swp != -1) {
 										Library = loadLibW(DLLPath);
 										assert(Library != 0);
 
 										if (!Library) {
-											wcstombs(CName, Name, MAX_PATH);
-											NERROR(LibErr, "The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, CName);
+											NERROR("The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, CName);
 											return false;
 										}
 
@@ -344,10 +384,12 @@ namespace OmniMIDI {
 #endif
 			}
 
+			LOG("%s loaded.", CName);
+
 			for (int i = 0; i < FuncsCount; i++)
 			{
 				if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
-					LOG(LibErr, "%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+					LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
 			}
 
 			Initialized = true;
@@ -380,7 +422,7 @@ namespace OmniMIDI {
 	class OMSettings {
 	protected:
 		// When you initialize Settings(), load OM's own settings by default
-		ErrorSystem::Logger SetErr;
+		ErrorSystem::Logger* ErrLog = nullptr;
 		OMShared::SysPath Utils;
 		std::fstream* JSONStream = nullptr;
 		char* SynthName = nullptr;
@@ -394,6 +436,13 @@ namespace OmniMIDI {
 		bool DebugMode = false;
 		std::string CustomRenderer = "empty";
 
+		bool IgnoreVelocityRange = false;
+		unsigned char VelocityMin = 0;
+		unsigned char VelocityMax = 127;
+
+		bool TransposeNote = false;
+		unsigned char TransposeValue = 60;
+
 		wchar_t* SettingsPath = nullptr;
 
 	private:
@@ -404,6 +453,10 @@ namespace OmniMIDI {
 		unsigned int SampleRate = 48000;
 		unsigned int VoiceLimit = 1024;
 
+		OMSettings(ErrorSystem::Logger* PErr) {
+			ErrLog = PErr;
+		}
+
 		virtual ~OMSettings() {
 			CloseConfig();
 		}
@@ -411,10 +464,10 @@ namespace OmniMIDI {
 		virtual void LoadSynthConfig() {}
 		virtual void RewriteSynthConfig() {}
 
-		virtual char GetRenderer() { return Renderer; }
-		virtual bool IsKDMAPIEnabled() { return KDMAPIEnabled; }
-		virtual bool IsOwnConsole() { return OwnConsole; }
-		virtual bool IsDebugMode() { return DebugMode; }
+		virtual const char GetRenderer() { return Renderer; }
+		virtual const bool IsKDMAPIEnabled() { return KDMAPIEnabled; }
+		virtual const bool IsOwnConsole() { return OwnConsole; }
+		virtual const bool IsDebugMode() { return DebugMode; }
 		virtual const char* GetCustomRenderer() { return CustomRenderer.c_str(); }
 
 		bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 64) {
@@ -428,14 +481,14 @@ namespace OmniMIDI {
 
 					SynthName = new char[pSynthName_sz];
 					if (strcpy(SynthName, pSynthName) != SynthName) {
-						NERROR(SetErr, "An error has occurred while parsing SynthName!", true);
+						NERROR("An error has occurred while parsing SynthName!", true);
 						CloseConfig();
 						return false;
 					}
 				}
 			}
 			else {
-				NERROR(SetErr, "InitConfig called with no SynthName specified!", true);
+				NERROR("InitConfig called with no SynthName specified!", true);
 				CloseConfig();
 				return false;
 			}
@@ -448,7 +501,7 @@ namespace OmniMIDI {
 				JSONStream->open(SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
 
 				if (!JSONStream->is_open()) {
-					NERROR(SetErr, "An error has occurred while opening the config file!", true);
+					NERROR("An error has occurred while opening the config file!", true);
 					CloseConfig();
 					return false;
 				}
@@ -457,7 +510,7 @@ namespace OmniMIDI {
 				
 				mainptr = jsonptr["OmniMIDI"];
 				if (mainptr == nullptr) {
-					NERROR(SetErr, "An error has occurred while parsing the settings for OmniMIDI!", true);
+					NERROR("An error has occurred while parsing the settings for OmniMIDI!", true);
 					CloseConfig();
 					return false;
 				}
@@ -470,7 +523,7 @@ namespace OmniMIDI {
 				if (SynthName) {
 					synptr = mainptr["SynthModules"][SynthName];
 					if (synptr == nullptr) {
-						NERROR(SetErr, "An error has occurred while parsing the settings for the chosen synth module!", true, SynthName);
+						NERROR("An error has occurred while parsing the settings for the chosen synth module!", true, SynthName);
 						CloseConfig();
 						return false;
 					}
@@ -478,7 +531,7 @@ namespace OmniMIDI {
 
 				return true;
 			}
-			else NERROR(SetErr, "An error has occurred while parsing the user profile path!", true);
+			else NERROR("An error has occurred while parsing the user profile path!", true);
 
 			return false;
 		}
@@ -594,16 +647,21 @@ namespace OmniMIDI {
 
 	class SynthModule {
 	protected:
-		OMSettings* Settings;
+		OMSettings* Settings = nullptr;
+		std::vector<OmniMIDI::SoundFont>* SoundFontsVector = nullptr;
 		OMShared::Funcs MiscFuncs;
-		ErrorSystem::Logger SynErr;
+		ErrorSystem::Logger* ErrLog = nullptr;
 
-		std::jthread _AudThread[16];
+		const static int ChannelDiv = 16;
+		const static int KeyboardDiv = 8;
+		const static size_t ExperimentalAudioMultiplier = ChannelDiv * KeyboardDiv;
+
+		std::jthread _AudThread[ExperimentalAudioMultiplier];
 		std::jthread _EvtThread;
 		std::jthread _LogThread;
 
 #ifdef _WIN32
-		HMODULE m_hModule;
+		HMODULE m_hModule = NULL;
 #endif
 
 		unsigned int ActiveVoices = 0;
@@ -619,11 +677,13 @@ namespace OmniMIDI {
 		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
 		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
+		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }
 		virtual bool UnloadSynthModule() { return true; }
 		virtual bool StartSynthModule() { return true; }
 		virtual bool StopSynthModule() { return true; }
+		virtual void LoadSoundFonts() { return; }
 		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		virtual unsigned int GetSampleRate() { return 44100; }
 		virtual bool IsSynthInitialized() { return true; }
@@ -724,6 +784,25 @@ namespace OmniMIDI {
 		virtual SynthResult Reset(char type = 0) { PlayShortEvent(0xFF, type, 0); return Ok; }
 
 		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
+	};
+
+	class SoundFontSystem {
+	private:
+		ErrorSystem::Logger* ErrLog = nullptr;
+		OMShared::SysPath Utils;
+		wchar_t* ListPath = nullptr;
+		std::filesystem::file_time_type ListLastEdit;
+		std::vector<SoundFont> SoundFonts;
+		OmniMIDI::SynthModule* SynthModule = nullptr;
+		std::jthread _SFThread;
+		void SoundFontThread();
+
+	public:
+		SoundFontSystem() { ErrLog = nullptr; }
+		SoundFontSystem(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
+		bool RegisterCallback(OmniMIDI::SynthModule* ptr = nullptr);
+		std::vector<SoundFont>* LoadList(std::wstring list = L"");
+		bool ClearList();
 	};
 }
 

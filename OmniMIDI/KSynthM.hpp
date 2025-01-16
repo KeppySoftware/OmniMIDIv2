@@ -44,6 +44,8 @@ namespace OmniMIDI {
 
 		std::string SampleSet = "sample.ksmp";
 
+		KSynthSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
+
 		void RewriteSynthConfig() {
 			CloseConfig();
 			if (InitConfig(true, KSYNTH_STR, sizeof(KSYNTH_STR))) {
@@ -124,6 +126,7 @@ namespace OmniMIDI {
 		void ProcessEvBufChk();
 
 	public:
+		KSynthM(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
 		bool LoadSynthModule();
 		bool UnloadSynthModule();
 		bool StartSynthModule();

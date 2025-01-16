@@ -108,9 +108,6 @@
     <ClInclude Include="EvBuf_t.hpp">
       <Filter>Header Files\Mandatory</Filter>
     </ClInclude>
-    <ClInclude Include="SoundFontSystem.hpp">
-      <Filter>Header Files\Mandatory</Filter>
-    </ClInclude>
     <ClInclude Include="Utils.hpp">
       <Filter>Header Files\Mandatory</Filter>
     </ClInclude>
@@ -182,9 +179,6 @@
     <ClCompile Include="ShakraPipe.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
     </ClCompile>
-    <ClCompile Include="SoundFontSystem.cpp">
-      <Filter>Source Files\Mandatory</Filter>
-    </ClCompile>
     <ClCompile Include="Utils.cpp">
       <Filter>Source Files\Mandatory</Filter>
     </ClCompile>
@@ -193,6 +187,9 @@
     </ClCompile>
     <ClCompile Include="xsynth.cpp">
       <Filter>Source Files\Synthesizer\External modules</Filter>
+    </ClCompile>
+    <ClCompile Include="SynthMain.cpp">
+      <Filter>Source Files\Mandatory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -47,10 +47,11 @@ namespace WinDriver {
 		unsigned short Technology = MOD_SWSYNTH;
 		unsigned short Support = MIDICAPS_VOLUME | MIDICAPS_STREAM;
 
-		ErrorSystem::Logger MaskErr;
+		ErrorSystem::Logger* ErrLog = nullptr;
 
 	public:
 		// Change settings
+		DriverMask(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 		bool ChangeSettings(short, short, short, short);
 		unsigned long GiveCaps(UINT, PVOID, DWORD);
 	};
@@ -59,10 +60,11 @@ namespace WinDriver {
 
 	private:
 		Callback* pCallback = nullptr;
-		ErrorSystem::Logger CallbackErr;
+		ErrorSystem::Logger* ErrLog;
 
 	public:
 		// Callbacks
+		DriverCallback(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 		bool IsCallbackReady();
 		bool PrepareCallbackFunction(MIDIOPENDESC*, DWORD);
 		bool ClearCallbackFunction();
@@ -76,9 +78,10 @@ namespace WinDriver {
 		HDRVR DrvHandle = nullptr;
 		HMODULE LibHandle = nullptr;
 
-		ErrorSystem::Logger DrvErr;
+		ErrorSystem::Logger* ErrLog;
 
 	public:
+		DriverComponent(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 
 		// Opening and closing the driver
 		bool SetDriverHandle(HDRVR drv);

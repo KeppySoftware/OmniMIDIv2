@@ -68,6 +68,8 @@ namespace OmniMIDI {
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
 
+		BASSSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
+
 		void RewriteSynthConfig() override {
 			CloseConfig();
 			if (InitConfig(true, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
@@ -160,7 +162,7 @@ namespace OmniMIDI {
 		Lib* BVstLib = nullptr;
 		Lib* BAsiLib = nullptr;
 
-		LibImport LibImports[68] = {
+		LibImport LibImports[67] = {
 			// BASS
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
@@ -191,12 +193,11 @@ namespace OmniMIDI {
 			// BASSMIDI
 			ImpFunc(BASS_MIDI_FontFree),
 			ImpFunc(BASS_MIDI_FontInit),
-			ImpFunc(BASS_MIDI_FontLoad),
+			ImpFunc(BASS_MIDI_FontLoadEx),
 			ImpFunc(BASS_MIDI_StreamCreate),
 			ImpFunc(BASS_MIDI_StreamEvent),
 			ImpFunc(BASS_MIDI_StreamEvents),
 			ImpFunc(BASS_MIDI_StreamGetEvent),
-			ImpFunc(BASS_MIDI_StreamLoadSamples),
 			ImpFunc(BASS_MIDI_StreamSetFonts),
 			ImpFunc(BASS_MIDI_StreamGetChannel),
 
@@ -212,8 +213,10 @@ namespace OmniMIDI {
 			ImpFunc(BASS_WASAPI_GetLevelEx),
 			ImpFunc(BASS_WASAPI_SetNotify),
 
+#ifdef _WIN32
 			// BASSVST
 			ImpFunc(BASS_VST_ChannelSetDSP),
+#endif
 
 			// BASSASIO
 			ImpFunc(BASS_ASIO_CheckRate),
@@ -242,23 +245,21 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 #ifdef _WIN32
-		SoundOut** WinAudioEngine = new SoundOut*[16] { 0 };
+		SoundOut** WinAudioEngine = new SoundOut*[ExperimentalAudioMultiplier] { 0 };
 #endif
 		unsigned char ASIOBuf[2048] = { 0 };
-		unsigned int AudioStreams[16] = { 0 };
-		size_t AudioStreamSize = sizeof(AudioStreams) / sizeof(unsigned int);
+		unsigned int AudioStreams[ExperimentalAudioMultiplier] = { 0 };
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
 		BASSSettings* Settings = nullptr;
 
-		bool RestartSynth = false;
+		size_t AudioStreamSize = ExperimentalAudioMultiplier;
 
 		// BASS system
 		bool LoadFuncs();
 		bool ClearFuncs();
-		void LoadSoundFonts();
 		bool ProcessEvBuf();
 		void ProcessEvBufChk();
 
@@ -274,6 +275,8 @@ namespace OmniMIDI {
 		static unsigned long CALLBACK AsioEvProc(int, unsigned long, void*, unsigned long, void*);
 
 	public:
+		BASSSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
+		void LoadSoundFonts();
 		bool LoadSynthModule();
 		bool UnloadSynthModule();
 		bool StartSynthModule();

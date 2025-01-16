@@ -35,7 +35,7 @@ namespace OmniMIDI {
 	{
 	private:
 		// Ours
-		ErrorSystem::Logger SHErr;
+		ErrorSystem::Logger* ErrLog = nullptr;
 		SynthModule* Synth = nullptr;
 		SHSettings* SHSettings = nullptr;
 		std::jthread _HealthThread;
@@ -50,12 +50,13 @@ namespace OmniMIDI {
 
 	public:
 #ifdef _WIN32
-		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod) {
+		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) {
 			DrvCallback = dcasrc;
 			hwndMod = mod;
-			SHSettings = new OmniMIDI::SHSettings;
-			Synth = new OmniMIDI::SynthModule;
-			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback);
+			SHSettings = new OmniMIDI::SHSettings(ErrLog);
+			Synth = new OmniMIDI::SynthModule(ErrLog);
+			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
+			ErrLog = PErr;
 		}
 #else
 		SynthHost(WinDriver::DriverCallback* dcasrc) {
@@ -110,6 +111,8 @@ namespace OmniMIDI {
 		// Event handling system
 		void PlayShortEvent(unsigned int ev);
 		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
+		float GetRenderingTime();
+		unsigned int GetActiveVoices();
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult Reset() { return Synth->Reset(); }
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Synth->TalkToSynthDirectly(evt, chan, param); }

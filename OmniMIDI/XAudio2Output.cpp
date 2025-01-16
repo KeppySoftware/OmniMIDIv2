@@ -20,7 +20,7 @@ XAudio2Output::XAudio2Output() {
 	if (XALib == nullptr) {
 		if (!(XALib = LoadLibraryA("XAudio2_9")) && !(XALib = LoadLibraryA("XAudio2_9redist"))) {
 			if (Utils.GetFolderPath(OMShared::FIDs::System, SysDir, sizeof(SysDir))) {
-				swprintf_s(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s\0", SysDir, L"XAudio2_9redist.dll");
+				swprintf(DLLPath, MAX_PATH, L"%s\\OmniMIDI\\%s\0", SysDir, L"XAudio2_9redist.dll");
 
 				// Found it?
 				if (FindFirstFile(DLLPath, &fd) != INVALID_HANDLE_VALUE)
@@ -98,7 +98,7 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	}
 
 	audioBuf = new float[maxSamplesPerFrame]();
-	LOG(XAErr, "audioBuf allocated with a size of %d", spf);
+	LOG("audioBuf allocated with a size of %d", spf);
 
 	wfx.Format.nChannels = nCh;
 	wfx.Format.nSamplesPerSec = sampleRate;
@@ -109,8 +109,8 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 
 	auto lat = (((double)maxSamplesPerFrame / (double)strmSampleRate) * 1000.0);
-	LOG(XAErr, "SPF limit set to %dSPFs, with a query  value of %dSPFs. Buffer will be split in chunks of %d. Latency will be around %0.1fms.", maxSamplesPerFrame, samplesPerFrame, nChks, lat + 40.0);
-	LOG(XAErr, "wfxStruct -> wFT: %d, nCh: %d, nSaPS: %d, nBlAlign: %d, nAvgByPS: %d, wBiPS: %d",
+	LOG("SPF limit set to %dSPFs, with a query  value of %dSPFs. Buffer will be split in chunks of %d. Latency will be around %0.1fms.", maxSamplesPerFrame, samplesPerFrame, nChks, lat + 40.0);
+	LOG("wfxStruct -> wFT: %d, nCh: %d, nSaPS: %d, nBlAlign: %d, nAvgByPS: %d, wBiPS: %d",
 		wfx.Format.wFormatTag, wfx.Format.nChannels, wfx.Format.nSamplesPerSec, wfx.Format.nBlockAlign, wfx.Format.nAvgBytesPerSec, wfx.Format.wBitsPerSample);
 
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -122,10 +122,10 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 #endif
 
 	if (FAILED(hr)) {
-		NERROR(XAErr, "Error 0x%08x has occurred while opening the XAudio2 device.", true, hr);
+		NERROR("Error 0x%08x has occurred while opening the XAudio2 device.", true, hr);
 		return StreamOpenFailed;
 	}
-	LOG(XAErr, "XA device created at 0x%08x.", true, xaudDev);
+	LOG("XA device created at 0x%08x.", true, xaudDev);
 
 	hr = xaudDev->CreateMasteringVoice(
 		&masterVoice,
@@ -136,24 +136,24 @@ SoundOutResult XAudio2Output::Init(HMODULE m_hModule, SOAudioFlags flags, unsign
 		NULL,
 		AudioCategory_Media);
 	if (FAILED(hr)) {
-		NERROR(XAErr, "Error 0x%08x has occurred while creating the mastering voice for the XAudio2 device.", true, hr);
+		NERROR("Error 0x%08x has occurred while creating the mastering voice for the XAudio2 device.", true, hr);
 		return MasteringVoiceFailed;
 	}
-	LOG(XAErr, "CreateMasteringVoice succeeded.", true, xaudDev);
+	LOG("CreateMasteringVoice succeeded.", true, xaudDev);
 
 	hr = xaudDev->CreateSourceVoice(&sourceVoice, (WAVEFORMATEX*)&wfx, 0, XAUDIO2_DEFAULT_FREQ_RATIO, &bufNotifier);
 	if (FAILED(hr) || !sourceVoice) {
-		NERROR(XAErr, "Error 0x%08x has occurred while creating the source voice for the XAudio2 device.", true, hr);
+		NERROR("Error 0x%08x has occurred while creating the source voice for the XAudio2 device.", true, hr);
 		return SourceVoiceFailed;
 	}
-	LOG(XAErr, "CreateSourceVoice succeeded.", true, xaudDev);
+	LOG("CreateSourceVoice succeeded.", true, xaudDev);
 
 	hr = sourceVoice->Start(0);
 	if (FAILED(hr)) {
-		NERROR(XAErr, "Error 0x%08x has occurred while spinning up the XAudio2 device.", true, hr);
+		NERROR("Error 0x%08x has occurred while spinning up the XAudio2 device.", true, hr);
 		return StartFailed;
 	}
-	LOG(XAErr, "Source voice started.", true, xaudDev);
+	LOG("Source voice started.", true, xaudDev);
 
 	devChanged = false;
 	bufReadHead = 0;
