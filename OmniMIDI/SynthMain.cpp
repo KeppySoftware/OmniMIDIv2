@@ -79,6 +79,10 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 							if (subitem != nullptr) {
 								SF.path = subitem["path"].is_null() ? "\0" : subitem["path"];
 								SF.enabled = subitem["enabled"].is_null() ? SF.enabled : (bool)subitem["enabled"];
+
+								if (SF.path.empty())
+									continue;
+
 								path = SF.path.c_str();
 
 								if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
@@ -128,7 +132,21 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 			sfs.close();
 			return succeed ? &SoundFonts : nullptr;
 		}
-		else NERRORV(L"SoundFonts JSON at path \"%s\" does not exist.", false, !list.empty() ? list.c_str() : OMPath);
+		else {
+			if (list.empty()) {
+				NERRORV(L"SoundFonts JSON at path \"%s\" does not exist. The driver will create an example one for you to edit.", false, OMPath);
+
+				SoundFont eSF;
+				auto example = eSF.GetExampleList();
+
+				sfs.close();
+				sfs.open(OMPath, std::fstream::out | std::fstream::trunc);
+				std::string dump = example.dump(4);
+				sfs.write(dump.c_str(), dump.length());
+				sfs.close();
+			}
+			else NERRORV(L"SoundFonts JSON at path \"%s\" does not exist!", true, list.c_str());
+		}
 	}
 
 	return nullptr;

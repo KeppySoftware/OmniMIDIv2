@@ -222,11 +222,33 @@ namespace OmniMIDI {
 		bool nolimits = true;
 		bool norampin = false;
 
-		int spreset = -1;
 		int sbank = -1;
-		int dpreset = -1;
+		int spreset = -1;
 		int dbank = 0;
 		int dbanklsb = 0;
+		int dpreset = -1;
+
+		nlohmann::json GetExampleList() {
+			auto obj = nlohmann::json::object({});
+			obj["SoundFonts"][0] =
+			{
+					ConfGetVal(path),
+					ConfGetVal(enabled),
+					ConfGetVal(xgdrums),
+					ConfGetVal(linattmod),
+					ConfGetVal(lindecvol),
+					ConfGetVal(minfx),
+					ConfGetVal(nolimits),
+					ConfGetVal(norampin),
+					ConfGetVal(sbank),
+					ConfGetVal(spreset),
+					ConfGetVal(dbank),
+					ConfGetVal(dpreset),
+					ConfGetVal(dbanklsb),
+			};
+
+			return obj;
+		}
 	};
 
 	class LibImport
@@ -424,11 +446,14 @@ namespace OmniMIDI {
 		// When you initialize Settings(), load OM's own settings by default
 		ErrorSystem::Logger* ErrLog = nullptr;
 		OMShared::SysPath Utils;
-		std::fstream* JSONStream = nullptr;
 		char* SynthName = nullptr;
+		bool OwnConsole = false;
+
+		// JSON
+		std::fstream* JSONStream = nullptr;
+		nlohmann::json jsonptr = nullptr;
 		nlohmann::json mainptr = nullptr;
 		nlohmann::json synptr = nullptr;
-		bool OwnConsole = false;
 
 		// Default values
 		char Renderer = Synthesizers::BASSMIDI;
@@ -445,20 +470,20 @@ namespace OmniMIDI {
 
 		wchar_t* SettingsPath = nullptr;
 
-	private:
-		nlohmann::json jsonptr = nullptr;
-
 	public:
 		// Basic settings
 		unsigned int SampleRate = 48000;
 		unsigned int VoiceLimit = 1024;
 
 		OMSettings(ErrorSystem::Logger* PErr) {
+			JSONStream = new std::fstream;
 			ErrLog = PErr;
 		}
 
 		virtual ~OMSettings() {
 			CloseConfig();
+			delete JSONStream;
+			JSONStream = nullptr;
 		}
 
 		virtual void LoadSynthConfig() {}
@@ -472,7 +497,7 @@ namespace OmniMIDI {
 
 		bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 64) {
 			if (JSONStream && JSONStream->is_open())
-				return true;
+				CloseConfig();
 
 			if (SynthName == nullptr && pSynthName != nullptr) {
 				if (strcmp(pSynthName, DUMMY_STR)) {
@@ -497,17 +522,28 @@ namespace OmniMIDI {
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(wchar_t) * MAX_PATH)) {
 				swprintf(SettingsPath, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
 
-				if (!JSONStream) JSONStream = new std::fstream;
 				JSONStream->open(SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
-
-				if (!JSONStream->is_open()) {
-					NERROR("An error has occurred while opening the config file!", true);
-					CloseConfig();
-					return false;
+				if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
+					JSONStream->clear();
+					JSONStream->seekg(0, std::ios::beg);
+					jsonptr = nlohmann::json::parse(*JSONStream, nullptr, false, true);
 				}
 
-				jsonptr = nlohmann::json::parse(*JSONStream, nullptr, false, true);
-				
+				if (jsonptr == nullptr || jsonptr["OmniMIDI"] == nullptr) {
+					NERROR("No configuration file found! A new reference one will be created for you.", false);
+
+					jsonptr["OmniMIDI"] = {
+						ConfGetVal(Renderer),
+						ConfGetVal(CustomRenderer),
+						ConfGetVal(KDMAPIEnabled),
+						ConfGetVal(DebugMode),
+						ConfGetVal(Renderer),
+						{ "SynthModules", nlohmann::json::object({})}
+					};
+
+					WriteConfig();
+				}
+					
 				mainptr = jsonptr["OmniMIDI"];
 				if (mainptr == nullptr) {
 					NERROR("An error has occurred while parsing the settings for OmniMIDI!", true);
@@ -523,8 +559,7 @@ namespace OmniMIDI {
 				if (SynthName) {
 					synptr = mainptr["SynthModules"][SynthName];
 					if (synptr == nullptr) {
-						NERROR("An error has occurred while parsing the settings for the chosen synth module!", true, SynthName);
-						CloseConfig();
+						NERROR("No configuration settings found for the selected renderer \"%s\"! A new reference one will be created for you.", false, SynthName);
 						return false;
 					}
 				}
@@ -536,35 +571,26 @@ namespace OmniMIDI {
 			return false;
 		}
 
-		bool AppendToConfig(nlohmann::json content) {
-			nlohmann::json tmp = nullptr;
-
+		bool AppendToConfig(nlohmann::json &content) {
 			if (content == nullptr)
 				return false;
 
-			tmp = jsonptr["OmniMIDI"]["SynthModules"][SynthName];
-			if (tmp != nullptr) {
+			if (jsonptr["OmniMIDI"]["SynthModules"][SynthName] != nullptr) {
 				jsonptr["OmniMIDI"]["SynthModules"].erase(SynthName);
 			}
 
-			tmp.clear();
-			tmp = {
-				{ SynthName, {
-					content
-				}}
-			};
-
-			jsonptr["OmniMIDI"]["SynthModules"].push_back(tmp);
+			jsonptr["OmniMIDI"]["SynthModules"][SynthName] = content;
 			mainptr = jsonptr["OmniMIDI"];
 			synptr = mainptr["SynthModules"][SynthName];
+
 			return true;
 		}
 
 		bool WriteConfig() {
-			if (!JSONStream || !JSONStream->is_open())
-				return false;
+			JSONStream->close();
 
-			std::string dump = mainptr.dump(1);
+			JSONStream->open(SettingsPath, std::fstream::out | std::fstream::trunc);
+			std::string dump = jsonptr.dump(4);
 			JSONStream->write(dump.c_str(), dump.length());
 			JSONStream->close();
 
@@ -583,32 +609,27 @@ namespace OmniMIDI {
 		wchar_t* GetConfigPath() { return SettingsPath; }
 
 		void CloseConfig() {
-			if (!jsonptr.is_null()) {
+			if (jsonptr != nullptr && !jsonptr.is_null()) {
 				jsonptr.clear();
 			}
 
-			if (!mainptr.is_null()) {
+			if (mainptr != nullptr && !mainptr.is_null()) {
 				mainptr.clear();
 			}
 
-			if (!synptr.is_null()) {
+			if (synptr != nullptr && !synptr.is_null()) {
 				synptr.clear();
 			}
 
-			if (JSONStream) {
-				if (JSONStream->is_open())
-					JSONStream->close();
+			if (JSONStream->is_open())
+				JSONStream->close();
 
-				delete JSONStream;
-				JSONStream = nullptr;
-			}
-
-			if (SettingsPath) {
+			if (SettingsPath != nullptr) {
 				delete SettingsPath;
 				SettingsPath = nullptr;
 			}
 
-			if (SynthName) {
+			if (SynthName != nullptr) {
 				delete SynthName;
 				SynthName = nullptr;
 			}
@@ -652,8 +673,9 @@ namespace OmniMIDI {
 		OMShared::Funcs MiscFuncs;
 		ErrorSystem::Logger* ErrLog = nullptr;
 
-		const static int ChannelDiv = 16;
-		const static int KeyboardDiv = 8;
+		const static char ChannelDiv = 16;
+		const static char KeyboardDiv = 8;
+		const static char KeyboardChunk = 128 / KeyboardDiv;
 		const static size_t ExperimentalAudioMultiplier = ChannelDiv * KeyboardDiv;
 
 		std::jthread _AudThread[ExperimentalAudioMultiplier];

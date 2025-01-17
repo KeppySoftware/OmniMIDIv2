@@ -49,21 +49,16 @@ namespace OmniMIDI {
 		}
 
 		void RewriteSynthConfig() {
-			CloseConfig();
-			if (InitConfig(true, TINYSF_STR, sizeof(TINYSF_STR))) {
-				nlohmann::json DefConfig = {
-					{
-						ConfGetVal(StereoRendering),
-						ConfGetVal(EvBufSize),
-						ConfGetVal(SampleRate),
-						ConfGetVal(Samples),
-						ConfGetVal(VoiceLimit)
-					}
-				};
+			nlohmann::json DefConfig = {
+					ConfGetVal(StereoRendering),
+					ConfGetVal(EvBufSize),
+					ConfGetVal(SampleRate),
+					ConfGetVal(Samples),
+					ConfGetVal(VoiceLimit)
+			};
 
-				if (AppendToConfig(DefConfig))
-					WriteConfig();
-			}
+			if (AppendToConfig(DefConfig))
+				WriteConfig();
 
 			CloseConfig();
 			InitConfig(false, TINYSF_STR);

@@ -33,9 +33,11 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-AVX2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>$(OutputPath)PFA-1.1.0viz-AVX2.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>$(OutDirFullPath)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArguments>
+    </LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-x86_64.exe</LocalDebuggerCommand>
@@ -46,8 +48,9 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='WIN7DBG|x64'">
-    <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-AVX2.exe</LocalDebuggerCommand>
+    <LocalDebuggerCommand>rundll32.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerCommandArguments>"$(OutputPath)OmniMIDI.dll",BufferThroughput</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (MSVC++)|x64'">
     <LocalDebuggerCommand>$(OutDirFullPath)PFA-1.1.0viz-AVX2.exe</LocalDebuggerCommand>

@@ -129,30 +129,30 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 	}
 
 	if (SFSystem.ClearList()) {
-		int retry = 0;
-
-		while (SoundFontsVector == nullptr || retry++ != 30)
+		while (SoundFontsVector == nullptr)
 			SoundFontsVector = SFSystem.LoadList();
 
 		if (SoundFontsVector != nullptr) {
 			auto& dSFv = *SoundFontsVector;
 
-			for (int i = 0; i < dSFv.size(); i++) {
-				if (!dSFv[i].enabled)
-					continue;
+			if (dSFv.size() > 0) {
+				for (int i = 0; i < dSFv.size(); i++) {
+					if (!dSFv[i].enabled)
+						continue;
 
-				auto sf = XSynth_GenDefault_SoundfontOptions();
+					auto sf = XSynth_GenDefault_SoundfontOptions();
 
-				sf.stream_params.audio_channels = realtimeParams.audio_channels;
-				sf.stream_params.sample_rate = realtimeParams.sample_rate;
-				sf.preset = dSFv[i].spreset;
-				sf.bank = dSFv[i].sbank;
-				sf.interpolator = INTERPOLATION_LINEAR;
-				sf.use_effects = dSFv[i].minfx;
-				sf.linear_release = dSFv[i].linattmod;
+					sf.stream_params.audio_channels = realtimeParams.audio_channels;
+					sf.stream_params.sample_rate = realtimeParams.sample_rate;
+					sf.preset = dSFv[i].spreset;
+					sf.bank = dSFv[i].sbank;
+					sf.interpolator = INTERPOLATION_LINEAR;
+					sf.use_effects = dSFv[i].minfx;
+					sf.linear_release = dSFv[i].linattmod;
 
-				SoundFonts.push_back(XSynth_Soundfont_LoadNew(dSFv[i].path.c_str(), sf));
-			}
+					SoundFonts.push_back(XSynth_Soundfont_LoadNew(dSFv[i].path.c_str(), sf));
+				}
+			}		
 		}
 	}
 

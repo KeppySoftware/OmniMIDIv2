@@ -545,7 +545,7 @@ extern "C" {
 	// Internal benchmark tools for myself!!!
 
 	EXPORT void WINAPI BufferThroughput(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow) {
-#ifndef _DEBUG
+#if !defined(_DEBUG) && !defined(WIN7VERBOSE)
 		if (AllocConsole()) {
 			FILE* dummy;
 			freopen_s(&dummy, "CONOUT$", "w", stdout);
@@ -557,6 +557,15 @@ extern "C" {
 			std::cin.clear();
 		}
 		else exit(0);
+#else
+		FILE* dummy;
+		freopen_s(&dummy, "CONOUT$", "w", stdout);
+		freopen_s(&dummy, "CONOUT$", "w", stderr);
+		freopen_s(&dummy, "CONIN$", "r", stdin);
+		std::cout.clear();
+		std::clog.clear();
+		std::cerr.clear();
+		std::cin.clear();
 #endif
 
 		volatile bool stop = true;
@@ -567,7 +576,7 @@ extern "C" {
 		std::atomic<size_t> senderBufProc = 0, receiverBufProc = 0, waitingBufProc = 0;
 
 		OMShared::Funcs d;
-		OmniMIDI::EvBuf* buffer = new OmniMIDI::EvBuf(0x7FFFFF);
+		OmniMIDI::EvBuf* buffer = new OmniMIDI::EvBuf(0x7FFFFFF);
 		int count = 0;
 		int interval = 5;
 
@@ -604,17 +613,17 @@ extern "C" {
 			while (stop) d.uSleep(-1);
 
 			while (!stoken.stop_requested()) {
-				d.uSleep(-10000000);
+				d.uSleep(-2500000);
 				waitThread = true;
 
-				auto s = (size_t)senderBufProc;
-				auto r = (size_t)receiverBufProc;
-				auto w = (size_t)waitingBufProc;
+				auto s = (size_t)senderBufProc * 4;
+				auto r = (size_t)receiverBufProc * 4;
+				auto w = (size_t)waitingBufProc * 4;
 				mesS.push_back(s);
 				mesR.push_back(r);
 				mesW.push_back(w);
 
-				LOG("sent %llu - received %llu (lost %llu)", mesS[count] * 3, mesR[count] * 3, mesW[count] * 3);
+				LOG("sent %llu - received %llu (lost %llu)", mesS[count], mesR[count], mesW[count]);
 				count++;
 
 				senderBufProc = 0;
@@ -644,6 +653,7 @@ extern "C" {
 		auto totalR = avgR;
 		auto totalW = avgW;
 		auto potential = totalR + totalW;
+		auto lost = std::abs((long long)totalR - (long long)totalS);
 		avgS = avgS / mesS.size();
 		avgR = avgR / mesS.size();
 		avgW = avgW / mesW.size();
@@ -653,8 +663,7 @@ extern "C" {
 
 		char* Text = new char[256];
 
-		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %.2f%%)", avgS * 3, avgR * 3, totalS * 3, totalR * 3, (long long)(totalR - totalS) * 3, avgPotential, 100.0f - (perc / 100.0f));
-		LOG(Text);
+		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %0.2f%%)", avgS, avgR, totalS, totalR, lost, avgPotential, 100.0f - ((float)perc / 100.0f));
 		MessageBoxA(NULL, Text, "OMB", MB_OK | MB_SYSTEMMODAL);
 	}
 

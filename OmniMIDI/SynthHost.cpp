@@ -208,19 +208,6 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 		break;
 #endif
 
-#if !defined _M_ARM || !defined _M_ARM64
-	case Synthesizers::ksynth:
-		// DEPRECATED, fallback to TSF
-		NERROR("KSynth is deprecated.", false, r);
-		r = Synthesizers::TinySoundFont;
-		goto fallback;
-		break;
-
-		tSynth = new OmniMIDI::KSynthM(ErrLog);
-		LOG("R%d (KSYNTH)", r);
-		break;
-#endif
-
 #if defined WIN32 
 	case Synthesizers::ShakraPipe:
 		tSynth = new OmniMIDI::ShakraPipe(ErrLog);

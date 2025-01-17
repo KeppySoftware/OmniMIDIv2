@@ -31,17 +31,12 @@ namespace OmniMIDI {
 		WSPSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
 
 		void RewriteSynthConfig() {
-			CloseConfig();
-			if (InitConfig(true, WSP_STR, sizeof(WSP_STR))) {
-				nlohmann::json DefConfig = {
-					{
-						ConfGetVal(EvBufSize)
-					}
-				};
+			nlohmann::json DefConfig = {
+					ConfGetVal(EvBufSize)
+			};
 
-				if (AppendToConfig(DefConfig))
-					WriteConfig();
-			}
+			if (AppendToConfig(DefConfig))
+				WriteConfig();
 
 			CloseConfig();
 			InitConfig(false, WSP_STR, sizeof(WSP_STR));

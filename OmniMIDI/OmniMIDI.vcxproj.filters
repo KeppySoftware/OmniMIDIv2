@@ -81,12 +81,6 @@
     <ClInclude Include="StreamPlayer.hpp">
       <Filter>Header Files\Extensions</Filter>
     </ClInclude>
-    <ClInclude Include="KSynthM.hpp">
-      <Filter>Header Files\Synthesizer\Synth modules</Filter>
-    </ClInclude>
-    <ClInclude Include="XAudio2Output.hpp">
-      <Filter>Header Files\Extensions</Filter>
-    </ClInclude>
     <ClInclude Include="SynthHost.hpp">
       <Filter>Header Files\Mandatory</Filter>
     </ClInclude>
@@ -110,9 +104,6 @@
     </ClInclude>
     <ClInclude Include="Utils.hpp">
       <Filter>Header Files\Mandatory</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundOut.h">
-      <Filter>Header Files\Extensions</Filter>
     </ClInclude>
     <ClInclude Include="SynthMain.hpp">
       <Filter>Header Files\Mandatory</Filter>
@@ -158,20 +149,11 @@
     <ClCompile Include="StreamPlayer.cpp">
       <Filter>Source Files\Extensions</Filter>
     </ClCompile>
-    <ClCompile Include="KSynthM.cpp">
-      <Filter>Source Files\Synthesizer\Synth modules</Filter>
-    </ClCompile>
-    <ClCompile Include="XAudio2Output.cpp">
-      <Filter>Source Files\Extensions</Filter>
-    </ClCompile>
     <ClCompile Include="minisdl_audio.c">
       <Filter>Source Files\Synthesizer\SDL</Filter>
     </ClCompile>
     <ClCompile Include="SynthHost.cpp">
       <Filter>Source Files\Mandatory</Filter>
-    </ClCompile>
-    <ClCompile Include="ksynth.cpp">
-      <Filter>Source Files\Synthesizer\External modules</Filter>
     </ClCompile>
     <ClCompile Include="UnixEntry.cpp">
       <Filter>Source Files\Mandatory\MPSupport</Filter>

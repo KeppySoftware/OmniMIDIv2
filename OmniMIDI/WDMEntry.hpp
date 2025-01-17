@@ -20,6 +20,7 @@
 #include <newdev.h>
 #include <regstr.h>
 #include <setupapi.h>
+#include <cstdlib>
 #include "ErrSys.hpp"
 #include "WDMDrv.hpp"
 #include "KDMAPI.hpp"

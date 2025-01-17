@@ -48,20 +48,15 @@ namespace OmniMIDI {
 		}
 
 		void RewriteSynthConfig() {
-			CloseConfig();
-			if (InitConfig(true, XSYNTH_STR, sizeof(XSYNTH_STR))) {
-				nlohmann::json DefConfig = {
-					{
-						ConfGetVal(ThreadPool),
-						ConfGetVal(FadeOutKilling),
-						ConfGetVal(RenderWindow),
-						ConfGetVal(LayerCount)
-					}
-				};
+			nlohmann::json DefConfig = {
+					ConfGetVal(ThreadPool),
+					ConfGetVal(FadeOutKilling),
+					ConfGetVal(RenderWindow),
+					ConfGetVal(LayerCount)
+			};
 
-				if (AppendToConfig(DefConfig))
-					WriteConfig();
-			}
+			if (AppendToConfig(DefConfig))
+				WriteConfig();
 
 			CloseConfig();
 			InitConfig(false, XSYNTH_STR, sizeof(XSYNTH_STR));

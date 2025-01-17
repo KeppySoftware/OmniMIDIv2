@@ -24,7 +24,6 @@
 #include "FluidSynth.hpp"
 #include "XSynthM.hpp"
 #include "TSFSynth.hpp"
-#include "KSynthM.hpp"
 #include "ShakraPipe.hpp"
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();

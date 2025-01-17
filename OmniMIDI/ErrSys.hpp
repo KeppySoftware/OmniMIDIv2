@@ -53,7 +53,7 @@ namespace ErrorSystem {
 		static const int SZBufSize = sizeof(char) * BufSize;
 
 	public:
-		void Log(const char* Error, const char* File, const char* Func, const unsigned long Line, ...);
+		void Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...);
 		void ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...);
 		void ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line);
 	};

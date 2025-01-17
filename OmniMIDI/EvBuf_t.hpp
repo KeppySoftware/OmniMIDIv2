@@ -147,8 +147,8 @@ namespace OmniMIDI {
 		void PeekDword(char* ev, size_t* len) {
 			auto tNextHead = (readHead + 1) % size;
 
-			ev = buf[readHead].ev;
-			*len = buf[readHead].len;
+			ev = buf[tNextHead].ev;
+			*len = buf[tNextHead].len;
 		}
 
 		bool NewEventsAvailable() {
@@ -215,6 +215,7 @@ namespace OmniMIDI {
 #endif
 
 			buf = new unsigned int[size]();
+			memset(buf, 0, size * sizeof(unsigned int));
 
 			return true;
 		}
@@ -243,39 +244,35 @@ namespace OmniMIDI {
 		}
 
 		void Write(unsigned int ev) {
-			auto tReadHead = (size_t)readHead;
-			auto tWriteHead = (writeHead + 1) % size;
+			size_t nextWriteHead = (writeHead.load(std::memory_order_acquire) + 1) % size;
 
+			if (nextWriteHead != readHead.load(std::memory_order_relaxed)) {
 #ifdef _STATSDEV
-			evSent++;
-#endif
+				evSent++;
+#endif				
+				buf[nextWriteHead] = ev;
+				writeHead = nextWriteHead;
 
-			if (tWriteHead == tReadHead) {
-#ifdef _STATSDEV
-				evSkipped++;
-#endif
 				return;
 			}
 
-			buf[tWriteHead] = ev;
-			writeHead = tWriteHead;
+#ifdef _STATSDEV
+			// Buffer full
+			evSkipped++;
+#endif
 		}
 
 		unsigned int Read() {
-			auto tReadHead = (size_t)readHead;
-			auto tWriteHead = (size_t)writeHead;
-
-			if (tReadHead == tWriteHead)
+			if (readHead.load(std::memory_order_relaxed) == writeHead.load(std::memory_order_relaxed))
 				return 0;
 
-			auto tNextHead = (tReadHead + 1) % size;
-
-			readHead = tNextHead;
-			return buf[tNextHead];
+			size_t nextReadHead = (readHead.load(std::memory_order_acquire) + 1) % size;
+			readHead = nextReadHead;
+			return buf[nextReadHead];
 		}
 
 		unsigned int Peek() {
-			auto tNextHead = (readHead + 1) % size;
+			auto tNextHead = (readHead.load(std::memory_order_acquire) + 1) % size;
 
 			return buf[tNextHead];
 		}

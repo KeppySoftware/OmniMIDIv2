@@ -967,13 +967,10 @@
   <ItemGroup>
     <ClInclude Include="BASSSynth.hpp" />
     <ClInclude Include="Common.hpp" />
-    <ClInclude Include="KSynthM.hpp" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SHSettings.hpp" />
-    <ClInclude Include="SoundOut.h" />
     <ClInclude Include="SynthHost.hpp" />
     <ClInclude Include="ShakraPipe.hpp" />
-    <ClInclude Include="XAudio2Output.hpp" />
     <ClInclude Include="StreamPlayer.hpp" />
     <ClInclude Include="ErrSys.hpp" />
     <ClInclude Include="EvBuf_t.hpp" />
@@ -990,14 +987,11 @@
     <ClCompile Include="bassasio.cpp" />
     <ClCompile Include="bassmidi.cpp" />
     <ClCompile Include="BASSSynth.cpp" />
-    <ClCompile Include="ksynth.cpp" />
-    <ClCompile Include="KSynthM.cpp" />
     <ClCompile Include="minisdl_audio.c" />
     <ClCompile Include="SynthHost.cpp" />
     <ClCompile Include="SynthMain.cpp" />
     <ClCompile Include="UnixEntry.cpp" />
     <ClCompile Include="ShakraPipe.cpp" />
-    <ClCompile Include="XAudio2Output.cpp" />
     <ClCompile Include="bass_vst.cpp" />
     <ClCompile Include="basswasapi.cpp" />
     <ClCompile Include="StreamPlayer.cpp" />

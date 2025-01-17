@@ -147,14 +147,16 @@ void OmniMIDI::TinySFSynth::LoadSoundFonts() {
 	if ((SoundFontsVector = SFSystem.LoadList()) != nullptr) {
 		std::vector<SoundFont>& dSFv = *SoundFontsVector;
 
-		for (int i = 0; i < SoundFontsVector->size(); i++) {
-			g_TinySoundFont = tsf_load_filename(dSFv[i].path.c_str());
-			if (g_TinySoundFont) {
-				tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
-				LOG("tsf_set_max_voices set to %d", Settings->VoiceLimit);
-				break;
+		if (dSFv.size() > 0) {
+			for (int i = 0; i < SoundFontsVector->size(); i++) {
+				g_TinySoundFont = tsf_load_filename(dSFv[i].path.c_str());
+				if (g_TinySoundFont) {
+					tsf_channel_set_bank_preset(g_TinySoundFont, 9, 128, 0);
+					LOG("tsf_set_max_voices set to %d", Settings->VoiceLimit);
+					break;
+				}
 			}
-		}
+		}	
 	}
 
 	if (!g_TinySoundFont) {

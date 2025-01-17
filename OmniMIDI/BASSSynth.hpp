@@ -23,10 +23,6 @@
 #include <thread>
 #include <vector>
 
-#ifdef _WIN32
-#include "XAudio2Output.hpp"
-#endif
-
 #define BASSSYNTH_STR "BASSSynth"
 
 namespace OmniMIDI {
@@ -71,36 +67,31 @@ namespace OmniMIDI {
 		BASSSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
 
 		void RewriteSynthConfig() override {
-			CloseConfig();
-			if (InitConfig(true, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
-				nlohmann::json DefConfig = {
-					{
-						ConfGetVal(AsyncMode),
-						ConfGetVal(ASIODevice),
-						ConfGetVal(ASIOLCh),
-						ConfGetVal(ASIORCh),
-						ConfGetVal(StreamDirectFeed),
-						ConfGetVal(FloatRendering),
-						ConfGetVal(MonoRendering),
-						ConfGetVal(XAChunksDivision),
-						ConfGetVal(ASIOChunksDivision),
-						ConfGetVal(OneThreadMode),
-						ConfGetVal(ExperimentalMultiThreaded),
-						ConfGetVal(FollowOverlaps),
-						ConfGetVal(AudioEngine),
-						ConfGetVal(SampleRate),
-						ConfGetVal(EvBufSize),
-						ConfGetVal(LoudMax),
-						ConfGetVal(RenderTimeLimit),
-						ConfGetVal(VoiceLimit),
-						ConfGetVal(XASamplesPerFrame),
-						ConfGetVal(WASAPIBuf)
-					}
-				};
+			nlohmann::json DefConfig = {
+				ConfGetVal(AsyncMode),
+				ConfGetVal(ASIODevice),
+				ConfGetVal(ASIOLCh),
+				ConfGetVal(ASIORCh),
+				ConfGetVal(StreamDirectFeed),
+				ConfGetVal(FloatRendering),
+				ConfGetVal(MonoRendering),
+				ConfGetVal(XAChunksDivision),
+				ConfGetVal(ASIOChunksDivision),
+				ConfGetVal(OneThreadMode),
+				ConfGetVal(ExperimentalMultiThreaded),
+				ConfGetVal(FollowOverlaps),
+				ConfGetVal(AudioEngine),
+				ConfGetVal(SampleRate),
+				ConfGetVal(EvBufSize),
+				ConfGetVal(LoudMax),
+				ConfGetVal(RenderTimeLimit),
+				ConfGetVal(VoiceLimit),
+				ConfGetVal(XASamplesPerFrame),
+				ConfGetVal(WASAPIBuf)
+			};
 
-				if (AppendToConfig(DefConfig))
-					WriteConfig();
-			}
+			if (AppendToConfig(DefConfig))
+				WriteConfig();
 
 			CloseConfig();
 			InitConfig(false, BASSSYNTH_STR, sizeof(BASSSYNTH_STR));
@@ -244,9 +235,6 @@ namespace OmniMIDI {
 		};
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-#ifdef _WIN32
-		SoundOut** WinAudioEngine = new SoundOut*[ExperimentalAudioMultiplier] { 0 };
-#endif
 		unsigned char ASIOBuf[2048] = { 0 };
 		unsigned int AudioStreams[ExperimentalAudioMultiplier] = { 0 };
 		std::jthread _BASThread;

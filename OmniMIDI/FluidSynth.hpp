@@ -51,33 +51,28 @@ namespace OmniMIDI {
 		FluidSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) { }
 
 		void RewriteSynthConfig() {
-			CloseConfig();
-			if (InitConfig(true, FLUIDSYNTH_STR)) {
-				nlohmann::json DefConfig = {
-					{
-						ConfGetVal(SampleRate),
-						ConfGetVal(EvBufSize),
-						ConfGetVal(VoiceLimit),
-						ConfGetVal(PeriodSize),
-						ConfGetVal(Periods),
-						ConfGetVal(ThreadsCount),
-						ConfGetVal(MinimumNoteLength),
-						ConfGetVal(OverflowVolume),
-						ConfGetVal(OverflowPercussion),
-						ConfGetVal(OverflowReleased),
-						ConfGetVal(OverflowImportant),
-						ConfGetVal(Driver),
-						ConfGetVal(SampleFormat),
-						ConfGetVal(ExperimentalMultiThreaded)
-					}
-				};
+			nlohmann::json DefConfig = {
+					ConfGetVal(SampleRate),
+					ConfGetVal(EvBufSize),
+					ConfGetVal(VoiceLimit),
+					ConfGetVal(PeriodSize),
+					ConfGetVal(Periods),
+					ConfGetVal(ThreadsCount),
+					ConfGetVal(MinimumNoteLength),
+					ConfGetVal(OverflowVolume),
+					ConfGetVal(OverflowPercussion),
+					ConfGetVal(OverflowReleased),
+					ConfGetVal(OverflowImportant),
+					ConfGetVal(Driver),
+					ConfGetVal(SampleFormat),
+					ConfGetVal(ExperimentalMultiThreaded)
+			};
 
-				if (AppendToConfig(DefConfig))
-					WriteConfig();
-			}
+			if (AppendToConfig(DefConfig))
+				WriteConfig();
 
 			CloseConfig();
-			InitConfig(false, FLUIDSYNTH_STR);
+			InitConfig(false, FLUIDSYNTH_STR, sizeof(FLUIDSYNTH_STR));
 		}
 
 		// Here you can load your own JSON, it will be tied to ChangeSetting()

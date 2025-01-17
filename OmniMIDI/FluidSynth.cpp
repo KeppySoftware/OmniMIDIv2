@@ -196,11 +196,13 @@ void OmniMIDI::FluidSynth::LoadSoundFonts() {
 	if ((SoundFontsVector = SFSystem.LoadList()) != nullptr) {
 		std::vector<SoundFont>& dSFv = *SoundFontsVector;
 
-		for (int i = 0; i < dSFv.size(); i++) {
-			for (int a = 0; a < AudioStreamSize; a++) {
-				SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], dSFv[i].path.c_str(), 1));
+		if (dSFv.size() > 0) {
+			for (int i = 0; i < dSFv.size(); i++) {
+				for (int a = 0; a < AudioStreamSize; a++) {
+					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], dSFv[i].path.c_str(), 1));
+				}
 			}
-		}
+		}	
 	}
 }
 

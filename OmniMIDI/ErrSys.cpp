@@ -12,7 +12,7 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 #if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
 	va_start(vl, Line);
-
+	
 	char* cBuf = new char[SZBufSize];
 	char* tBuf = new char[SZBufSize];
 	
@@ -65,7 +65,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 			Func, File, Line, tBuf);
 
 		sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
-		std::async([&cBuf]() { std::cout << cBuf << std::endl; });
+		std::cout << cBuf << std::endl;
 		delete[] cBuf;
 
 		MsgBox(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
