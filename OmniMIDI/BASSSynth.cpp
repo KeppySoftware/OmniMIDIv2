@@ -161,7 +161,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			unsigned char len = ((tev - 0xC0) & 0xE0) ? 3 : 2;
 
 			if (Settings->ExperimentalMultiThreaded) {
-				for (int i = 0; i < KeyboardDiv; i++) {
+				for (int i = 0; i < KeyboardChunk; i++) {
 					targetStream = AudioStreams[chan + i];
 					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
 				}
@@ -181,7 +181,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 		}
 		else {
-			for (int i = 0; i < KeyboardDiv; i++) {
+			for (int i = 0; i < KeyboardChunk; i++) {
 				targetStream = AudioStreams[chan + i];
 				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 			}
@@ -450,6 +450,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	if (Settings->ExperimentalMultiThreaded) {
 		LOG("Experimental multi BASS stream mode enabled.");
 		AudioStreamSize = ExperimentalAudioMultiplier;
+		Settings->AsyncMode = true;
 	}
 	else AudioStreamSize = 1;
 
@@ -700,6 +701,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 #endif
 
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
+		swprintf(OMPath, L"%s\\OmniMIDI\\SupportLibraries\\bassflac", OMPath);
+
+		BFlaLib = BASS_PluginLoad(OMPath, BASS_UNICODE);
+
+		if (!BFlaLib) LOG("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLib);
+		else LOG("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLib);
+	}
+
 	for (int i = 0; i < AudioStreamSize; i++) {
 		if (AudioStreams[i] != 0) {
 			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_SRC, 0);
@@ -865,6 +875,9 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	default:
 		break;
 	}
+
+	if (BFlaLib)
+		BASS_PluginFree(BFlaLib);
 
 	BASS_Free();
 

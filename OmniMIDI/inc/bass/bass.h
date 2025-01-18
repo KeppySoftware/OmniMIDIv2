@@ -1008,7 +1008,7 @@ extern BOOL(WINAPI* BASS_Set3DPosition)(const BASS_3DVECTOR* pos, const BASS_3DV
 extern BOOL(WINAPI* BASS_Get3DPosition)(BASS_3DVECTOR* pos, BASS_3DVECTOR* vel, BASS_3DVECTOR* front, BASS_3DVECTOR* top);
 extern void (WINAPI* BASS_Apply3D)(void);
 
-extern HPLUGIN(WINAPI* BASS_PluginLoad)(const char* file, DWORD flags);
+extern HPLUGIN(WINAPI* BASS_PluginLoad)(const void* file, DWORD flags);
 extern BOOL(WINAPI* BASS_PluginFree)(HPLUGIN handle);
 extern BOOL(WINAPI* BASS_PluginEnable)(HPLUGIN handle, BOOL enable);
 extern const BASS_PLUGININFO* (WINAPI* BASS_PluginGetInfo)(HPLUGIN handle);

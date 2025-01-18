@@ -263,7 +263,7 @@ namespace OmniMIDI {
 		}
 
 		unsigned int Read() {
-			if (readHead.load(std::memory_order_relaxed) == writeHead.load(std::memory_order_relaxed))
+			if (readHead.load(std::memory_order_acquire) == writeHead.load(std::memory_order_relaxed))
 				return 0;
 
 			size_t nextReadHead = (readHead.load(std::memory_order_acquire) + 1) % size;
@@ -273,17 +273,16 @@ namespace OmniMIDI {
 
 		unsigned int Peek() {
 			auto tNextHead = (readHead.load(std::memory_order_acquire) + 1) % size;
-
 			return buf[tNextHead];
 		}
 
 
 		bool NewEventsAvailable() {
-			return ((size_t)readHead != (size_t)writeHead);
+			return (readHead.load(std::memory_order_acquire) != writeHead.load(std::memory_order_acquire));
 		}
 
-		size_t GetReadHeadPos() { return (size_t)readHead; }
-		size_t GetWriteHeadPos() { return (size_t)writeHead; }
+		size_t GetReadHeadPos() { return readHead.load(std::memory_order_relaxed); }
+		size_t GetWriteHeadPos() { return writeHead.load(std::memory_order_relaxed); }
 	};
 }
 

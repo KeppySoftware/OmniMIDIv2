@@ -152,8 +152,9 @@ namespace OmniMIDI {
 		Lib* BWasLib = nullptr;
 		Lib* BVstLib = nullptr;
 		Lib* BAsiLib = nullptr;
+		HPLUGIN BFlaLib = 0;
 
-		LibImport LibImports[67] = {
+		LibImport LibImports[68] = {
 			// BASS
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
@@ -176,10 +177,12 @@ namespace OmniMIDI {
 			ImpFunc(BASS_GetDeviceInfo),
 			ImpFunc(BASS_GetInfo),
 			ImpFunc(BASS_Init),
-			ImpFunc(BASS_PluginFree),
 			ImpFunc(BASS_SetConfig),
 			ImpFunc(BASS_Stop),
 			ImpFunc(BASS_StreamFree),
+
+			ImpFunc(BASS_PluginLoad),
+			ImpFunc(BASS_PluginFree),
 
 			// BASSMIDI
 			ImpFunc(BASS_MIDI_FontFree),

@@ -49,7 +49,7 @@ BOOL(WINAPI* BASS_Set3DPosition)(const BASS_3DVECTOR* pos, const BASS_3DVECTOR* 
 BOOL(WINAPI* BASS_Get3DPosition)(BASS_3DVECTOR* pos, BASS_3DVECTOR* vel, BASS_3DVECTOR* front, BASS_3DVECTOR* top) = 0;
 void (WINAPI* BASS_Apply3D)(void) = 0;
 
-HPLUGIN(WINAPI* BASS_PluginLoad)(const char* file, DWORD flags) = 0;
+HPLUGIN(WINAPI* BASS_PluginLoad)(const void* file, DWORD flags) = 0;
 BOOL(WINAPI* BASS_PluginFree)(HPLUGIN handle) = 0;
 BOOL(WINAPI* BASS_PluginEnable)(HPLUGIN handle, BOOL enable) = 0;
 const BASS_PLUGININFO* (WINAPI* BASS_PluginGetInfo)(HPLUGIN handle) = 0;
