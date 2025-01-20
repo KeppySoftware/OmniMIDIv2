@@ -12,7 +12,7 @@ target("OmniMIDI")
 
 	set_languages("clatest", "cxxlatest")
 	add_cxxflags("-fexperimental-library")
-	add_ldflags("-MUNICODE", "-j")
+	add_ldflags("-j")
 
 	add_includedirs("inc")
 	add_files("*.cpp")

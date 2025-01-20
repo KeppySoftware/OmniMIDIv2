@@ -22,6 +22,8 @@ void OmniMIDI::SoundFontSystem::SoundFontThread() {
 				LOG("SoundFonts loaded.");
 			}
 		}
+
+		MiscFuncs.uSleep(-1000000);
 	}
 }
 

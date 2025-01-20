@@ -314,7 +314,7 @@ void OmniMIDI::BASSSynth::EventsThread() {
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			MiscFuncs.uSleep(0);
+			MiscFuncs.uSleep(-1);
 	}
 }
 

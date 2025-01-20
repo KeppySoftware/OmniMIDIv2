@@ -806,6 +806,7 @@ namespace OmniMIDI {
 	private:
 		ErrorSystem::Logger* ErrLog = nullptr;
 		OMShared::SysPath Utils;
+		OMShared::Funcs MiscFuncs;
 		wchar_t* ListPath = nullptr;
 		std::filesystem::file_time_type ListLastEdit;
 		std::vector<SoundFont> SoundFonts;
