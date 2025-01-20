@@ -17,8 +17,7 @@
 #include <Windows.h>
 #endif
 
-#include <xsynth.h>
-#include <thread>
+#include "inc\xsynth.h"
 #include <atomic>
 #include <algorithm>
 #include <iostream>
@@ -30,7 +29,6 @@
 #include <future>
 #include "EvBuf_t.hpp"
 #include "SynthMain.hpp"
-#include "SoundFontSystem.hpp"
 
 #define XSYNTH_STR "XSynth"
 

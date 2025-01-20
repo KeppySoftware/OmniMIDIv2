@@ -18,11 +18,12 @@
 #define MIDI_IO_COOKED	0x00000002L			// Stream mode, used by some old MIDI apps (Such as GZDoom)
 
 #include <Windows.h>
-#include <ShlObj_core.h>
-#include <cmmddk.h>
+#include "inc\cmmddk.h"
 #include <mmeapi.h>
 #include <assert.h>
 #include "ErrSys.hpp"
+
+
 
 namespace WinDriver {
 	typedef void(CALLBACK* midiOutProc)(HMIDIOUT hmOut, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR Param1, DWORD_PTR Param2);

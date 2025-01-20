@@ -13,13 +13,12 @@
 
 #include "ErrSys.hpp"
 #include "EvBuf_t.hpp"
-#include "SoundFontSystem.hpp"
 #include "SynthMain.hpp"
-#include <bass\bass.h>
-#include <bass\bass_vst.h>
-#include <bass\bassasio.h>
-#include <bass\bassmidi.h>
-#include <bass\basswasapi.h>
+#include "inc\bass\bass.h"
+#include "inc\bass\bass_vst.h"
+#include "inc\bass\bassasio.h"
+#include "inc\bass\bassmidi.h"
+#include "inc\bass\basswasapi.h"
 #include <thread>
 #include <vector>
 
@@ -48,12 +47,15 @@ namespace OmniMIDI {
 		bool FloatRendering = true;
 		bool MonoRendering = false;
 		bool OneThreadMode = false;
-		bool ExperimentalMultiThreaded = false;
 		bool StreamDirectFeed = false;
 
-		// XAudio2
-		unsigned int XASamplesPerFrame = 128;
-		unsigned int XAChunksDivision = false;
+		// EXP
+		const unsigned char ChannelDiv = 16;
+		unsigned char ExpMTKeyboardDiv = 8;
+		unsigned char KeyboardChunk = 128 / ExpMTKeyboardDiv;
+
+		bool ExperimentalMultiThreaded = false;
+		size_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 
 		// WASAPI
 		float WASAPIBuf = 32.0f;
@@ -75,7 +77,6 @@ namespace OmniMIDI {
 				ConfGetVal(StreamDirectFeed),
 				ConfGetVal(FloatRendering),
 				ConfGetVal(MonoRendering),
-				ConfGetVal(XAChunksDivision),
 				ConfGetVal(ASIOChunksDivision),
 				ConfGetVal(OneThreadMode),
 				ConfGetVal(ExperimentalMultiThreaded),
@@ -86,7 +87,6 @@ namespace OmniMIDI {
 				ConfGetVal(LoudMax),
 				ConfGetVal(RenderTimeLimit),
 				ConfGetVal(VoiceLimit),
-				ConfGetVal(XASamplesPerFrame),
 				ConfGetVal(WASAPIBuf)
 			};
 
@@ -104,6 +104,7 @@ namespace OmniMIDI {
 				SynthSetVal(bool, LoudMax);
 				SynthSetVal(bool, OneThreadMode);
 				SynthSetVal(bool, ExperimentalMultiThreaded);
+				SynthSetVal(char, ExpMTKeyboardDiv);
 				SynthSetVal(bool, StreamDirectFeed);
 				SynthSetVal(bool, FloatRendering);
 				SynthSetVal(bool, MonoRendering);
@@ -116,16 +117,8 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, SampleRate);
 				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, RenderTimeLimit);
-				SynthSetVal(unsigned int, XASamplesPerFrame);
 				SynthSetVal(unsigned int, VoiceLimit);
-				SynthSetVal(unsigned int, XAChunksDivision);
 				SynthSetVal(unsigned int, ASIOChunksDivision);
-
-				if (!XASamplesPerFrame || XASamplesPerFrame < 16 || XASamplesPerFrame > 1024)
-					XASamplesPerFrame = 128;
-
-				if (XAChunksDivision > XASamplesPerFrame || !XAChunksDivision)
-					XAChunksDivision = 4;
 
 				if (SampleRate == 0 || SampleRate > 384000)
 					SampleRate = 48000;
@@ -135,6 +128,12 @@ namespace OmniMIDI {
 
 				if (AudioEngine < Internal || AudioEngine > BASSENGINE_COUNT)
 					AudioEngine = WASAPI;
+
+				if (ExpMTKeyboardDiv > 128)
+					ExpMTKeyboardDiv = 128;
+
+				KeyboardChunk = 128 / ExpMTKeyboardDiv;
+				ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 
 				return;
 			}
@@ -239,14 +238,14 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		unsigned char ASIOBuf[2048] = { 0 };
-		unsigned int AudioStreams[ExperimentalAudioMultiplier] = { 0 };
+		unsigned int* AudioStreams = nullptr;
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
 		BASSSettings* Settings = nullptr;
 
-		size_t AudioStreamSize = ExperimentalAudioMultiplier;
+		size_t AudioStreamSize = 1;
 
 		// BASS system
 		bool LoadFuncs();
@@ -267,20 +266,20 @@ namespace OmniMIDI {
 
 	public:
 		BASSSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
-		void LoadSoundFonts();
-		bool LoadSynthModule();
-		bool UnloadSynthModule();
-		bool StartSynthModule();
-		bool StopSynthModule();
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size);
-		unsigned int GetSampleRate() { return Settings->SampleRate; }
-		bool IsSynthInitialized() { return (AudioStreams[0] != 0); }
-		int SynthID() { return 0x1411BA55; }
+		void LoadSoundFonts() override;
+		bool LoadSynthModule() override;
+		bool UnloadSynthModule() override;
+		bool StartSynthModule() override;
+		bool StopSynthModule() override;
+		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override;
+		unsigned int GetSampleRate() override { return Settings->SampleRate; }
+		bool IsSynthInitialized() override { return (AudioStreams != nullptr); }
+		int SynthID() override { return 0x1411BA55; }
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size);
-		unsigned int UPlayLongEvent(char* ev, unsigned int size);
+		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
+		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
 
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param);
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override;
 	};
 }
 

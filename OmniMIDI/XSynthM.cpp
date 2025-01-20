@@ -82,13 +82,13 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 	LoadSoundFonts();
 	SFSystem.RegisterCallback(this);
 
-	if (Settings->IsDebugMode()) {
-		_XSyThread = std::jthread(&XSynth::XSynthThread, this);
-		if (!_XSyThread.joinable()) {
-			NERROR("_XSyThread failed. (ID: %x)", true, _XSyThread.get_id());
-			return false;
-		}
+	_XSyThread = std::jthread(&XSynth::XSynthThread, this);
+	if (!_XSyThread.joinable()) {
+		NERROR("_XSyThread failed. (ID: %x)", true, _XSyThread.get_id());
+		return false;
+	}
 
+	if (Settings->IsDebugMode()) {
 		_LogThread = std::jthread(&SynthModule::LogFunc, this);
 		if (!_LogThread.joinable()) {
 			NERROR("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
@@ -109,11 +109,11 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 		XSynth_Realtime_Drop();
 	}
 
-	if (_LogThread.joinable())
-		_LogThread.join();
-
 	if (_XSyThread.joinable())
 		_XSyThread.join();
+
+	if (_LogThread.joinable())
+		_LogThread.join();
 
 	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
 		Settings->CloseConsole();
@@ -169,14 +169,14 @@ void OmniMIDI::XSynth::UPlayShortEvent(unsigned int ev) {
 }
 
 void OmniMIDI::XSynth::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
-	if (!XLib->IsOnline() && XSynth_Realtime_IsActive())
+	if (!XLib->IsOnline() && !XSynth_Realtime_IsActive())
 		return;
 
 	UPlayShortEvent(status, param1, param2);
 }
 
 void OmniMIDI::XSynth::UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
-	uint16_t evt = MIDI_EVENT_NOTEON;
+	uint16_t evt = XMIDI_EVENT_NOTEON;
 	uint16_t ev = 0;
 
 	switch (status & 0xF0) {
@@ -184,25 +184,25 @@ void OmniMIDI::XSynth::UPlayShortEvent(unsigned char status, unsigned char param
 		ev = param2 << 8 | param1;
 		break;
 	case NoteOff:
-		evt = MIDI_EVENT_NOTEOFF;
+		evt = XMIDI_EVENT_NOTEOFF;
 		ev = param1;
 		break;
 	case PatchChange:
-		evt = MIDI_EVENT_PROGRAMCHANGE;
+		evt = XMIDI_EVENT_PROGRAMCHANGE;
 		ev = param1;
 		break;
 	case CC:
-		evt = MIDI_EVENT_CONTROL;
+		evt = XMIDI_EVENT_CONTROL;
 		ev = param2 << 8 | param1;
 		break;
 	case PitchBend:
-		evt = MIDI_EVENT_PITCH;
+		evt = XMIDI_EVENT_PITCH;
 		ev = param2 << 7 | param1;
 		break;
 	default:
 		switch (status) {
 		case SystemReset:
-			evt = MIDI_EVENT_RESETCONTROL;
+			evt = XMIDI_EVENT_RESETCONTROL;
 			break;
 		default:
 			break;

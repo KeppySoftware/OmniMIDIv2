@@ -17,11 +17,7 @@
 #include <strsafe.h>
 #include <cassert>
 
-#ifdef WINXPMODE
 #include <ShlObj.h>
-#else
-#include <ShlObj_core.h>
-#endif
 
 #define loadLib				LoadLibraryA
 #define loadLibW			LoadLibraryW

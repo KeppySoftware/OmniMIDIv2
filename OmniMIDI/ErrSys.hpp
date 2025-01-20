@@ -16,6 +16,10 @@
 #include <string>
 #include <string_view>
 
+#ifndef _MSC_VER
+#define __func__ __FUNCTION__
+#endif
+
 #ifdef _WIN32
 #include <tchar.h>
 #include <Windows.h>
@@ -33,14 +37,14 @@
 #define S2(x)						#x
 #define S1(x)						S2(x)
 
-#define NERROR(text, fatal, ...)	ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#define NERRORV(text, fatal, ...)	ErrLog->ThrowError(S1(text), fatal, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define NERROR(text, fatal, ...)	ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define NERRORV(text, fatal, ...)	ErrLog->ThrowError(S1(text), fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #define FNERROR(text)				ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
 
-#define LOGI(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define LOGI(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #if defined(_DEBUG) || defined(WIN7VERBOSE)
-#define LOG(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, __VA_ARGS__)
-#define LOGV(text, ...)				ErrLog->Log(S1(text), __FILE__, __func__, __LINE__, __VA_ARGS__)
+#define LOG(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define LOGV(text, ...)				ErrLog->Log(S1(text), __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #else
 #define LOG(...)
 #define LOGV(...)

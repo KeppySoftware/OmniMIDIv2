@@ -9,25 +9,27 @@
 #include "SynthMain.hpp"
 
 void OmniMIDI::SoundFontSystem::SoundFontThread() {
-	LOG("T!");
-	while (SynthModule != nullptr) {
+	while (StayAwake) {
 		if (ListPath) {
 			auto ftime = std::filesystem::last_write_time(ListPath);
 
 			if (ListLastEdit != ftime) {
 				ListLastEdit = ftime;
-				SynthModule->LoadSoundFonts();
+
+				if (SynthModule != nullptr)
+					SynthModule->LoadSoundFonts();
+
 				LOG("SoundFonts loaded.");
 			}
 		}
 	}
-	LOG("A!");
 }
 
 bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
-	SynthModule = ptr;
+	if (ptr != nullptr) {
+		SynthModule = ptr;
+		StayAwake = true;
 
-	if (SynthModule != nullptr) {
 		_SFThread = std::jthread(&SoundFontSystem::SoundFontThread, this);
 		if (!_SFThread.joinable()) {
 			NERROR("_XSyThread failed. (ID: %x)", true, _SFThread.get_id());
@@ -35,14 +37,15 @@ bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
 		}
 
 		LOG("SoundFont autoloader running.");
-	}
-	else {
-		if (_SFThread.joinable())
-			_SFThread.join();
-
-		LOG("SoundFont autoloader disposed of.");
+		return true;
 	}
 
+	StayAwake = false;
+	if (_SFThread.joinable())
+		_SFThread.join();
+
+	SynthModule = nullptr;
+	LOG("Disposed of SoundFont autoloader.");
 	return true;
 }
 
@@ -153,14 +156,14 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 }
 
 bool OmniMIDI::SoundFontSystem::ClearList() {
+	if (SoundFonts.size() > 0)
+		SoundFonts.clear();
+
 	if (ListPath)
 	{
 		delete[] ListPath;
 		ListPath = nullptr;
 	}
-
-	if (SoundFonts.size() > 0)
-		SoundFonts.clear();
 
 	return true;
 }

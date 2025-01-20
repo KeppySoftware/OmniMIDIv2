@@ -12,7 +12,7 @@
 
 */
 
-#include <bass\bass.h>
+#include "inc\bass\bass.h"
 
 BOOL(WINAPI* BASS_SetConfig)(DWORD option, DWORD value) = 0;
 DWORD(WINAPI* BASS_GetConfig)(DWORD option) = 0;

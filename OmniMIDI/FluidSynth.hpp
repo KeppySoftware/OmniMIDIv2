@@ -14,7 +14,7 @@
 #include <Windows.h>
 #endif
 
-#include <fluidsynth.h>
+#include "inc\fluidsynth.h"
 #include <thread>
 #include <atomic>
 #include <algorithm>
@@ -27,7 +27,6 @@
 #include <future>
 #include "EvBuf_t.hpp"
 #include "SynthMain.hpp"
-#include "SoundFontSystem.hpp"
 
 #define FLUIDSYNTH_STR	"FluidSynth"
 
@@ -136,8 +135,6 @@ namespace OmniMIDI {
 			ImpFunc(delete_fluid_audio_driver)
 		};
 		size_t fLibImpLen = sizeof(fLibImp) / sizeof(fLibImp[0]);
-
-		std::jthread _EvtThread;
 
 		SoundFontSystem SFSystem;
 		FluidSettings* Settings = nullptr;

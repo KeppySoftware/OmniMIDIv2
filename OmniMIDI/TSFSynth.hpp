@@ -18,8 +18,8 @@
 #include <Windows.h>
 #endif
 
-#include <tsf/minisdl_audio.h>
-#include <tsf.h>
+#include "inc\tsf\minisdl_audio.h"
+#include "inc\tsf.h"
 #include <thread>
 #include <atomic>
 #include <algorithm>
@@ -32,7 +32,6 @@
 #include <future>
 #include "EvBuf_t.hpp"
 #include "SynthMain.hpp"
-#include "SoundFontSystem.hpp"
 
 #define TINYSF_STR "TinySFSynth"
 
@@ -84,8 +83,6 @@ namespace OmniMIDI {
 	class TinySFSynth : public SynthModule {
 	private:
 		OMShared::Funcs MiscFuncs;
-
-		std::jthread _EvtThread;
 
 		SDL_AudioSpec OutputAudioSpec = { 0 };
 

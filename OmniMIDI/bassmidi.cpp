@@ -12,7 +12,7 @@
 
 */
 
-#include <bass\bassmidi.h>
+#include "inc\bass\bassmidi.h"
 
 DWORD(WINAPI* BASS_MIDI_GetVersion)(void) = 0;
 

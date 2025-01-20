@@ -46,8 +46,7 @@
 #include "Utils.hpp"
 #include "EvBuf_t.hpp"
 #include "KDMAPI.hpp"
-#include "SoundFontSystem.hpp"
-#include "nlohmann\json.hpp"
+#include "inc\nlohmann\json.hpp"
 #include <thread>
 #include <fstream>
 #include <future>
@@ -367,7 +366,7 @@ namespace OmniMIDI {
 						assert(swp != -1);
 
 						if (swp != -1) {
-							Library = loadLibW(DLLPath);
+							Library = loadLib(CName);
 							lastErr = getError();
 
 							if (!Library)
@@ -673,12 +672,7 @@ namespace OmniMIDI {
 		OMShared::Funcs MiscFuncs;
 		ErrorSystem::Logger* ErrLog = nullptr;
 
-		const static char ChannelDiv = 16;
-		const static char KeyboardDiv = 8;
-		const static char KeyboardChunk = 128 / KeyboardDiv;
-		const static size_t ExperimentalAudioMultiplier = ChannelDiv * KeyboardDiv;
-
-		std::jthread _AudThread[ExperimentalAudioMultiplier];
+		std::jthread* _AudThread = nullptr;
 		std::jthread _EvtThread;
 		std::jthread _LogThread;
 
@@ -817,6 +811,7 @@ namespace OmniMIDI {
 		std::vector<SoundFont> SoundFonts;
 		OmniMIDI::SynthModule* SynthModule = nullptr;
 		std::jthread _SFThread;
+		bool StayAwake = false;
 		void SoundFontThread();
 
 	public:

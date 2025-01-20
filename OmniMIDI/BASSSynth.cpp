@@ -18,7 +18,10 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 	unsigned char param2 = GetSecondParam(tev);
 
 	HSTREAM targetStream = AudioStreams[0];
-	int noteOnTgt = chan + (param1 % KeyboardChunk);
+
+	size_t tgtChan = chan * Settings->ExpMTKeyboardDiv;
+	size_t tgtChnk = param1 % Settings->ExpMTKeyboardDiv;
+	size_t noteOnTgt = tgtChan + tgtChnk;
 
 	switch (command) {
 	case NoteOn:
@@ -79,8 +82,8 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			}
 
 			if (Settings->ExperimentalMultiThreaded) {
-				for (int i = 0; i < ChannelDiv; i++) {
-					for (int j = 0; j < KeyboardDiv; j++) {
+				for (int i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
+					for (int j = 0; j < Settings->KeyboardChunk; j++) {
 						targetStream = AudioStreams[i + j];
 						BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
 					}
@@ -161,8 +164,8 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			unsigned char len = ((tev - 0xC0) & 0xE0) ? 3 : 2;
 
 			if (Settings->ExperimentalMultiThreaded) {
-				for (int i = 0; i < KeyboardChunk; i++) {
-					targetStream = AudioStreams[chan + i];
+				for (int i = 0; i < Settings->KeyboardChunk; i++) {
+					targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
 					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
 				}
 
@@ -181,8 +184,8 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 		}
 		else {
-			for (int i = 0; i < KeyboardChunk; i++) {
-				targetStream = AudioStreams[chan + i];
+			for (int i = 0; i < Settings->KeyboardChunk; i++) {
+				targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
 				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 			}
 
@@ -327,7 +330,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 
 	while (IsSynthInitialized()) {
 		for (size_t i = 0; i < AudioStreamSize; i++) {
-			if (AudioStreams[i] != 0) {
+			if (AudioStreams != nullptr && AudioStreams[i] != 0) {
 				BASS_ChannelGetAttribute(AudioStreams[i], BASS_ATTRIB_CPU, &buf);
 				BASS_ChannelGetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_VOICES_ACTIVE, &tv);
 
@@ -405,7 +408,7 @@ bool OmniMIDI::BASSSynth::UnloadSynthModule() {
 
 bool OmniMIDI::BASSSynth::StartSynthModule() {
 	// If the audio stream is not 0, then stream is allocated already
-	if (AudioStreams[0])
+	if (AudioStreams != nullptr)
 		return true;
 
 	// SF path
@@ -448,11 +451,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 
 	if (Settings->ExperimentalMultiThreaded) {
-		LOG("Experimental multi BASS stream mode enabled.");
-		AudioStreamSize = ExperimentalAudioMultiplier;
+		AudioStreamSize = Settings->ExperimentalAudioMultiplier;
 		Settings->AsyncMode = true;
+
+		LOG("Experimental multi BASS stream mode enabled. (CHA %d, CHK %d >> TOT %d)", Settings->ChannelDiv, Settings->ExpMTKeyboardDiv, Settings->ExperimentalAudioMultiplier);
 	}
 	else AudioStreamSize = 1;
+
+	AudioStreams = new unsigned int[AudioStreamSize] { 0 };
+	_AudThread = new std::jthread[AudioStreamSize];
 
 	switch (Settings->AudioEngine) {
 	case Internal:
@@ -741,7 +748,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			return false;
 		}
 
-		_LogThread = std::jthread(&SynthModule::LogFunc, this);
+		_LogThread = std::jthread(&BASSSynth::LogFunc, this);
 		if (!_LogThread.joinable()) {
 			NERROR("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			return false;
@@ -749,13 +756,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		Settings->OpenConsole();
 	}
-	
-	PlayShortEvent(SystemReset, 0x00, 0x00);
-	PlayShortEvent(PitchBend, 0x00, 0x40);
 
 	if (Settings->ExperimentalMultiThreaded) {
 		LOG("Experimental mode is enabled. Preloading samples to avoid crashes...");
-
 		for (int i = 0; i < 128; i++) {
 			for (int j = 127; j < 128; j++) {
 				if (i < 0) i = 0;
@@ -770,6 +773,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		ShortEvents->ResetHeads();
 		LOG("Samples are ready.");
 	}
+
+	PlayShortEvent(SystemReset, 0x00, 0x00);
+	PlayShortEvent(PitchBend, 0x00, 0x40);
 
 	LOG("BASSMIDI ready.");
 	return true;
@@ -834,24 +840,48 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 }
 
 bool OmniMIDI::BASSSynth::StopSynthModule() {
+	SFSystem.ClearList();
 	SFSystem.RegisterCallback();
 
-	if (AudioStreams[0]) {
+	if (AudioStreams != nullptr) {
 		for (int i = 0; i < AudioStreamSize; i++) {
 			if (AudioStreams[i] != 0) {
+#ifdef _DEBUG
+				LOG("Freeing BASS stream %x...", AudioStreams[i]);
+#endif
 				BASS_StreamFree(AudioStreams[i]);
-				AudioStreams[i] = 0;
 			}		
 		}
 
-		SFSystem.ClearList();
+		delete[] AudioStreams;
+		AudioStreams = nullptr;
+		LOG("Streams wiped.");
 	}
 
-	if (_LogThread.joinable())
-		_LogThread.join();
+	if (_AudThread != nullptr) {
+		for (int i = 0; i < AudioStreamSize; i++) {
+			if (_AudThread[i].joinable()) {
+#ifdef _DEBUG
+				LOG("Freeing _AudThread[%d]...", i);
+#endif
+				_AudThread[i].join();
+			}
+		}
 
-	if (_BASThread.joinable())
+		delete[] _AudThread;
+		_AudThread = nullptr;
+		LOG("_AudThreads wiped.");
+	}
+
+	if (_LogThread.joinable()) {
+		_LogThread.join();
+		LOG("_LogThread freed.");
+	}
+
+	if (_BASThread.joinable()) {
 		_BASThread.join();
+		LOG("_BASThread freed.");
+	}
 
 	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
 		Settings->CloseConsole();
@@ -863,12 +893,15 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 
 		// why do I have to do it myself
 		BASS_WASAPI_SetNotify(nullptr, nullptr);
+
+		LOG("BASSWASAPI freed.");
 		break;
 
 	case ASIO:
 		BASS_ASIO_Stop();
 		BASS_ASIO_Free();
 		MiscFuncs.uSleep(-5000000);
+		LOG("BASSASIO freed.");
 		break;
 
 	case Internal:
@@ -876,16 +909,13 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		break;
 	}
 
-	if (BFlaLib)
+	if (BFlaLib) {
 		BASS_PluginFree(BFlaLib);
+		LOG("BASSFLAC freed.");
+	}
 
 	BASS_Free();
-
-	for (int i = 0; i < AudioStreamSize; i++) {
-		if (_AudThread[i].joinable()) {
-			_AudThread[i].join();
-		}
-	}
+	LOG("BASS freed.");
 
 	return true;
 }

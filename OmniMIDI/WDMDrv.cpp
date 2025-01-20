@@ -53,7 +53,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		CapsA.wNotes = 65535;
 		CapsA.wVoices = 65535;
 		CapsA.vDriverVersion = MAKEWORD(6, 2);
-		memcpy((LPMIDIOUTCAPSA)CapsPointer, &CapsA, min(CapsSize, sizeof(CapsA)));
+		memcpy((LPMIDIOUTCAPSA)CapsPointer, &CapsA, fmin(CapsSize, sizeof(CapsA)));
 		LOG("MIDIOUTCAPSA given to app.");
 		break;
 
@@ -67,7 +67,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		CapsW.wNotes = 65535;
 		CapsW.wVoices = 65535;
 		CapsW.vDriverVersion = MAKEWORD(6, 2);
-		memcpy((LPMIDIOUTCAPSW)CapsPointer, &CapsW, min(CapsSize, sizeof(CapsW)));
+		memcpy((LPMIDIOUTCAPSW)CapsPointer, &CapsW, fmin(CapsSize, sizeof(CapsW)));
 		LOG("MIDIOUTCAPSW given to app.");
 		break;
 
@@ -81,7 +81,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		Caps2A.wNotes = 65535;
 		Caps2A.wVoices = 65535;
 		Caps2A.vDriverVersion = MAKEWORD(6, 2);
-		memcpy((LPMIDIOUTCAPS2A)CapsPointer, &Caps2A, min(CapsSize, sizeof(Caps2A)));
+		memcpy((LPMIDIOUTCAPS2A)CapsPointer, &Caps2A, fmin(CapsSize, sizeof(Caps2A)));
 		LOG("MIDIOUTCAPS2A given to app.");
 		break;
 
@@ -95,7 +95,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		Caps2W.wNotes = 65535;
 		Caps2W.wVoices = 65535;
 		Caps2W.vDriverVersion = MAKEWORD(6, 2);
-		memcpy((LPMIDIOUTCAPS2W)CapsPointer, &Caps2W, min(CapsSize, sizeof(Caps2W)));
+		memcpy((LPMIDIOUTCAPS2W)CapsPointer, &Caps2W, fmin(CapsSize, sizeof(Caps2W)));
 		LOG("MIDIOUTCAPS2W given to app.");
 		break;
 

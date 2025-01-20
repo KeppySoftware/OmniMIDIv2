@@ -9,6 +9,8 @@
 
 #ifdef _WIN32
 
+#ifdef _MSC_VER
+
 #ifdef _WIN64
 #define EXPORT	__declspec(dllexport) 
 #define APICALL
@@ -16,6 +18,14 @@
 #define EXPORT
 #define APICALL __stdcall
 #endif
+
+#else
+
+#define EXPORT
+#define APICALL
+
+#endif
+
 
 #include "WDMEntry.hpp"
 
@@ -541,7 +551,7 @@ extern "C" {
 		return Host->GetActiveVoices();
 	}
 
-#ifdef WIN32
+#if defined(_WIN32) && defined(_MSC_VER)
 	// Internal benchmark tools for myself!!!
 
 	EXPORT void WINAPI BufferThroughput(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow) {
