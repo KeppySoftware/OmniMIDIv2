@@ -29,6 +29,7 @@
 #else
 #include <dlfcn.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #define loadLib(l)			dlopen(l, 0)
 #define loadLibW(l)			loadLib((const char*)l)
