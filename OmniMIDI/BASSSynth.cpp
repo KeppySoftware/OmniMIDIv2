@@ -222,6 +222,7 @@ unsigned long CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void* buffer, unsig
 	return AudioProcesser(buffer, length, me);
 }
 
+#if defined(_WIN32)
 unsigned long CALLBACK OmniMIDI::BASSSynth::WasapiProc(void* buffer, unsigned long length, void* user) {
 	return AudioProcesser(buffer, length, (BASSSynth*)user);
 }
@@ -237,6 +238,7 @@ unsigned long CALLBACK OmniMIDI::BASSSynth::AsioProc(int, unsigned long, void* b
 unsigned long CALLBACK OmniMIDI::BASSSynth::AsioEvProc(int, unsigned long, void* buffer, unsigned long length, void* user) {
 	return AudioEvProcesser(buffer, length, (BASSSynth*)user);
 }
+#endif
 
 bool OmniMIDI::BASSSynth::LoadFuncs() {
 	// Load required libs
@@ -365,8 +367,10 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	if (!BWasLib)
 		BWasLib = new Lib(L"BASSWASAPI", ErrLog, &ptr, LibImportsSize);
 
+#if defined(_WIN32)
 	if (!BAsiLib)
 		BAsiLib = new Lib(L"BASSASIO", ErrLog, &ptr, LibImportsSize);
+#endif
 
 #if defined(_WIN32) && (defined(_M_AMD64) || defined(_M_IX86))
 	if (!BVstLib)
@@ -510,6 +514,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		LOG("bassDev %d >> devFreq %d", -1, Settings->SampleRate);
 		break;
 
+#if defined(_WIN32)
 	case WASAPI:
 	{
 		if (Settings->ExperimentalMultiThreaded) {
@@ -679,6 +684,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		return false;
 	}
+#endif
 
 	case Invalid:
 	default:
@@ -887,6 +893,7 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		Settings->CloseConsole();
 
 	switch (Settings->AudioEngine) {
+#if defined(_WIN32)
 	case WASAPI:
 		BASS_WASAPI_Stop(true);
 		BASS_WASAPI_Free();
@@ -903,6 +910,7 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		MiscFuncs.uSleep(-5000000);
 		LOG("BASSASIO freed.");
 		break;
+#endif
 
 	case Internal:
 	default:
