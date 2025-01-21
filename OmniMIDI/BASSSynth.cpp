@@ -1,7 +1,7 @@
 #include "BASSSynth.hpp"
 
 bool OmniMIDI::BASSSynth::ProcessEvBuf() {
-	if (!AudioStreams[0])
+	if (AudioStreams == nullptr || !AudioStreams[0])
 		return false;
 
 	auto tev = ShortEvents->Read();
@@ -168,8 +168,6 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 					targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
 					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
 				}
-
-				return true;
 			}
 			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
 
@@ -188,12 +186,11 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 				targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
 				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
 			}
-
-			return true;
 		}
 	}
-	
-	return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev) ? true : false;
+	else BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+
+	return true;
 }
 
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {

@@ -712,7 +712,7 @@ namespace OmniMIDI {
 #endif
 
 		virtual void LogFunc() {
-			const char Templ[] = "RT > %06.2f%% - POLY: %d (Ev RH%08zu WH%08zu)";
+			const char Templ[] = "R%06.2f%% >> P%d (Ev%08zu/%08zu)";
 			char* Buf = new char[96];
 
 			while (!IsSynthInitialized())
