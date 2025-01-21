@@ -7,7 +7,7 @@
 
 */
 
-#include "inc\xsynth.h"
+#include "inc/xsynth.h"
 
 uint32_t(_cdecl* XSynth_GetVersion)(void) = 0;
 struct XSynth_StreamParams(*XSynth_GenDefault_StreamParams)(void) = 0;

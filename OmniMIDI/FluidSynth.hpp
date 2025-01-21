@@ -14,7 +14,7 @@
 #include <Windows.h>
 #endif
 
-#include "inc\fluidsynth.h"
+#include "inc/fluidsynth.h"
 #include <thread>
 #include <atomic>
 #include <algorithm>

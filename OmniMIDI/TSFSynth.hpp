@@ -18,8 +18,8 @@
 #include <Windows.h>
 #endif
 
-#include "inc\tsf\minisdl_audio.h"
-#include "inc\tsf.h"
+#include "inc/tsf/minisdl_audio.h"
+#include "inc/tsf.h"
 #include <thread>
 #include <atomic>
 #include <algorithm>

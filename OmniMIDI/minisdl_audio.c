@@ -31,7 +31,7 @@
 #define _CRT_NONSTDC_NO_WARNINGS
 #endif
 
-#include "inc\tsf\minisdl_audio.h"
+#include "inc/tsf/minisdl_audio.h"
 #ifndef _SDL_H
 #define _SDL_H
 

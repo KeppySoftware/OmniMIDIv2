@@ -24,7 +24,7 @@
 */
 
 #include <Windows.h>
-#include "inc\fluidsynth.h"
+#include "inc/fluidsynth.h"
 
 fluid_audio_driver_t* (WINAPI* new_fluid_audio_driver)(fluid_settings_t* settings, fluid_synth_t* synth) = 0;
 fluid_audio_driver_t* (WINAPI* new_fluid_audio_driver2)(fluid_settings_t* settings, fluid_audio_func_t func, void* data) = 0;

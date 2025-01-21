@@ -18,7 +18,7 @@
 #define MIDI_IO_COOKED	0x00000002L			// Stream mode, used by some old MIDI apps (Such as GZDoom)
 
 #include <Windows.h>
-#include "inc\cmmddk.h"
+#include "inc/cmmddk.h"
 #include <mmeapi.h>
 #include <assert.h>
 #include "ErrSys.hpp"

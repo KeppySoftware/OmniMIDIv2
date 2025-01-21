@@ -14,11 +14,11 @@
 #include "ErrSys.hpp"
 #include "EvBuf_t.hpp"
 #include "SynthMain.hpp"
-#include "inc\bass\bass.h"
-#include "inc\bass\bass_vst.h"
-#include "inc\bass\bassasio.h"
-#include "inc\bass\bassmidi.h"
-#include "inc\bass\basswasapi.h"
+#include "inc/bass/bass.h"
+#include "inc/bass/bass_vst.h"
+#include "inc/bass/bassasio.h"
+#include "inc/bass/bassmidi.h"
+#include "inc/bass/basswasapi.h"
 #include <thread>
 #include <vector>
 
