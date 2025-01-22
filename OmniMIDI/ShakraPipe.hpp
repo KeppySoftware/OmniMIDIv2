@@ -66,22 +66,23 @@ namespace OmniMIDI {
 		LEvBuf* LongEvents = nullptr;
 		HANDLE PShortEvents = nullptr, PLongEvents = nullptr;
 
-	public:
-		ShakraPipe(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
-		bool LoadSynthModule() { return true; }
-		bool UnloadSynthModule() { return true; }
-		bool StartSynthModule();
-		bool StopSynthModule();
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
-		unsigned int GetSampleRate() { return 48000; }
-		bool IsSynthInitialized() { return !PShortEvents && !PLongEvents; }
-		int SynthID() { return 0x12345678; }
 		std::wstring GenerateID();
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size);
-		unsigned int UPlayLongEvent(char* ev, unsigned int size);
+	public:
+		ShakraPipe(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
+		bool LoadSynthModule() override { return true; }
+		bool UnloadSynthModule() override { return true; }
+		bool StartSynthModule() override;
+		bool StopSynthModule() override;
+		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
+		unsigned int GetSampleRate() override { return 48000; }
+		bool IsSynthInitialized() override { return !PShortEvents && !PLongEvents; }
+		int SynthID() override { return 0x12345678; }
 
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return NotSupported; }
+		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
+		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
+
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return NotSupported; }
 	};
 }
 

@@ -263,10 +263,13 @@ namespace OmniMIDI {
 
 		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, BASSSynth*);
 		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, BASSSynth*);
+
+#if defined(_WIN32)
 		static unsigned long CALLBACK WasapiProc(void*, unsigned long, void*);
 		static unsigned long CALLBACK WasapiEvProc(void*, unsigned long, void*);
 		static unsigned long CALLBACK AsioProc(int, unsigned long, void*, unsigned long, void*);
 		static unsigned long CALLBACK AsioEvProc(int, unsigned long, void*, unsigned long, void*);
+#endif
 
 	public:
 		BASSSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}

@@ -110,27 +110,28 @@ namespace OmniMIDI {
 		SoundFontSystem SFSystem;
 		bool Running = false;
 
-	public:
-		XSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
-		bool LoadSynthModule();
-		bool UnloadSynthModule();
-		bool StartSynthModule();
-		bool StopSynthModule();
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
-		unsigned int GetSampleRate() { return 48000; }
-		bool IsSynthInitialized();
-		int SynthID() { return 0x9AF3812A; }
-		void LoadSoundFonts();
 		void XSynthThread();
 
+	public:
+		XSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
+		bool LoadSynthModule() override;
+		bool UnloadSynthModule() override;
+		bool StartSynthModule() override;
+		bool StopSynthModule() override;
+		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
+		unsigned int GetSampleRate() override { return 48000; }
+		bool IsSynthInitialized() override;
+		int SynthID() override { return 0x9AF3812A; }
+		void LoadSoundFonts() override;
+
 		// Event handling system
-		void PlayShortEvent(unsigned int ev);
-		void UPlayShortEvent(unsigned int ev);
-		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
-		void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
+		void PlayShortEvent(unsigned int ev) override;
+		void UPlayShortEvent(unsigned int ev) override;
+		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) override;
+		void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) override;
 
 		// Not supported in XSynth
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }
 	};
 }
 

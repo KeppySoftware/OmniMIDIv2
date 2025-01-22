@@ -16,7 +16,7 @@
 #define LEvBuf				LEvBuf_t
 
 #define DEF_EVBUF_SIZE		4096
-#define MAX_EVBUF_SIZE		UINT_MAX / 2
+#define MAX_EVBUF_SIZE		UINT_MAX / 4
 #define MAX_LEVBUF_SIZE		64
 
 #if !defined(_WIN64) && !defined(__x86_64__)
@@ -63,20 +63,19 @@ namespace OmniMIDI {
 		// Short messages
 		virtual void Write(unsigned int ev) { }
 		virtual void Write(unsigned char status, unsigned char param1, unsigned char param2) { }
-		virtual void PushSlow(unsigned char status, unsigned char param1, unsigned char param2) { }
-		virtual unsigned int ReadDword() { return shortDummy; }
-		virtual unsigned int PeekDword() { return shortDummy; }
 
 		virtual unsigned int Read() { return 0; }
 		virtual unsigned int Peek() { return 0; }
+		virtual unsigned int* ReadPtr() { return &shortDummy; }
+		virtual unsigned int* PeekPtr() { return &shortDummy; }
 
 		// Long messages
 		virtual void Write(char* ev, size_t len) { }
-		virtual void ReadDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
-		virtual void PeekDword(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
-		virtual void ResetHeads() { writeHead = 0; readHead = 0; }
+		virtual void ReadLong(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void PeekLong(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
 
 		virtual bool NewEventsAvailable() { return false; }
+		virtual void ResetHeads() { writeHead = 0; readHead = 0; }
 		virtual size_t GetReadHeadPos() { return 0; }
 		virtual size_t GetWriteHeadPos() { return 0; }
 	};
@@ -96,7 +95,7 @@ namespace OmniMIDI {
 			Free();
 		}
 
-		bool Allocate(size_t ReqSize) {
+		bool Allocate(size_t ReqSize) override {
 			if (buf)
 				return false;
 
@@ -111,7 +110,7 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		bool Free() {
+		bool Free() override {
 			if (!buf)
 				return false;
 
@@ -125,7 +124,7 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Write(char* ev, size_t len) {
+		void Write(char* ev, size_t len) override {
 			auto tWriteHead = (writeHead + 1) % size;
 
 			if (tWriteHead != readHead)
@@ -135,7 +134,7 @@ namespace OmniMIDI {
 			buf[writeHead].len = len;
 		}
 
-		void ReadDword(char* ev, size_t* len) {
+		void ReadLong(char* ev, size_t* len) override {
 			if (readHead != writeHead)
 			{
 				if (++readHead >= size) readHead = 0;
@@ -144,19 +143,19 @@ namespace OmniMIDI {
 			}
 		}
 
-		void PeekDword(char* ev, size_t* len) {
+		void PeekLong(char* ev, size_t* len) override {
 			auto tNextHead = (readHead + 1) % size;
 
 			ev = buf[tNextHead].ev;
 			*len = buf[tNextHead].len;
 		}
 
-		bool NewEventsAvailable() {
+		bool NewEventsAvailable() override {
 			return (readHead != writeHead);
 		}
 
-		size_t GetReadHeadPos() { return readHead; }
-		size_t GetWriteHeadPos() { return writeHead; }
+		size_t GetReadHeadPos() override { return readHead; }
+		size_t GetWriteHeadPos() override { return writeHead; }
 	};
 
 	class EvBuf_t : public BaseEvBuf_t {
@@ -200,7 +199,7 @@ namespace OmniMIDI {
 			dontMiss = val;
 		}
 
-		bool Allocate(size_t ReqSize) {		
+		bool Allocate(size_t ReqSize) override {
 			if (buf)
 				return false;
 			
@@ -220,7 +219,7 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		bool Free() {
+		bool Free() override {
 			if (!buf)
 				return false;
 
@@ -239,19 +238,20 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Write(unsigned char status, unsigned char param1, unsigned char param2) {
+		void Write(unsigned char status, unsigned char param1, unsigned char param2) override {
 			Write(status | (param1 << 8) | (param2 << 16));
 		}
 
-		void Write(unsigned int ev) {
+		void Write(unsigned int ev) override {
 			size_t nextWriteHead = (writeHead.load(std::memory_order_acquire) + 1) % size;
 
 			if (nextWriteHead != readHead.load(std::memory_order_relaxed)) {
 #ifdef _STATSDEV
 				evSent++;
 #endif				
-				buf[nextWriteHead] = ev;
+
 				writeHead = nextWriteHead;
+				buf[writeHead] = ev;
 
 				return;
 			}
@@ -262,27 +262,43 @@ namespace OmniMIDI {
 #endif
 		}
 
-		unsigned int Read() {
+		unsigned int* ReadPtr() override {
 			if (readHead.load(std::memory_order_acquire) == writeHead.load(std::memory_order_relaxed))
+				return nullptr;
+
+			readHead = (readHead.load(std::memory_order_acquire) + 1) % size;
+			return &buf[readHead];
+		}
+
+		unsigned int Read() override {
+			auto val = ReadPtr();
+
+			if (val == nullptr)
 				return 0;
 
-			size_t nextReadHead = (readHead.load(std::memory_order_acquire) + 1) % size;
-			readHead = nextReadHead;
-			return buf[nextReadHead];
+			return *val;
 		}
 
-		unsigned int Peek() {
+		unsigned int* PeekPtr() override {
 			auto tNextHead = (readHead.load(std::memory_order_acquire) + 1) % size;
-			return buf[tNextHead];
+			return &buf[tNextHead];
 		}
 
+		unsigned int Peek() override {
+			auto val = PeekPtr();
 
-		bool NewEventsAvailable() {
+			if (val == nullptr)
+				return 0;
+
+			return *val;
+		}
+
+		bool NewEventsAvailable() override {
 			return (readHead.load(std::memory_order_acquire) != writeHead.load(std::memory_order_acquire));
 		}
 
-		size_t GetReadHeadPos() { return readHead.load(std::memory_order_relaxed); }
-		size_t GetWriteHeadPos() { return writeHead.load(std::memory_order_relaxed); }
+		size_t GetReadHeadPos() override { return readHead.load(std::memory_order_relaxed); }
+		size_t GetWriteHeadPos() override { return writeHead.load(std::memory_order_relaxed); }
 	};
 }
 

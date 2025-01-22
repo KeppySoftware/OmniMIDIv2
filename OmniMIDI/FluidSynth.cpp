@@ -89,10 +89,10 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 			fluid_synth_sysex(targetStream, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
-				sysev = ShortEvents->PeekDword();
+				sysev = ShortEvents->Peek();
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
-					sysev = ShortEvents->ReadDword();
+					sysev = ShortEvents->Read();
 					LOG("SysEx Ev: %x", sysev);
 					fluid_synth_sysex(targetStream, (const char*)&sysev, 3, 0, &len, &handled, 0);
 				}		

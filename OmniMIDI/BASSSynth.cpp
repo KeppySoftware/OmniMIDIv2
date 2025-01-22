@@ -1,21 +1,22 @@
 #include "BASSSynth.hpp"
 
 bool OmniMIDI::BASSSynth::ProcessEvBuf() {
-	if (AudioStreams == nullptr || !AudioStreams[0])
+	if (!IsSynthInitialized())
 		return false;
 
-	auto tev = ShortEvents->Read();
+	auto pEvt = ShortEvents->ReadPtr();
 
-	if (tev == 0)
+	if (pEvt == nullptr)
 		return false;
 
+	unsigned int evtDword = *pEvt;
 	unsigned int evt = MIDI_SYSTEM_DEFAULT;
 	unsigned int ev = 0;
-	unsigned char status = GetStatus(tev);
+	unsigned char status = GetStatus(evtDword);
 	unsigned char command = status & 0xF0;
 	unsigned char chan = status & 0xF;
-	unsigned char param1 = GetFirstParam(tev);
-	unsigned char param2 = GetSecondParam(tev);
+	unsigned char param1 = GetFirstParam(evtDword);
+	unsigned char param2 = GetSecondParam(evtDword);
 
 	HSTREAM targetStream = AudioStreams[0];
 
@@ -161,15 +162,15 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 
 		default:
 		{
-			unsigned char len = ((tev - 0xC0) & 0xE0) ? 3 : 2;
+			unsigned char len = ((evtDword - 0xC0) & 0xE0) ? 3 : 2;
 
 			if (Settings->ExperimentalMultiThreaded) {
 				for (int i = 0; i < Settings->KeyboardChunk; i++) {
 					targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
-					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
+					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &evtDword, len);
 				}
 			}
-			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &tev, len);
+			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &evtDword, len);
 
 			return true;
 		}
@@ -307,13 +308,20 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 }
 
 void OmniMIDI::BASSSynth::EventsThread() {
+	size_t count = 0;
+
 	// Spin while waiting for the stream to go online
 	while (AudioStreams[0] == 0)
 		MiscFuncs.uSleep(-1);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
+			count++;
+
+		if (count > 4096) {
 			MiscFuncs.uSleep(-1);
+			count = 0;
+		}
 	}
 }
 
@@ -334,11 +342,13 @@ void OmniMIDI::BASSSynth::BASSThread() {
 				BASS_ChannelGetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_VOICES_ACTIVE, &tv);
 
 				itv += (unsigned int)tv;
-				rtr += buf;
+
+				if (buf > rtr)
+					rtr = buf;
 			}
 		}
 
-		RenderingTime = rtr / AudioStreamSize;
+		RenderingTime = rtr /* / AudioStreamSize */;
 		ActiveVoices = itv;
 		itv = 0;
 		rtr = 0.0f;
@@ -442,7 +452,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		(Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) |
 		(Settings->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0);
 
-	if (Settings->AudioEngine == XAudio2)
+	if ((Settings->AudioEngine < Internal || Settings->AudioEngine > BASSENGINE_COUNT) || Settings->AudioEngine == XAudio2)
 		Settings->AudioEngine = Internal;
 
 	if (!(streamFlags & BASS_SAMPLE_FLOAT) && 
@@ -452,6 +462,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 
 	if (Settings->ExperimentalMultiThreaded) {
+		if (Settings->AudioEngine != Internal)
+			Settings->AudioEngine = Internal;
+
 		AudioStreamSize = Settings->ExperimentalAudioMultiplier;
 		Settings->AsyncMode = true;
 
@@ -514,11 +527,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #if defined(_WIN32)
 	case WASAPI:
 	{
-		if (Settings->ExperimentalMultiThreaded) {
-			NERROR("Experimental multi-threaded rendering is not supported by WASAPI.", true);
-			return false;
-		}
-
 		auto proc = Settings->OneThreadMode ? &BASSSynth::WasapiEvProc : &BASSSynth::WasapiProc;
 
 		streamFlags |= BASS_STREAM_DECODE;
@@ -550,11 +558,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	case ASIO:
 	{
-		if (Settings->ExperimentalMultiThreaded) {
-			NERROR("Experimental multi-threaded rendering is not supported by ASIO.", true);
-			return false;
-		}
-
 		auto proc = Settings->OneThreadMode ? &BASSSynth::AsioEvProc : &BASSSynth::AsioProc;
 		streamFlags |= BASS_STREAM_DECODE;
 

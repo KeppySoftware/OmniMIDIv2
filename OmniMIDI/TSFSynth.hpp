@@ -128,21 +128,21 @@ namespace OmniMIDI {
 
 	public:
 		TinySFSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
-		bool LoadSynthModule();
-		bool UnloadSynthModule();
-		bool StartSynthModule();
-		bool StopSynthModule();
-		void LoadSoundFonts();
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
-		unsigned int GetSampleRate() { return Settings->SampleRate; }
-		bool IsSynthInitialized() { return (g_TinySoundFont != nullptr); }
-		int SynthID() { return 0xA0A0A0A0; }
+		bool LoadSynthModule() override;
+		bool UnloadSynthModule() override;
+		bool StartSynthModule() override;
+		bool StopSynthModule() override;
+		void LoadSoundFonts() override;
+		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
+		unsigned int GetSampleRate() override { return Settings->SampleRate; }
+		bool IsSynthInitialized() override { return (g_TinySoundFont != nullptr); }
+		int SynthID() override { return 0xA0A0A0A0; }
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size);
-		unsigned int UPlayLongEvent(char* ev, unsigned int size);
+		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
+		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
 
 		// Not supported in XSynth
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
+		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }
 	};
 }
 
