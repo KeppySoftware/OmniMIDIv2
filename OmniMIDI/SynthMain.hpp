@@ -24,12 +24,12 @@
 #define SYNTH_INVALBUF			0x05
 
 #define fv2fn(f)				(#f)
-#define ImpFunc(f)				LibImport((void**)&f, #f)
+#define ImpFunc(f)				LibImport((void**)&(f), #f)
 
 #define ConfGetVal(f)			{ #f, f }
-#define JSONSetVal(t, f)		f = JsonData[#f].is_null() ? f : JsonData[#f].get<t>()
-#define MainSetVal(t, f)		f = mainptr[#f].is_null() ? f : mainptr[#f].get<t>()
-#define SynthSetVal(t, f)		f = synptr[#f].is_null() ? f : synptr[#f].get<t>()
+#define JSONSetVal(t, f)		f = JsonData[#f].is_null() ? (f) : JsonData[#f].get<t>()
+#define MainSetVal(t, f)		f = mainptr[#f].is_null() ? (f) : mainptr[#f].get<t>()
+#define SynthSetVal(t, f)		f = synptr[#f].is_null() ? (f) : synptr[#f].get<t>()
 
 #define SettingsManagerCase(choice, get, type, setting, var, size) \
 	case choice: \
@@ -405,12 +405,14 @@ namespace OmniMIDI {
 #endif
 			}
 
-			LOG("%s loaded.", CName);
+			LOG("%s --> 0x%08x", CName, Library);
 
-			for (int i = 0; i < FuncsCount; i++)
+			for (size_t i = 0; i < FuncsCount; i++)
 			{
 				if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
 					LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+				else
+					LOG("ERR %s!!!", Funcs[i].GetName());
 			}
 
 			Initialized = true;
@@ -418,6 +420,9 @@ namespace OmniMIDI {
 		}
 
 		bool UnloadLib() {
+			char CName[MAX_PATH] = { 0 };
+			wcstombs(CName, Name, MAX_PATH);
+
 			if (Library != nullptr) {
 				if (AppSelfHosted)
 				{
@@ -429,6 +434,7 @@ namespace OmniMIDI {
 					if (!r) {
 						throw;
 					}
+					else LOG("%s unloaded.", CName);
 				}
 
 				Library = nullptr;
@@ -673,7 +679,8 @@ namespace OmniMIDI {
 		ErrorSystem::Logger* ErrLog = nullptr;
 
 		std::jthread* _AudThread = nullptr;
-		std::jthread _EvtThread;
+		std::jthread* _EvtThread = nullptr;
+		std::jthread _SinEvtThread;
 		std::jthread _LogThread;
 
 #ifdef _WIN32

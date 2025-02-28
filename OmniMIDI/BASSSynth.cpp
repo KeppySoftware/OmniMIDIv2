@@ -297,7 +297,7 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 			if (Settings->OneThreadMode && !Settings->ExperimentalMultiThreaded)
 				ProcessEvBufChk();
 
-			BASS_ChannelUpdate(AudioStreams[id], 0);
+			BASS_ChannelUpdate(AudioStreams[id], 1);
 			MiscFuncs.uSleep(-1);
 		}
 		break;
@@ -467,10 +467,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		AudioStreamSize = Settings->ExperimentalAudioMultiplier;
 		Settings->AsyncMode = true;
+		EvtThreadsSize = Settings->ExpMTKeyboardDiv;
 
 		LOG("Experimental multi BASS stream mode enabled. (CHA %d, CHK %d >> TOT %d)", Settings->ChannelDiv, Settings->ExpMTKeyboardDiv, Settings->ExperimentalAudioMultiplier);
 	}
-	else AudioStreamSize = 1;
+	else
+	{
+		AudioStreamSize = 1;
+		EvtThreadsSize = 1;
+	}
 
 	AudioStreams = new unsigned int[AudioStreamSize] { 0 };
 	_AudThread = new std::jthread[AudioStreamSize];
@@ -737,10 +742,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	LOG("Stream settings loaded.");
 
 	if (!Settings->OneThreadMode || Settings->ExperimentalMultiThreaded) {
-		_EvtThread = std::jthread(&BASSSynth::EventsThread, this);
-		if (!_EvtThread.joinable()) {
-			NERROR("_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
-			return false;
+		_EvtThread = new std::jthread[EvtThreadsSize];
+
+		for (int i = 0; i < Settings->ExpMTKeyboardDiv; i++)
+		{
+			_EvtThread[i] = std::jthread(&BASSSynth::EventsThread, this);
+			if (!_EvtThread[i].joinable()) {
+				NERROR("_EvtThread[%d] failed. (ID: %x)", true, i, _EvtThread[i].get_id());
+				return false;
+			}
 		}
 	}
 
@@ -776,12 +786,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			}
 		}
 
-		ShortEvents->ResetHeads();
 		LOG("Samples are ready.");
 	}
 
 	PlayShortEvent(SystemReset, 0x00, 0x00);
 	PlayShortEvent(PitchBend, 0x00, 0x40);
+	ShortEvents->ResetHeads();
 
 	LOG("BASSMIDI ready.");
 	return true;
@@ -856,12 +866,22 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 				LOG("Freeing BASS stream %x...", AudioStreams[i]);
 #endif
 				BASS_StreamFree(AudioStreams[i]);
+				AudioStreams[i] = 0;
 			}		
 		}
-
-		delete[] AudioStreams;
-		AudioStreams = nullptr;
 		LOG("Streams wiped.");
+	}
+	
+	if (_EvtThread != nullptr) {
+		for (int i = 0; i < EvtThreadsSize; i++) {
+			if (_EvtThread[i].joinable()) {
+#ifdef _DEBUG
+				LOG("Freeing _EvtThread[%d]...", i);
+#endif
+				_EvtThread[i].join();
+			}
+		}
+		LOG("_EvtThreads wiped.");
 	}
 
 	if (_AudThread != nullptr) {
@@ -873,9 +893,6 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 				_AudThread[i].join();
 			}
 		}
-
-		delete[] _AudThread;
-		_AudThread = nullptr;
 		LOG("_AudThreads wiped.");
 	}
 
@@ -924,6 +941,21 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 
 	BASS_Free();
 	LOG("BASS freed.");
+
+	if (_EvtThread != nullptr) {
+		delete[] _EvtThread;
+		_EvtThread = nullptr;
+	}
+
+	if (AudioStreams != nullptr) {
+		delete[] AudioStreams;
+		AudioStreams = nullptr;
+	}
+
+	if (_AudThread != nullptr) {
+		delete[] _AudThread;
+		_AudThread = nullptr;
+	}
 
 	return true;
 }

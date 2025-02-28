@@ -23,6 +23,7 @@
 #ifdef _WIN32
 #include <tchar.h>
 #include <Windows.h>
+#include <Psapi.h>
 #endif
 
 #ifdef _WIN32

@@ -143,11 +143,13 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 	delete oSynth;
 
 	if (!restart) {
+#ifdef _WIN32 
 		if (DrvCallback->IsCallbackReady()) {
 			DrvCallback->CallbackFunction(MOM_CLOSE, 0, 0);
 			DrvCallback->ClearCallbackFunction();
 			LOG("Callback system has been freed.");
 		}
+#endif
 
 		if (_HealthThread.joinable())
 			_HealthThread.join();

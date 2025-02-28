@@ -49,7 +49,6 @@ namespace OmniMIDI {
 		size_t size = 0;
 
 	private:
-		unsigned int shortDummy = 0xFFFFFF;
 		char longDummy = 'p';
 
 	public:
@@ -66,8 +65,8 @@ namespace OmniMIDI {
 
 		virtual unsigned int Read() { return 0; }
 		virtual unsigned int Peek() { return 0; }
-		virtual unsigned int* ReadPtr() { return &shortDummy; }
-		virtual unsigned int* PeekPtr() { return &shortDummy; }
+		virtual unsigned int* ReadPtr() { return nullptr; }
+		virtual unsigned int* PeekPtr() { return nullptr; }
 
 		// Long messages
 		virtual void Write(char* ev, size_t len) { }
@@ -250,7 +249,7 @@ namespace OmniMIDI {
 				evSent++;
 #endif				
 
-				writeHead = nextWriteHead;
+				writeHead.store(nextWriteHead, std::memory_order_release);
 				buf[writeHead] = ev;
 
 				return;
@@ -263,10 +262,10 @@ namespace OmniMIDI {
 		}
 
 		unsigned int* ReadPtr() override {
-			if (readHead.load(std::memory_order_acquire) == writeHead.load(std::memory_order_relaxed))
+			if (readHead.load(std::memory_order_acquire) == writeHead.load(std::memory_order_relaxed)) 
 				return nullptr;
-
-			readHead = (readHead.load(std::memory_order_acquire) + 1) % size;
+				
+			readHead.store((readHead.load(std::memory_order_acquire) + 1) % size, std::memory_order_release);
 			return &buf[readHead];
 		}
 

@@ -80,7 +80,7 @@ bool OmniMIDI::TinySFSynth::LoadSynthModule() {
 		return false;
 	}
 
-	_EvtThread = std::jthread(&TinySFSynth::EventsThread, this);
+	_SinEvtThread = std::jthread(&TinySFSynth::EventsThread, this);
 
 	return true;
 }

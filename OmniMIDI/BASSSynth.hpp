@@ -250,6 +250,7 @@ namespace OmniMIDI {
 		BASSSettings* Settings = nullptr;
 
 		size_t AudioStreamSize = 1;
+		size_t EvtThreadsSize = 1;
 
 		// BASS system
 		bool LoadFuncs();
@@ -280,7 +281,7 @@ namespace OmniMIDI {
 		bool StopSynthModule() override;
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override;
 		unsigned int GetSampleRate() override { return Settings->SampleRate; }
-		bool IsSynthInitialized() override { return (AudioStreams != nullptr); }
+		bool IsSynthInitialized() override { return (AudioStreams != nullptr && AudioStreams[0] != 0); }
 		int SynthID() override { return 0x1411BA55; }
 
 		unsigned int PlayLongEvent(char* ev, unsigned int size) override;

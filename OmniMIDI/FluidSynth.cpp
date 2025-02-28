@@ -146,7 +146,7 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 			return false;
 		}
 
-		_EvtThread = std::jthread(&FluidSynth::EventsThread, this);
+		_SinEvtThread = std::jthread(&FluidSynth::EventsThread, this);
 	}
 
 	return true;
