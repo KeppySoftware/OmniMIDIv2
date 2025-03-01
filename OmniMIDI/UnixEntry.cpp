@@ -1,3 +1,14 @@
+/*
+
+    OmniMIDI v15+ (Rewrite) for UNIX-like OSes
+
+    This file contains the required code to run the driver under UNIX-like OSes, like Linux (and possibly macOS)
+    This file is useful only if you want to compile the driver under those OSes, it's not needed for Windows.
+
+    Credits: https://github.com/Lurmog
+
+*/
+
 #ifndef _WIN32
 
 #include "SynthMain.hpp"

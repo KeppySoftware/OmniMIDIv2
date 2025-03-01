@@ -1,5 +1,5 @@
 add_rules("mode.release")
-set_defaultarchs("linux|x86", "linux|x64", "linux|arm64", "windows|x86", "windows|x64", "windows|arm64")
+set_allowedarchs("linux|x86", "linux|x86_64", "linux|arm64", "windows|x86", "windows|x86_64", "windows|arm64")
 
 target("OmniMIDI")
 	set_kind("shared")
