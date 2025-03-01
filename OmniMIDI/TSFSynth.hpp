@@ -16,7 +16,6 @@
 
 #ifdef _WIN32
 #include <Windows.h>
-#endif
 
 #include "inc/tsf/minisdl_audio.h"
 #include "inc/tsf.h"
@@ -145,5 +144,7 @@ namespace OmniMIDI {
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }
 	};
 }
+
+#endif
 
 #endif

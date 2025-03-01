@@ -49,9 +49,6 @@
     <Filter Include="Source Files\Synthesizer\FluidSynth">
       <UniqueIdentifier>{74999643-da04-4a39-a1ad-075c32c3d234}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Synthesizer\SDL">
-      <UniqueIdentifier>{523a16c6-a8d4-49ea-809c-7df576ddef9d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Synthesizer\External modules">
       <UniqueIdentifier>{f343fbfc-10ae-424c-8711-99a3f43a0687}</UniqueIdentifier>
     </Filter>
@@ -73,9 +70,6 @@
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
     <ClInclude Include="XSynthM.hpp">
-      <Filter>Header Files\Synthesizer\Synth modules</Filter>
-    </ClInclude>
-    <ClInclude Include="TSFSynth.hpp">
       <Filter>Header Files\Synthesizer\Synth modules</Filter>
     </ClInclude>
     <ClInclude Include="StreamPlayer.hpp">
@@ -143,14 +137,8 @@
     <ClCompile Include="XSynthM.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
     </ClCompile>
-    <ClCompile Include="TSFSynth.cpp">
-      <Filter>Source Files\Synthesizer\Synth modules</Filter>
-    </ClCompile>
     <ClCompile Include="StreamPlayer.cpp">
       <Filter>Source Files\Extensions</Filter>
-    </ClCompile>
-    <ClCompile Include="minisdl_audio.c">
-      <Filter>Source Files\Synthesizer\SDL</Filter>
     </ClCompile>
     <ClCompile Include="SynthHost.cpp">
       <Filter>Source Files\Mandatory</Filter>

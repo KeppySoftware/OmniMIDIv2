@@ -203,8 +203,6 @@ namespace OmniMIDI {
 			BASSMIDI,
 			FluidSynth,
 			XSynth,
-			TinySoundFont,
-			ksynth,
 			ShakraPipe
 		};
 	};
@@ -525,9 +523,9 @@ namespace OmniMIDI {
 
 			SettingsPath = new wchar_t[MAX_PATH];
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, SettingsPath, sizeof(wchar_t) * MAX_PATH)) {
-				swprintf(SettingsPath, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
+				swprintf(SettingsPath, sizeof(wchar_t) * MAX_PATH, L"%s\\OmniMIDI\\settings.json\0", SettingsPath);
 
-				JSONStream->open(SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
+				JSONStream->open((char*)SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
 				if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
 					JSONStream->clear();
 					JSONStream->seekg(0, std::ios::beg);
@@ -594,7 +592,7 @@ namespace OmniMIDI {
 		bool WriteConfig() {
 			JSONStream->close();
 
-			JSONStream->open(SettingsPath, std::fstream::out | std::fstream::trunc);
+			JSONStream->open((char*)SettingsPath, std::fstream::out | std::fstream::trunc);
 			std::string dump = jsonptr.dump(4);
 			JSONStream->write(dump.c_str(), dump.length());
 			JSONStream->close();
@@ -738,7 +736,13 @@ namespace OmniMIDI {
 			}
 
 			sprintf(Buf, Templ, 0.0f, 0, (size_t)0, (size_t)0);
+
+#ifdef _WIN32
 			SetConsoleTitleA(Buf);
+#else
+			std::cout << "\033]0;" << Buf << "\007";
+#endif
+
 			delete[] Buf;
 		}
 

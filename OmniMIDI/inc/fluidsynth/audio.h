@@ -105,17 +105,17 @@ typedef int (*fluid_audio_func_t)(void* data, int len,
     int nout, float* out[]);
 
 /** @startlifecycle{Audio Driver} */
-extern fluid_audio_driver_t* (WINAPI* new_fluid_audio_driver)(fluid_settings_t* settings,
+extern fluid_audio_driver_t* (FLUIDSYNTH_IMP* new_fluid_audio_driver)(fluid_settings_t* settings,
     fluid_synth_t* synth);
 
-extern fluid_audio_driver_t* (WINAPI* new_fluid_audio_driver2)(fluid_settings_t* settings,
+extern fluid_audio_driver_t* (FLUIDSYNTH_IMP* new_fluid_audio_driver2)(fluid_settings_t* settings,
     fluid_audio_func_t func,
     void* data);
 
-extern void (WINAPI* delete_fluid_audio_driver)(fluid_audio_driver_t* driver);
+extern void (FLUIDSYNTH_IMP* delete_fluid_audio_driver)(fluid_audio_driver_t* driver);
 /** @endlifecycle */
 
-extern int (WINAPI* fluid_audio_driver_register)(const char** adrivers);
+extern int (FLUIDSYNTH_IMP* fluid_audio_driver_register)(const char** adrivers);
 /** @} */
 
 /**
@@ -136,12 +136,12 @@ extern int (WINAPI* fluid_audio_driver_register)(const char** adrivers);
  */
 
  /** @startlifecycle{File Renderer} */
-extern fluid_file_renderer_t* (WINAPI* new_fluid_file_renderer)(fluid_synth_t* synth);
-extern void (WINAPI* delete_fluid_file_renderer)(fluid_file_renderer_t* dev);
+extern fluid_file_renderer_t* (FLUIDSYNTH_IMP* new_fluid_file_renderer)(fluid_synth_t* synth);
+extern void (FLUIDSYNTH_IMP* delete_fluid_file_renderer)(fluid_file_renderer_t* dev);
 /** @endlifecycle */
 
-extern int (WINAPI* fluid_file_renderer_process_block)(fluid_file_renderer_t* dev);
-extern int (WINAPI* fluid_file_set_encoding_quality)(fluid_file_renderer_t* dev, double q);
+extern int (FLUIDSYNTH_IMP* fluid_file_renderer_process_block)(fluid_file_renderer_t* dev);
+extern int (FLUIDSYNTH_IMP* fluid_file_set_encoding_quality)(fluid_file_renderer_t* dev, double q);
 /** @} */
 
 #endif /* _FLUIDSYNTH_AUDIO_H */

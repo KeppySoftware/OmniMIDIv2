@@ -10,6 +10,8 @@
 #ifndef _ERRSYS_H
 #define _ERRSYS_H
 
+#include "Common.hpp"
+
 #include <future>
 #include <iostream>
 #include <stdexcept>
@@ -58,6 +60,7 @@ namespace ErrorSystem {
 		static const int SZBufSize = sizeof(char) * BufSize;
 
 	public:
+		void ShowError(const char* Message, const char* Title, bool IsSeriousError);
 		void Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...);
 		void ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...);
 		void ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line);

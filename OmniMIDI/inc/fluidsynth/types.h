@@ -35,6 +35,13 @@ extern "C" {
  * @{
  */
 
+typedef int (*fluid_audio_func_t)(void* data, int len,
+    int nfx, float* fx[],
+    int nout, float* out[]);
+
+typedef void (*fluid_settings_foreach_option_t)(void* data, const char* name, const char* option);
+typedef void (*fluid_settings_foreach_t)(void* data, const char* name, int type);
+
 typedef struct _fluid_hashtable_t fluid_settings_t;             /**< Configuration settings instance */
 typedef struct _fluid_synth_t fluid_synth_t;                    /**< Synthesizer instance */
 typedef struct _fluid_voice_t fluid_voice_t;                    /**< Synthesis voice instance */

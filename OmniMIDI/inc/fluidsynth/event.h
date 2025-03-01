@@ -65,71 +65,71 @@ enum fluid_seq_event_type
 
 /* Event alloc/free */
 /** @startlifecycle{Sequencer Event} */
-extern fluid_event_t* (WINAPI* new_fluid_event)(void);
-extern void (WINAPI* delete_fluid_event)(fluid_event_t* evt);
+extern fluid_event_t* (FLUIDSYNTH_IMP* new_fluid_event)(void);
+extern void (FLUIDSYNTH_IMP* delete_fluid_event)(fluid_event_t* evt);
 /** @endlifecycle */
 
 /* Initializing events */
-extern void (WINAPI* fluid_event_set_source)(fluid_event_t* evt, fluid_seq_id_t src);
-extern void (WINAPI* fluid_event_set_dest)(fluid_event_t* evt, fluid_seq_id_t dest);
+extern void (FLUIDSYNTH_IMP* fluid_event_set_source)(fluid_event_t* evt, fluid_seq_id_t src);
+extern void (FLUIDSYNTH_IMP* fluid_event_set_dest)(fluid_event_t* evt, fluid_seq_id_t dest);
 
 /* Timer events */
-extern void (WINAPI* fluid_event_timer)(fluid_event_t* evt, void* data);
+extern void (FLUIDSYNTH_IMP* fluid_event_timer)(fluid_event_t* evt, void* data);
 
 /* Note events */
-extern void (WINAPI* fluid_event_note)(fluid_event_t* evt, int channel,
+extern void (FLUIDSYNTH_IMP* fluid_event_note)(fluid_event_t* evt, int channel,
     short key, short vel,
     unsigned int duration);
 
-extern void (WINAPI* fluid_event_noteon)(fluid_event_t* evt, int channel, short key, short vel);
-extern void (WINAPI* fluid_event_noteoff)(fluid_event_t* evt, int channel, short key);
-extern void (WINAPI* fluid_event_all_sounds_off)(fluid_event_t* evt, int channel);
-extern void (WINAPI* fluid_event_all_notes_off)(fluid_event_t* evt, int channel);
+extern void (FLUIDSYNTH_IMP* fluid_event_noteon)(fluid_event_t* evt, int channel, short key, short vel);
+extern void (FLUIDSYNTH_IMP* fluid_event_noteoff)(fluid_event_t* evt, int channel, short key);
+extern void (FLUIDSYNTH_IMP* fluid_event_all_sounds_off)(fluid_event_t* evt, int channel);
+extern void (FLUIDSYNTH_IMP* fluid_event_all_notes_off)(fluid_event_t* evt, int channel);
 
 /* Instrument selection */
-extern void (WINAPI* fluid_event_bank_select)(fluid_event_t* evt, int channel, short bank_num);
-extern void (WINAPI* fluid_event_program_change)(fluid_event_t* evt, int channel, int preset_num);
-extern void (WINAPI* fluid_event_program_select)(fluid_event_t* evt, int channel, unsigned int sfont_id, short bank_num, short preset_num);
+extern void (FLUIDSYNTH_IMP* fluid_event_bank_select)(fluid_event_t* evt, int channel, short bank_num);
+extern void (FLUIDSYNTH_IMP* fluid_event_program_change)(fluid_event_t* evt, int channel, int preset_num);
+extern void (FLUIDSYNTH_IMP* fluid_event_program_select)(fluid_event_t* evt, int channel, unsigned int sfont_id, short bank_num, short preset_num);
 
 /* Real-time generic instrument controllers */
-extern void (WINAPI* fluid_event_control_change)(fluid_event_t* evt, int channel, short control, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_control_change)(fluid_event_t* evt, int channel, short control, int val);
 
 /* Real-time instrument controllers shortcuts */
-extern void (WINAPI* fluid_event_pitch_bend)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_pitch_wheelsens)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_modulation)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_sustain)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_pan)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_volume)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_reverb_send)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_chorus_send)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_pitch_bend)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_pitch_wheelsens)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_modulation)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_sustain)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_pan)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_volume)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_reverb_send)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_chorus_send)(fluid_event_t* evt, int channel, int val);
 
-extern void (WINAPI* fluid_event_key_pressure)(fluid_event_t* evt, int channel, short key, int val);
-extern void (WINAPI* fluid_event_channel_pressure)(fluid_event_t* evt, int channel, int val);
-extern void (WINAPI* fluid_event_system_reset)(fluid_event_t* evt);
+extern void (FLUIDSYNTH_IMP* fluid_event_key_pressure)(fluid_event_t* evt, int channel, short key, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_channel_pressure)(fluid_event_t* evt, int channel, int val);
+extern void (FLUIDSYNTH_IMP* fluid_event_system_reset)(fluid_event_t* evt);
 
 /* Only when unregistering clients */
-extern void (WINAPI* fluid_event_unregistering)(fluid_event_t* evt);
+extern void (FLUIDSYNTH_IMP* fluid_event_unregistering)(fluid_event_t* evt);
 
-extern void (WINAPI* fluid_event_scale)(fluid_event_t* evt, double new_scale);
-extern int (WINAPI* fluid_event_from_midi_event)(fluid_event_t*, const fluid_midi_event_t*);
+extern void (FLUIDSYNTH_IMP* fluid_event_scale)(fluid_event_t* evt, double new_scale);
+extern int (FLUIDSYNTH_IMP* fluid_event_from_midi_event)(fluid_event_t*, const fluid_midi_event_t*);
 
 /* Accessing event data */
-extern int (WINAPI* fluid_event_get_type)(fluid_event_t* evt);
-extern fluid_seq_id_t(WINAPI* fluid_event_get_source)(fluid_event_t* evt);
-extern fluid_seq_id_t(WINAPI* fluid_event_get_dest)(fluid_event_t* evt);
-extern int (WINAPI* fluid_event_get_channel)(fluid_event_t* evt);
-extern short (WINAPI* fluid_event_get_key)(fluid_event_t* evt);
-extern short (WINAPI* fluid_event_get_velocity)(fluid_event_t* evt);
-extern short (WINAPI* fluid_event_get_control)(fluid_event_t* evt);
-extern int (WINAPI* fluid_event_get_value)(fluid_event_t* evt);
-extern int (WINAPI* fluid_event_get_program)(fluid_event_t* evt);
-extern void (WINAPI** fluid_event_get_data)(fluid_event_t* evt);
-extern unsigned int (WINAPI* fluid_event_get_duration)(fluid_event_t* evt);
-extern short (WINAPI* fluid_event_get_bank)(fluid_event_t* evt);
-extern int (WINAPI* fluid_event_get_pitch)(fluid_event_t* evt);
-extern double (WINAPI* fluid_event_get_scale)(fluid_event_t* evt);
-extern unsigned int (WINAPI* fluid_event_get_sfont_id)(fluid_event_t* evt);
+extern int (FLUIDSYNTH_IMP* fluid_event_get_type)(fluid_event_t* evt);
+extern fluid_seq_id_t(FLUIDSYNTH_IMP* fluid_event_get_source)(fluid_event_t* evt);
+extern fluid_seq_id_t(FLUIDSYNTH_IMP* fluid_event_get_dest)(fluid_event_t* evt);
+extern int (FLUIDSYNTH_IMP* fluid_event_get_channel)(fluid_event_t* evt);
+extern short (FLUIDSYNTH_IMP* fluid_event_get_key)(fluid_event_t* evt);
+extern short (FLUIDSYNTH_IMP* fluid_event_get_velocity)(fluid_event_t* evt);
+extern short (FLUIDSYNTH_IMP* fluid_event_get_control)(fluid_event_t* evt);
+extern int (FLUIDSYNTH_IMP* fluid_event_get_value)(fluid_event_t* evt);
+extern int (FLUIDSYNTH_IMP* fluid_event_get_program)(fluid_event_t* evt);
+extern void (FLUIDSYNTH_IMP** fluid_event_get_data)(fluid_event_t* evt);
+extern unsigned int (FLUIDSYNTH_IMP* fluid_event_get_duration)(fluid_event_t* evt);
+extern short (FLUIDSYNTH_IMP* fluid_event_get_bank)(fluid_event_t* evt);
+extern int (FLUIDSYNTH_IMP* fluid_event_get_pitch)(fluid_event_t* evt);
+extern double (FLUIDSYNTH_IMP* fluid_event_get_scale)(fluid_event_t* evt);
+extern unsigned int (FLUIDSYNTH_IMP* fluid_event_get_sfont_id)(fluid_event_t* evt);
 /** @} */
 
 #endif /* _FLUIDSYNTH_EVENT_H */

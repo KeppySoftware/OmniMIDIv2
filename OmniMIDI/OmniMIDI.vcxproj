@@ -977,7 +977,6 @@
     <ClInclude Include="FluidSynth.hpp" />
     <ClInclude Include="KDMAPI.hpp" />
     <ClInclude Include="SynthMain.hpp" />
-    <ClInclude Include="TSFSynth.hpp" />
     <ClInclude Include="Utils.hpp" />
     <ClInclude Include="WDMDrv.hpp" />
     <ClInclude Include="XSynthM.hpp" />
@@ -987,7 +986,6 @@
     <ClCompile Include="bassasio.cpp" />
     <ClCompile Include="bassmidi.cpp" />
     <ClCompile Include="BASSSynth.cpp" />
-    <ClCompile Include="minisdl_audio.c" />
     <ClCompile Include="SynthHost.cpp" />
     <ClCompile Include="SynthMain.cpp" />
     <ClCompile Include="UnixEntry.cpp" />
@@ -998,7 +996,6 @@
     <ClCompile Include="ErrSys.cpp" />
     <ClCompile Include="FluidSynth.cpp" />
     <ClCompile Include="libfluidsynth.cpp" />
-    <ClCompile Include="TSFSynth.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="WDMDrv.cpp" />
     <ClCompile Include="WDMEntry.cpp" />

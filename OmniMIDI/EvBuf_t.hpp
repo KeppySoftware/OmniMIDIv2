@@ -25,6 +25,8 @@
 #define MAX_MIDIHDR_BUF		131072
 #endif
 
+#include "Common.hpp"
+
 #ifdef _STATSDEV
 #include <iostream>
 #include <future>
@@ -39,7 +41,7 @@ namespace OmniMIDI {
 
 	typedef struct LongEvent {
 		char ev[MAX_MIDIHDR_BUF] = { 0 };
-		int len = 0;
+		size_t len = 0;
 	} LongEv, *PLongEv, LE, *PLE;
 
 	class BaseEvBuf_t {

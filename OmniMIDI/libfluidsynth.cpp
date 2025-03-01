@@ -23,16 +23,6 @@
 
 */
 
-
-#if defined(__x86_64__) || defined(_M_X64)
-#define FLUIDSYNTH_IMP __cdecl
-#else
-#define FLUIDSYNTH_IMP __stdcall
-#endif
-
-#ifdef _WIN32
-#include <Windows.h>
-#endif
 #include "inc/fluidsynth.h"
 
 fluid_audio_driver_t* (FLUIDSYNTH_IMP* new_fluid_audio_driver)(fluid_settings_t* settings, fluid_synth_t* synth) = 0;

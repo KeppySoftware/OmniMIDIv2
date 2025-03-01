@@ -96,42 +96,42 @@ enum fluid_types_enum
 };
 
 /** @startlifecycle{Settings} */
-extern fluid_settings_t* (WINAPI* new_fluid_settings)(void);
-extern void (WINAPI* delete_fluid_settings)(fluid_settings_t* settings);
+extern fluid_settings_t* (FLUIDSYNTH_IMP* new_fluid_settings)(void);
+extern void (FLUIDSYNTH_IMP* delete_fluid_settings)(fluid_settings_t* settings);
 /** @endlifecycle */
 
-extern int (WINAPI* fluid_settings_get_type)(fluid_settings_t* settings, const char* name);
+extern int (FLUIDSYNTH_IMP* fluid_settings_get_type)(fluid_settings_t* settings, const char* name);
 
-extern int (WINAPI* fluid_settings_get_hints)(fluid_settings_t* settings, const char* name, int* val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_get_hints)(fluid_settings_t* settings, const char* name, int* val);
 
-extern int (WINAPI* fluid_settings_is_realtime)(fluid_settings_t* settings, const char* name);
+extern int (FLUIDSYNTH_IMP* fluid_settings_is_realtime)(fluid_settings_t* settings, const char* name);
 
-extern int (WINAPI* fluid_settings_setstr)(fluid_settings_t* settings, const char* name, const char* str);
+extern int (FLUIDSYNTH_IMP* fluid_settings_setstr)(fluid_settings_t* settings, const char* name, const char* str);
 
-extern int (WINAPI* fluid_settings_copystr)(fluid_settings_t* settings, const char* name, char* str, int len);
+extern int (FLUIDSYNTH_IMP* fluid_settings_copystr)(fluid_settings_t* settings, const char* name, char* str, int len);
 
-extern int (WINAPI* fluid_settings_dupstr)(fluid_settings_t* settings, const char* name, char** str);
+extern int (FLUIDSYNTH_IMP* fluid_settings_dupstr)(fluid_settings_t* settings, const char* name, char** str);
 
-extern int (WINAPI* fluid_settings_getstr_default)(fluid_settings_t* settings, const char* name, char** def);
+extern int (FLUIDSYNTH_IMP* fluid_settings_getstr_default)(fluid_settings_t* settings, const char* name, char** def);
 
-extern int (WINAPI* fluid_settings_str_equal)(fluid_settings_t* settings, const char* name, const char* value);
+extern int (FLUIDSYNTH_IMP* fluid_settings_str_equal)(fluid_settings_t* settings, const char* name, const char* value);
 
-extern int (WINAPI* fluid_settings_setnum)(fluid_settings_t* settings, const char* name, double val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_setnum)(fluid_settings_t* settings, const char* name, double val);
 
-extern int (WINAPI* fluid_settings_getnum)(fluid_settings_t* settings, const char* name, double* val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_getnum)(fluid_settings_t* settings, const char* name, double* val);
 
-extern int (WINAPI* fluid_settings_getnum_default)(fluid_settings_t* settings, const char* name, double* val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_getnum_default)(fluid_settings_t* settings, const char* name, double* val);
 
-extern int (WINAPI* fluid_settings_getnum_range)(fluid_settings_t* settings, const char* name,
+extern int (FLUIDSYNTH_IMP* fluid_settings_getnum_range)(fluid_settings_t* settings, const char* name,
     double* min, double* max);
 
-extern int (WINAPI* fluid_settings_setint)(fluid_settings_t* settings, const char* name, int val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_setint)(fluid_settings_t* settings, const char* name, int val);
 
-extern int (WINAPI* fluid_settings_getint)(fluid_settings_t* settings, const char* name, int* val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_getint)(fluid_settings_t* settings, const char* name, int* val);
 
-extern int (WINAPI* fluid_settings_getint_default)(fluid_settings_t* settings, const char* name, int* val);
+extern int (FLUIDSYNTH_IMP* fluid_settings_getint_default)(fluid_settings_t* settings, const char* name, int* val);
 
-extern int (WINAPI* fluid_settings_getint_range)(fluid_settings_t* settings, const char* name,
+extern int (FLUIDSYNTH_IMP* fluid_settings_getint_range)(fluid_settings_t* settings, const char* name,
     int* min, int* max);
 
 /**
@@ -141,13 +141,11 @@ extern int (WINAPI* fluid_settings_getint_range)(fluid_settings_t* settings, con
  * @param name Setting name
  * @param option A string option for this setting (iterates through the list)
  */
-typedef void (*fluid_settings_foreach_option_t)(void* data, const char* name, const char* option);
-
-extern void (WINAPI* fluid_settings_foreach_option)(fluid_settings_t* settings,
+extern void (FLUIDSYNTH_IMP* fluid_settings_foreach_option)(fluid_settings_t* settings,
     const char* name, void* data,
     fluid_settings_foreach_option_t func);
-extern int (WINAPI* fluid_settings_option_count)(fluid_settings_t* settings, const char* name);
-extern char* (WINAPI* fluid_settings_option_concat)(fluid_settings_t* settings,
+
+extern char* (FLUIDSYNTH_IMP* fluid_settings_option_concat)(fluid_settings_t* settings,
     const char* name,
     const char* separator);
 
@@ -158,9 +156,7 @@ extern char* (WINAPI* fluid_settings_option_concat)(fluid_settings_t* settings,
  * @param name Setting name
  * @param type Setting type (#fluid_types_enum)
  */
-typedef void (*fluid_settings_foreach_t)(void* data, const char* name, int type);
-
-extern void (WINAPI* fluid_settings_foreach)(fluid_settings_t* settings, void* data,
+extern void (FLUIDSYNTH_IMP* fluid_settings_foreach)(fluid_settings_t* settings, void* data,
     fluid_settings_foreach_t func);
 /** @} */
 

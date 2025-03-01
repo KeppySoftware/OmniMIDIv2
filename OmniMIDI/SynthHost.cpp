@@ -42,7 +42,7 @@ bool OmniMIDI::SynthHost::SpFree() {
 #endif
 
 void OmniMIDI::SynthHost::HostHealthCheck() {
-	wchar_t* confPath = SHSettings->GetConfigPath();
+	wchar_t* confPath = _SHSettings->GetConfigPath();
 
 	if (confPath) {
 		auto ftime = std::filesystem::last_write_time(confPath);
@@ -56,7 +56,7 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 			if (chktime != ftime) {			
 				if (Stop(true)) {
 					Start();
-					confPath = SHSettings->GetConfigPath();
+					confPath = _SHSettings->GetConfigPath();
 					while (!Synth->IsSynthInitialized() && Synth->SynthID() != EMPTYMODULE);
 					chktime = std::filesystem::last_write_time(confPath);
 				}
@@ -71,13 +71,13 @@ void OmniMIDI::SynthHost::RefreshSettings() {
 	LOG("Refreshing synth host settings...");
 
 	auto tSHSettings = new OmniMIDI::SHSettings(ErrLog);
-	auto oSHSettings = SHSettings;
+	auto oSHSettings = _SHSettings;
 
-	SHSettings = tSHSettings;
+	_SHSettings = tSHSettings;
 	delete oSHSettings;
 	oSHSettings = nullptr;
 
-	LOG("Settings refreshed! (renderer %d, kdmapi %d, crender %s)", SHSettings->GetRenderer(), SHSettings->IsKDMAPIEnabled(), SHSettings->GetCustomRenderer());
+	LOG("Settings refreshed! (renderer %d, kdmapi %d, crender %s)", _SHSettings->GetRenderer(), _SHSettings->IsKDMAPIEnabled(), _SHSettings->GetCustomRenderer());
 }
 
 bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
@@ -88,7 +88,9 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 
 	if (tSynth) {
 		if (tSynth->LoadSynthModule()) {
+#ifdef _WIN32 
 			tSynth->SetInstance(hwndMod);
+#endif
 
 			if (tSynth->StartSynthModule()) {
 #ifdef _WIN32 
@@ -161,10 +163,10 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	SynthModule* tSynth;
 
-	char r = SHSettings->GetRenderer();
+	char r = _SHSettings->GetRenderer();
 	switch (r) {
 	case Synthesizers::External:
-		extModule = loadLib(SHSettings->GetCustomRenderer());
+		extModule = loadLib(_SHSettings->GetCustomRenderer());
 
 		if (extModule) {
 			auto iM = reinterpret_cast<rInitModule>(getAddr(extModule, "initModule"));
@@ -175,20 +177,14 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 				if (tSynth) {
 					LOG("R%d (EXTERNAL >> %s)",
 						r,
-						SHSettings->GetCustomRenderer());
+						_SHSettings->GetCustomRenderer());
 					break;
 				}
 			}
 		}
 
 		tSynth = new OmniMIDI::SynthModule(ErrLog);
-		NERROR("The requested external module (%s) could not be loaded.", SHSettings->GetCustomRenderer());
-		break;
-
-	case Synthesizers::TinySoundFont:
-	fallback:
-		tSynth = new OmniMIDI::TinySFSynth(ErrLog);
-		LOG("R%d (TINYSF)", r);
+		NERROR("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
 		break;
 
 	case Synthesizers::FluidSynth:
@@ -267,6 +263,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 					switch (command) {
 					case 0x06: {
+#ifdef _WIN32
 						readHead += 4;
 
 						char subcommand = ev[readHead];
@@ -296,6 +293,9 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 						}
 
 						break;
+#else
+						return NotSupported;
+#endif
 					}
 
 					case 0x7F:
@@ -373,7 +373,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 												lastPos = readHead;
 
 											params[pseWriteHead].status = MasterTune;
-											for (int i = 0; i < varLen; i++) {
+											for (unsigned int i = 0; i < varLen; i++) {
 												if (i == 1)
 													params[pseWriteHead].param1 = ev[lastPos + i];
 
@@ -426,7 +426,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 										{
 											varLen = 0x0C;
 
-											for (int i = 0; i < varLen; i++) {
+											for (unsigned int i = 0; i < varLen; i++) {
 												char tmp = ev[readHead + (4 * i)];
 												if ((tmp & 0xF0) != 0x40)
 													break;

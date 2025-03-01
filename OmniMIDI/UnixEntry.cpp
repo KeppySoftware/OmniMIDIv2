@@ -12,10 +12,8 @@
 
 // Global objects
 static ErrorSystem::Logger* ErrLog = nullptr;
-static OmniMIDI::SynthModule* Synth = nullptr;
 static std::atomic<bool> running{ false };
 static OmniMIDI::SynthHost* Host = nullptr;
-
 
 // ALSA MIDI sequencer
 static snd_seq_t* seq = nullptr;
@@ -135,7 +133,7 @@ void process_midi() {
                     break;
                 }
 
-                if (!Synth) {
+                if (!Host) {
                     snd_seq_free_event(ev);
                     continue;
                 }
@@ -143,36 +141,36 @@ void process_midi() {
                 switch (ev->type) {
                 case SND_SEQ_EVENT_NOTEON:
                     if (ev->data.note.velocity > 0) {
-                        Synth->PlayShortEvent(0x90 | ev->data.note.channel,
+                        Host->PlayShortEvent(0x90 | ev->data.note.channel,
                             ev->data.note.note,
                             ev->data.note.velocity);
                     }
                     else {
                         // Note-on with velocity 0 is interpreted as note-off
-                        Synth->PlayShortEvent(0x80 | ev->data.note.channel,
+                        Host->PlayShortEvent(0x80 | ev->data.note.channel,
                             ev->data.note.note,
                             64); // Default velocity for note-off
                     }
                     break;
                 case SND_SEQ_EVENT_NOTEOFF:
-                    Synth->PlayShortEvent(0x80 | ev->data.note.channel,
+                    Host->PlayShortEvent(0x80 | ev->data.note.channel,
                         ev->data.note.note,
                         ev->data.note.velocity);
                     break;
                 case SND_SEQ_EVENT_CONTROLLER:
-                    Synth->PlayShortEvent(0xB0 | ev->data.control.channel,
+                    Host->PlayShortEvent(0xB0 | ev->data.control.channel,
                         ev->data.control.param,
                         ev->data.control.value);
                     break;
                 case SND_SEQ_EVENT_PGMCHANGE:
-                    Synth->PlayShortEvent(0xC0 | ev->data.control.channel,
+                    Host->PlayShortEvent(0xC0 | ev->data.control.channel,
                         ev->data.control.value,
                         0);
                     break;
                 case SND_SEQ_EVENT_PITCHBEND:
                 {
                     int value = ev->data.control.value + 8192;
-                    Synth->PlayShortEvent(0xE0 | ev->data.control.channel,
+                    Host->PlayShortEvent(0xE0 | ev->data.control.channel,
                         value & 0x7F,
                         (value >> 7) & 0x7F);
                 }
@@ -232,17 +230,21 @@ void cleanup() {
         seq = nullptr;
     }
 
-    if (Synth) {
-        Synth->StopSynthModule();
-        Synth->UnloadSynthModule();
-        delete Synth;
-        Synth = nullptr;
+    if (Host) {
+        Host->Stop();
+        delete Host;
+        Host = nullptr;
     }
 
     if (ErrLog) {
         delete ErrLog;
         ErrLog = nullptr;
     }
+}
+
+void _start()
+{
+    return;
 }
 
 // Library initialization
@@ -252,15 +254,15 @@ void __attribute__((constructor)) _init(void) {
     signal(SIGTERM, handle_signal);
 
     std::cout << "Initializing OmniMIDI for Linux..." << std::endl;
-
     try {
         // Initialize logger
         ErrLog = new ErrorSystem::Logger();
+        std::cout << "ERR LOG INIT" << std::endl;
 
-        Host = new OmniMIDI::SynthHost(nullptr, nullptr, ErrLog);
+        Host = new OmniMIDI::SynthHost(ErrLog);
+        std::cout << "SYNHOST INIT" << std::endl;
 
-
-        if (Synth->LoadSynthModule() && Synth->StartSynthModule()) {
+        if (Host->Start()) {
             std::cout << "Synthesizer initialized successfully." << std::endl;
 
             // Initialize ALSA MIDI
@@ -278,7 +280,7 @@ void __attribute__((constructor)) _init(void) {
             }
         }
         else {
-            std::cerr << "Failed to initialize synthesizer." << std::endl;
+            std::cerr << "Failed to start synthesizer." << std::endl;
             cleanup();
         }
     }
@@ -294,6 +296,7 @@ void __attribute__((destructor)) _fini(void) {
     cleanup();
     std::cout << "OmniMIDI shutdown complete." << std::endl;
 }
+
 #define EXPORT __attribute__((visibility("default")))
 
 EXPORT int IsKDMAPIAvailable() {
@@ -310,8 +313,49 @@ EXPORT int InitializeKDMAPIStream() {
     return 0;
 }
 
+EXPORT int TerminateKDMAPIStream() {
+    if (Host->Stop()) {
+        LOG("KDMAPI freed.");
+        return 1;
+    }
+
+    LOG("KDMAPI failed to free its resources.");
+    return 0;
+}
+
+EXPORT void ResetKDMAPIStream() {
+    Host->PlayShortEvent(0xFF, 0x01, 0x01);
+}
+
 EXPORT void SendDirectData(unsigned int ev) {
     Host->PlayShortEvent(ev);
+}
+
+EXPORT void SendDirectDataNoBuf(unsigned int ev) {
+    // Unsupported, forward to SendDirectData
+    SendDirectData(ev);
+}
+
+EXPORT int SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
+    return Host->TalkToSynthDirectly(evt, chan, param);
+}
+
+EXPORT int DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+    return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
+}
+
+EXPORT float GetRenderingTime() {
+    if (Host == nullptr)
+        return 0.0f;
+
+    return Host->GetRenderingTime();
+}
+
+EXPORT unsigned int GetActiveVoices() {
+    if (Host == nullptr)
+        return 0;
+
+    return Host->GetActiveVoices();
 }
 
 #endif

@@ -205,9 +205,9 @@ unsigned long CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, unsigne
 	unsigned div = me->Settings->ASIOChunksDivision;
 	auto chksize = length / div;
 
-	for (int j = 0; j < div; j++) {
+	for (unsigned long j = 0; j < div; j++) {
 		len += BASS_ChannelGetData(me->AudioStreams[0], me->ASIOBuf, chksize);
-		for (int k = 0; k < chksize; k++) {
+		for (unsigned long k = 0; k < chksize; k++) {
 			buf[(j * chksize) + k] = me->ASIOBuf[k];
 		}
 	}
@@ -436,12 +436,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	const char* rCh = Settings->ASIORCh.c_str();
 	const char* dev = Settings->ASIODevice.c_str();
 	BASS_INFO defInfo = BASS_INFO();
+
+#if defined(_WIN32)
 	BASS_ASIO_INFO asioInfo = BASS_ASIO_INFO();
 	BASS_ASIO_DEVICEINFO devInfo = BASS_ASIO_DEVICEINFO();
 	BASS_ASIO_CHANNELINFO chInfo = BASS_ASIO_CHANNELINFO();
 
 	bool asioCheck = false;
 	unsigned int asioCount = 0, asioDev = 0;
+#endif
 
 	unsigned int deviceFlags = 
 		(Settings->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
@@ -601,7 +604,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		}
 
 		LOG("Available ASIO channels:");
-		for (int curSrcCh = 0; curSrcCh < asioInfo.outputs; curSrcCh++) {
+		for (unsigned long curSrcCh = 0; curSrcCh < asioInfo.outputs; curSrcCh++) {
 			BASS_ASIO_ChannelGetInfo(0, curSrcCh, &chInfo);
 
 			if ((leftChID && rightChID) && (leftChID != -1 && rightChID != -1))
@@ -643,7 +646,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			LOG("Nothing set the frequency for the ASIO device! Falling back to the value from the settings... (%dHz)", (int)asioFreq);
 		}
 
-		if (!BASS_Init(0, asioFreq, deviceFlags, 0, nullptr)) {
+		if (!BASS_Init(0, (unsigned long)asioFreq, deviceFlags, 0, nullptr)) {
 			NERROR("BASS_Init failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
@@ -720,7 +723,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 #endif
 
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-		swprintf(OMPath, L"%s\\OmniMIDI\\SupportLibraries\\bassflac", OMPath);
+		swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\SupportLibraries\\bassflac", OMPath);
 
 		BFlaLib = BASS_PluginLoad(OMPath, BASS_UNICODE);
 

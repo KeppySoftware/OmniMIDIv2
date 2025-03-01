@@ -143,7 +143,7 @@ extern "C" {
 			return DRVCNF_OK;
 		}
 
-		long r = DefDriverProc(DriverIdentifier, DriverHandle, Message, Param1, Param2);
+		unsigned long r = DefDriverProc(DriverIdentifier, DriverHandle, Message, Param1, Param2);
 		LOG("DefDriverProc returned %d", r);
 		return r;
 	}
@@ -534,7 +534,7 @@ extern "C" {
 	EXPORT unsigned long long WINAPI timeGetTime64() {
 		signed long long CurrentTime;
 		MiscFuncs.querySystemTime(&CurrentTime);
-		return (unsigned long long)((CurrentTime)-TickStart) / 10000.0;
+		return (unsigned long long)((CurrentTime-TickStart) / 10000.0);
 	}
 
 	EXPORT float GetRenderingTime() {

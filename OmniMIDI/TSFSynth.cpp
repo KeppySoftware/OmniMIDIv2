@@ -7,6 +7,8 @@
 
 */
 
+#ifdef _WIN32
+
 #define TSF_IMPLEMENTATION
 #include "TSFSynth.hpp"
 
@@ -190,3 +192,5 @@ unsigned int OmniMIDI::TinySFSynth::PlayLongEvent(char* ev, unsigned int size) {
 unsigned int OmniMIDI::TinySFSynth::UPlayLongEvent(char* ev, unsigned int size) {
 	return 1;
 }
+
+#endif

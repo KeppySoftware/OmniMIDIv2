@@ -9,6 +9,7 @@ target("OmniMIDI")
 
 	-- Statically link libunwind
 	add_defines("NDEBUG", "OMNIMIDI_EXPORTS")
+	
 
 	set_languages("clatest", "cxxlatest")
 	add_cxxflags("-fexperimental-library")
@@ -20,10 +21,10 @@ target("OmniMIDI")
 
 	if is_plat("windows", "mingw") then
 		-- Remove lib prefix
+		add_defines("WIN7VERBOSE", "UNICODE", "_UNICODE", "_WIN32", "_WIN32_WINNT=0x5000")
 		set_prefixname("")
 		add_syslinks("-l:libunwind.a")
 		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32")
-		add_defines("WIN7VERBOSE", "UNICODE", "_UNICODE", "_WIN32", "_WIN32_WINNT=0x5000")
 		add_ldflags("-MUNICODE")
 		add_files("OMRes.rc")
 		remove_files("UnixEntry.cpp")

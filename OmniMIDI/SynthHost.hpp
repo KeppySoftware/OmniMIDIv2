@@ -36,7 +36,7 @@ namespace OmniMIDI {
 		// Ours
 		ErrorSystem::Logger* ErrLog = nullptr;
 		SynthModule* Synth = nullptr;
-		SHSettings* SHSettings = nullptr;
+		SHSettings* _SHSettings = nullptr;
 		std::jthread _HealthThread;
 		void* extModule = nullptr;
 
@@ -52,15 +52,16 @@ namespace OmniMIDI {
 		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) {
 			DrvCallback = dcasrc;
 			hwndMod = mod;
-			SHSettings = new OmniMIDI::SHSettings(ErrLog);
+			_SHSettings = new OmniMIDI::SHSettings(ErrLog);
 			Synth = new OmniMIDI::SynthModule(ErrLog);
 			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
 			ErrLog = PErr;
 		}
 #else
-		SynthHost(WinDriver::DriverCallback* dcasrc) {
-			SHSettings = new OmniMIDI::SHSettings;
-			Synth = new OmniMIDI::SynthModule;
+		SynthHost(ErrorSystem::Logger* PErr) {
+			_SHSettings = new OmniMIDI::SHSettings(ErrLog);
+			Synth = new OmniMIDI::SynthModule(ErrLog);
+			ErrLog = PErr;
 		}
 #endif
 
@@ -76,19 +77,19 @@ namespace OmniMIDI {
 			if (Synth != nullptr)
 				delete Synth;
 
-			if (SHSettings != nullptr)
-				delete SHSettings;
+			if (_SHSettings != nullptr)
+				delete _SHSettings;
 		}
 
 		void RefreshSettings();
 		bool Start(bool StreamPlayer = false);
 		bool Stop(bool restart = false);
 		OmniMIDI::SynthModule* GetSynth();
-		bool IsKDMAPIAvailable() { return SHSettings->IsKDMAPIEnabled(); }
+		bool IsKDMAPIAvailable() { return _SHSettings->IsKDMAPIEnabled(); }
 
 #ifdef _WIN32 
 		bool IsStreamPlayerAvailable() { return !StreamPlayer->IsDummy(); }
-		bool IsBlacklistedProcess() { return SHSettings->IsBlacklistedProcess(); }
+		bool IsBlacklistedProcess() { return _SHSettings->IsBlacklistedProcess(); }
 
 		// Cooked player system
 		bool SpInit();

@@ -21,6 +21,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#ifdef WIN32
+#define XSYNTH_IMP WINAPI
+#else
+#define XSYNTH_IMP
+#endif
+
 #define XSYNTH_VERSION 0x100
 
 #define XMIDI_EVENT_NOTEON 0
@@ -148,7 +154,7 @@ extern "C" {
 	 * --Returns--
 	 * The XSynth version. For example, 0x010102 (hex), would be version 1.1.2
 	 */
-	extern uint32_t(_cdecl* XSynth_GetVersion)(void);
+	extern uint32_t(XSYNTH_IMP* XSynth_GetVersion)(void);
 
 	/**
 	 * Generates the default values for the XSynth_StreamParams struct
@@ -177,7 +183,7 @@ extern "C" {
 	 * --Parameters--
 	 * - config: The initialization configuration (XSynth_RealtimeConfig struct)
 	 */
-	extern void(_cdecl* XSynth_Realtime_Init)(struct XSynth_RealtimeConfig config);
+	extern void(XSYNTH_IMP* XSynth_Realtime_Init)(struct XSynth_RealtimeConfig config);
 
 	/**
 	 * Sends a MIDI event to the realtime module.
@@ -187,7 +193,7 @@ extern "C" {
 	 * - event: The type of MIDI event sent (see XSynth_ChannelGroup_SendEvent for available options)
 	 * - params: Parameters for the event
 	 */
-	extern void(_cdecl* XSynth_Realtime_SendEvent)(uint32_t channel, uint16_t event, uint16_t params);
+	extern void(XSYNTH_IMP* XSynth_Realtime_SendEvent)(uint32_t channel, uint16_t event, uint16_t params);
 
 	/**
 	 * Checks if the XSynth Realtime module is loaded.
@@ -195,7 +201,7 @@ extern "C" {
 	 * --Returns--
 	 * True if it is loaded, false if it is not.
 	 */
-	extern bool(_cdecl* XSynth_Realtime_IsActive)(void);
+	extern bool(XSYNTH_IMP* XSynth_Realtime_IsActive)(void);
 
 	/**
 	 * Returns the audio stream parameters of the realtime module as an
@@ -208,7 +214,7 @@ extern "C" {
 	 * --Errors--
 	 * This function will panic if the realtime module is not loaded.
 	 */
-	extern struct XSynth_StreamParams(_cdecl* XSynth_Realtime_GetStreamParams)(void);
+	extern struct XSynth_StreamParams(XSYNTH_IMP* XSynth_Realtime_GetStreamParams)(void);
 
 	/**
 	 * Returns the statistics of the realtime module as an
@@ -220,7 +226,7 @@ extern "C" {
 	 * --Errors--
 	 * This function will panic if the realtime module is not loaded.
 	 */
-	extern struct XSynth_RealtimeStats(_cdecl* XSynth_Realtime_GetStats)(void);
+	extern struct XSynth_RealtimeStats(XSYNTH_IMP* XSynth_Realtime_GetStats)(void);
 
 	/**
 	 * Sets the desired layer limit on the realtime module. One layer
@@ -230,7 +236,7 @@ extern "C" {
 	 * - layers: The layer limit (0 = no limit, 1-MAX = limit)
 	 *         Where MAX is the maximum value of an unsigned 64bit integer
 	 */
-	extern void(_cdecl* XSynth_Realtime_SetLayerCount)(uint64_t layers);
+	extern void(XSYNTH_IMP* XSynth_Realtime_SetLayerCount)(uint64_t layers);
 
 	/**
 	 * Sets a list of soundfonts to be used in the realtime module. To load
@@ -243,18 +249,18 @@ extern "C" {
 	 * --Errors--
 	 * This function will panic if any of the given soundfont IDs is invalid.
 	 */
-	extern void(_cdecl* XSynth_Realtime_SetSoundfonts)(const uint64_t* sf_ids, uint64_t count);
+	extern void(XSYNTH_IMP* XSynth_Realtime_SetSoundfonts)(const uint64_t* sf_ids, uint64_t count);
 
 	/**
 	 * Resets the realtime module. Kills all active notes and resets
 	 * all control change.
 	 */
-	extern void(_cdecl* XSynth_Realtime_Reset)(void);
+	extern void(XSYNTH_IMP* XSynth_Realtime_Reset)(void);
 
 	/**
 	 * Terminates the instance of the realtime module.
 	 */
-	extern void(_cdecl* XSynth_Realtime_Drop)(void);
+	extern void(XSYNTH_IMP* XSynth_Realtime_Drop)(void);
 
 	/**
 	 * Generates the default values for the XSynth_SoundfontOptions struct
@@ -266,7 +272,7 @@ extern "C" {
 	 * - use_effects: True
 	 * - interpolator: INTERPOLATION_NEAREST
 	 */
-	extern struct XSynth_SoundfontOptions(_cdecl* XSynth_GenDefault_SoundfontOptions)(void);
+	extern struct XSynth_SoundfontOptions(XSYNTH_IMP* XSynth_GenDefault_SoundfontOptions)(void);
 
 	/**
 	 * Loads a new XSynth sample soundfont in memory.
@@ -285,7 +291,7 @@ extern "C" {
 	 * if the maximum number of active groups is reached.
 	 * Max: 65.535 soundfonts.
 	 */
-	extern uint64_t(_cdecl* XSynth_Soundfont_LoadNew)(const char* path, struct XSynth_SoundfontOptions options);
+	extern uint64_t(XSYNTH_IMP* XSynth_Soundfont_LoadNew)(const char* path, struct XSynth_SoundfontOptions options);
 
 	/**
 	 * Removes the desired soundfont from the ID list.
@@ -301,14 +307,14 @@ extern "C" {
 	 * --Parameters--
 	 * - id: The ID of the desired soundfont to be removed
 	 */
-	extern void(_cdecl* XSynth_Soundfont_Remove)(uint64_t id);
+	extern void(XSYNTH_IMP* XSynth_Soundfont_Remove)(uint64_t id);
 
 	/**
 	 * Removes all soundfonts from the ID list. See the documentation of the
 	 * XSynth_Soundfont_Remove to find information about clearing the memory
 	 * a soundfont is using.
 	 */
-	extern void(_cdecl* XSynth_Soundfont_RemoveAll)(void);
+	extern void(XSYNTH_IMP* XSynth_Soundfont_RemoveAll)(void);
 
 #ifdef __cplusplus
 } // extern "C"

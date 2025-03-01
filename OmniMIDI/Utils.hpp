@@ -123,6 +123,7 @@ namespace OMShared {
 			gettimeofday(&tnow, 0);
 			*v = tnow.tv_sec * (unsigned long long)10000000 + (((369 * 365 + 89) * (unsigned long long)86400) * 10000000);
 			*v += tnow.tv_usec * 10;
+			return 0;
 #endif
 		}
 	};

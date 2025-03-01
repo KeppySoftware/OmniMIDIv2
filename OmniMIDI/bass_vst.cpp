@@ -12,6 +12,10 @@
 
 */
 
+#ifdef _WIN32
+
 #include "inc/bass/bass_vst.h"
 
 DWORD(WINAPI* BASS_VST_ChannelSetDSP)(DWORD chHandle, const void* dllFile, DWORD flags, int priority) = 0;
+
+#endif

@@ -28,6 +28,7 @@ namespace OmniMIDI {
 		std::vector<std::string> Blacklist;
 
 		SHSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
+#ifdef _WIN32
 			// When you initialize Settings(), load OM's own settings by default
 			OMShared::SysPath Utils;
 			wchar_t OMPath[MAX_PATH] = { 0 };
@@ -35,19 +36,21 @@ namespace OmniMIDI {
 			wchar_t OMDBPath[MAX_PATH] = { 0 };
 
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				wcscpy_s(OMBPath, OMPath);
-				wcscpy_s(OMDBPath, OMPath);
-				swprintf_s(OMPath, L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				swprintf_s(OMBPath, L"%s\\OmniMIDI\\blacklist.json\0", OMBPath);
-				swprintf_s(OMDBPath, L"%s\\OmniMIDI\\defblacklist.json\0", OMBPath);
+				wcscpy(OMBPath, OMPath);
+				wcscpy(OMDBPath, OMPath);
+				swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\settings.json\0", OMPath);
+				swprintf(OMBPath, sizeof(OMBPath), L"%s\\OmniMIDI\\blacklist.json\0", OMBPath);
+				swprintf(OMDBPath, sizeof(OMDBPath), L"%s\\OmniMIDI\\defblacklist.json\0", OMDBPath);
 				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 				LoadBlacklist(OMBPath);
 			}
+#endif
 		}
 
 		void LoadBlacklist(wchar_t* Path) {
+#ifdef _WIN32
 			std::fstream st;
-			st.open(Path, std::fstream::in);
+			st.open((char*)Path, std::fstream::in);
 
 			if (st.is_open()) {
 				try {
@@ -65,9 +68,11 @@ namespace OmniMIDI {
 				}
 				st.close();
 			}
+#endif
 		}
 
 		bool IsBlacklistedProcess() {
+#ifdef _WIN32
 			bool flag = false;
 			char* szFilePath = new char[MAX_PATH_LONG];
 			char* szFileName = new char[MAX_PATH_LONG];
@@ -83,6 +88,7 @@ namespace OmniMIDI {
 			}
 
 			if (!Blacklist.empty()) {
+
 				GetModuleFileNameA(NULL, szFilePath, MAX_PATH_LONG);
 				strncpy(szFileName, PathFindFileNameA(szFilePath), MAX_PATH_LONG);
 
@@ -97,11 +103,15 @@ namespace OmniMIDI {
 						break;
 					}
 				}
-			}
+		flag = false;
 
+			}
 			delete[] szFilePath;
 			delete[] szFileName;
 			return flag;
+#else
+			return false;
+#endif
 		}
 	};
 }

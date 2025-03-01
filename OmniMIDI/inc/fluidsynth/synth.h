@@ -49,12 +49,12 @@ extern "C" {
      */
 
      /** @startlifecycle{Synthesizer} */
-    extern fluid_synth_t* (WINAPI* new_fluid_synth)(fluid_settings_t* settings);
-    extern void(WINAPI* delete_fluid_synth)(fluid_synth_t* synth);
+    extern fluid_synth_t* (FLUIDSYNTH_IMP* new_fluid_synth)(fluid_settings_t* settings);
+    extern void(FLUIDSYNTH_IMP* delete_fluid_synth)(fluid_synth_t* synth);
     /** @endlifecycle */
 
-    extern double(WINAPI* fluid_synth_get_cpu_load)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern const char* (WINAPI* fluid_synth_error)(fluid_synth_t* synth);
+    extern double(FLUIDSYNTH_IMP* fluid_synth_get_cpu_load)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern const char* (FLUIDSYNTH_IMP* fluid_synth_error)(fluid_synth_t* synth);
     /** @} */
 
     /**
@@ -67,38 +67,38 @@ extern "C" {
      *
      * @{
      */
-    extern int (WINAPI* fluid_synth_noteon)(fluid_synth_t* synth, int chan, int key, int vel);
-    extern int (WINAPI* fluid_synth_noteoff)(fluid_synth_t* synth, int chan, int key);
-    extern int (WINAPI* fluid_synth_cc)(fluid_synth_t* synth, int chan, int ctrl, int val);
-    extern int (WINAPI* fluid_synth_get_cc)(fluid_synth_t* synth, int chan, int ctrl, int* pval);
-    extern int (WINAPI* fluid_synth_sysex)(fluid_synth_t* synth, const char* data, int len,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_noteon)(fluid_synth_t* synth, int chan, int key, int vel);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_noteoff)(fluid_synth_t* synth, int chan, int key);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_cc)(fluid_synth_t* synth, int chan, int ctrl, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_cc)(fluid_synth_t* synth, int chan, int ctrl, int* pval);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sysex)(fluid_synth_t* synth, const char* data, int len,
         char* response, int* response_len, int* handled, int dryrun);
-    extern int (WINAPI* fluid_synth_pitch_bend)(fluid_synth_t* synth, int chan, int val);
-    extern int (WINAPI* fluid_synth_get_pitch_bend)(fluid_synth_t* synth, int chan, int* ppitch_bend);
-    extern int (WINAPI* fluid_synth_pitch_wheel_sens)(fluid_synth_t* synth, int chan, int val);
-    extern int (WINAPI* fluid_synth_get_pitch_wheel_sens)(fluid_synth_t* synth, int chan, int* pval);
-    extern int (WINAPI* fluid_synth_program_change)(fluid_synth_t* synth, int chan, int program);
-    extern int (WINAPI* fluid_synth_channel_pressure)(fluid_synth_t* synth, int chan, int val);
-    extern int (WINAPI* fluid_synth_key_pressure)(fluid_synth_t* synth, int chan, int key, int val);
-    extern int (WINAPI* fluid_synth_bank_select)(fluid_synth_t* synth, int chan, int bank);
-    extern int (WINAPI* fluid_synth_sfont_select)(fluid_synth_t* synth, int chan, int sfont_id);
-    extern int (WINAPI* fluid_synth_program_select)(fluid_synth_t* synth, int chan, int sfont_id,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_pitch_bend)(fluid_synth_t* synth, int chan, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_pitch_bend)(fluid_synth_t* synth, int chan, int* ppitch_bend);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_pitch_wheel_sens)(fluid_synth_t* synth, int chan, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_pitch_wheel_sens)(fluid_synth_t* synth, int chan, int* pval);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_program_change)(fluid_synth_t* synth, int chan, int program);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_channel_pressure)(fluid_synth_t* synth, int chan, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_key_pressure)(fluid_synth_t* synth, int chan, int key, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_bank_select)(fluid_synth_t* synth, int chan, int bank);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sfont_select)(fluid_synth_t* synth, int chan, int sfont_id);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_program_select)(fluid_synth_t* synth, int chan, int sfont_id,
         int bank_num, int preset_num);
-    extern int (WINAPI* fluid_synth_program_select_by_sfont_name)(fluid_synth_t* synth, int chan,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_program_select_by_sfont_name)(fluid_synth_t* synth, int chan,
         const char* sfont_name, int bank_num,
         int preset_num);
-    extern int (WINAPI* fluid_synth_get_program)(fluid_synth_t* synth, int chan, int* sfont_id,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_program)(fluid_synth_t* synth, int chan, int* sfont_id,
         int* bank_num, int* preset_num);
-    extern int (WINAPI* fluid_synth_unset_program)(fluid_synth_t* synth, int chan);
-    extern int (WINAPI* fluid_synth_program_reset)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_system_reset)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_unset_program)(fluid_synth_t* synth, int chan);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_program_reset)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_system_reset)(fluid_synth_t* synth);
 
-    extern int (WINAPI* fluid_synth_all_notes_off)(fluid_synth_t* synth, int chan);
-    extern int (WINAPI* fluid_synth_all_sounds_off)(fluid_synth_t* synth, int chan);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_all_notes_off)(fluid_synth_t* synth, int chan);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_all_sounds_off)(fluid_synth_t* synth, int chan);
 
-    extern int (WINAPI* fluid_synth_set_gen)(fluid_synth_t* synth, int chan,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_gen)(fluid_synth_t* synth, int chan,
         int param, float value);
-    extern float (WINAPI* fluid_synth_get_gen)(fluid_synth_t* synth, int chan, int param);
+    extern float (FLUIDSYNTH_IMP* fluid_synth_get_gen)(fluid_synth_t* synth, int chan, int param);
     /** @} MIDI Channel Messages */
 
 
@@ -110,16 +110,16 @@ extern "C" {
      *
      * @{
      */
-    extern int (WINAPI* fluid_synth_start)(fluid_synth_t* synth, unsigned int id,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_start)(fluid_synth_t* synth, unsigned int id,
         fluid_preset_t* preset, int audio_chan,
         int midi_chan, int key, int vel);
-    extern int (WINAPI* fluid_synth_stop)(fluid_synth_t* synth, unsigned int id);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_stop)(fluid_synth_t* synth, unsigned int id);
 
-    extern fluid_voice_t* (WINAPI* fluid_synth_alloc_voice)(fluid_synth_t* synth,
+    extern fluid_voice_t* (FLUIDSYNTH_IMP* fluid_synth_alloc_voice)(fluid_synth_t* synth,
         fluid_sample_t* sample,
         int channum, int key, int vel);
-    extern void(WINAPI* fluid_synth_start_voice)(fluid_synth_t* synth, fluid_voice_t* voice);
-    extern void(WINAPI* fluid_synth_get_voicelist)(fluid_synth_t* synth,
+    extern void(FLUIDSYNTH_IMP* fluid_synth_start_voice)(fluid_synth_t* synth, fluid_voice_t* voice);
+    extern void(FLUIDSYNTH_IMP* fluid_synth_get_voicelist)(fluid_synth_t* synth,
         fluid_voice_t* buf[], int bufsize, int ID);
     /** @} Voice Control */
 
@@ -132,18 +132,18 @@ extern "C" {
      *
      * @{
      */
-    extern int (WINAPI* fluid_synth_sfload)(fluid_synth_t* synth, const char* filename, int reset_presets);
-    extern int (WINAPI* fluid_synth_sfreload)(fluid_synth_t* synth, int id);
-    extern int (WINAPI* fluid_synth_sfunload)(fluid_synth_t* synth, int id, int reset_presets);
-    extern int (WINAPI* fluid_synth_add_sfont)(fluid_synth_t* synth, fluid_sfont_t* sfont);
-    extern int (WINAPI* fluid_synth_remove_sfont)(fluid_synth_t* synth, fluid_sfont_t* sfont);
-    extern int (WINAPI* fluid_synth_sfcount)(fluid_synth_t* synth);
-    extern fluid_sfont_t* (WINAPI* fluid_synth_get_sfont)(fluid_synth_t* synth, unsigned int num);
-    extern fluid_sfont_t* (WINAPI* fluid_synth_get_sfont_by_id)(fluid_synth_t* synth, int id);
-    extern fluid_sfont_t* (WINAPI* fluid_synth_get_sfont_by_name)(fluid_synth_t* synth,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sfload)(fluid_synth_t* synth, const char* filename, int reset_presets);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sfreload)(fluid_synth_t* synth, int id);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sfunload)(fluid_synth_t* synth, int id, int reset_presets);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_add_sfont)(fluid_synth_t* synth, fluid_sfont_t* sfont);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_remove_sfont)(fluid_synth_t* synth, fluid_sfont_t* sfont);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_sfcount)(fluid_synth_t* synth);
+    extern fluid_sfont_t* (FLUIDSYNTH_IMP* fluid_synth_get_sfont)(fluid_synth_t* synth, unsigned int num);
+    extern fluid_sfont_t* (FLUIDSYNTH_IMP* fluid_synth_get_sfont_by_id)(fluid_synth_t* synth, int id);
+    extern fluid_sfont_t* (FLUIDSYNTH_IMP* fluid_synth_get_sfont_by_name)(fluid_synth_t* synth,
         const char* name);
-    extern int (WINAPI* fluid_synth_set_bank_offset)(fluid_synth_t* synth, int sfont_id, int offset);
-    extern int (WINAPI* fluid_synth_get_bank_offset)(fluid_synth_t* synth, int sfont_id);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_bank_offset)(fluid_synth_t* synth, int sfont_id, int offset);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_bank_offset)(fluid_synth_t* synth, int sfont_id);
     /** @} Soundfont Management */
 
 
@@ -155,30 +155,30 @@ extern "C" {
      *
      * @{
      */
-    FLUID_DEPRECATED extern void(WINAPI* fluid_synth_set_reverb_on)(fluid_synth_t* synth, int on);
-    extern int (WINAPI* fluid_synth_reverb_on)(fluid_synth_t* synth, int fx_group, int on);
+    FLUID_DEPRECATED extern void(FLUIDSYNTH_IMP* fluid_synth_set_reverb_on)(fluid_synth_t* synth, int on);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_reverb_on)(fluid_synth_t* synth, int fx_group, int on);
 
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_reverb)(fluid_synth_t* synth, double roomsize,
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb)(fluid_synth_t* synth, double roomsize,
         double damping, double width, double level);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_reverb_roomsize)(fluid_synth_t* synth, double roomsize);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_reverb_damp)(fluid_synth_t* synth, double damping);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_reverb_width)(fluid_synth_t* synth, double width);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_reverb_level)(fluid_synth_t* synth, double level);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_roomsize)(fluid_synth_t* synth, double roomsize);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_damp)(fluid_synth_t* synth, double damping);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_width)(fluid_synth_t* synth, double width);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_level)(fluid_synth_t* synth, double level);
 
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_reverb_roomsize)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_reverb_damp)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_reverb_level)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_reverb_width)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_reverb_roomsize)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_reverb_damp)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_reverb_level)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_reverb_width)(fluid_synth_t* synth);
 
-    extern int (WINAPI* fluid_synth_set_reverb_group_roomsize)(fluid_synth_t* synth, int fx_group, double roomsize);
-    extern int (WINAPI* fluid_synth_set_reverb_group_damp)(fluid_synth_t* synth, int fx_group, double damping);
-    extern int (WINAPI* fluid_synth_set_reverb_group_width)(fluid_synth_t* synth, int fx_group, double width);
-    extern int (WINAPI* fluid_synth_set_reverb_group_level)(fluid_synth_t* synth, int fx_group, double level);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_group_roomsize)(fluid_synth_t* synth, int fx_group, double roomsize);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_group_damp)(fluid_synth_t* synth, int fx_group, double damping);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_group_width)(fluid_synth_t* synth, int fx_group, double width);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_reverb_group_level)(fluid_synth_t* synth, int fx_group, double level);
 
-    extern int (WINAPI* fluid_synth_get_reverb_group_roomsize)(fluid_synth_t* synth, int fx_group, double* roomsize);
-    extern int (WINAPI* fluid_synth_get_reverb_group_damp)(fluid_synth_t* synth, int fx_group, double* damping);
-    extern int (WINAPI* fluid_synth_get_reverb_group_width)(fluid_synth_t* synth, int fx_group, double* width);
-    extern int (WINAPI* fluid_synth_get_reverb_group_level)(fluid_synth_t* synth, int fx_group, double* level);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_reverb_group_roomsize)(fluid_synth_t* synth, int fx_group, double* roomsize);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_reverb_group_damp)(fluid_synth_t* synth, int fx_group, double* damping);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_reverb_group_width)(fluid_synth_t* synth, int fx_group, double* width);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_reverb_group_level)(fluid_synth_t* synth, int fx_group, double* level);
     /** @} Reverb */
 
 
@@ -201,34 +201,34 @@ extern "C" {
     };
 
 
-    FLUID_DEPRECATED extern void(WINAPI* fluid_synth_set_chorus_on)(fluid_synth_t* synth, int on);
-    extern int (WINAPI* fluid_synth_chorus_on)(fluid_synth_t* synth, int fx_group, int on);
+    FLUID_DEPRECATED extern void(FLUIDSYNTH_IMP* fluid_synth_set_chorus_on)(fluid_synth_t* synth, int on);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_chorus_on)(fluid_synth_t* synth, int fx_group, int on);
 
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus)(fluid_synth_t* synth, int nr, double level,
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus)(fluid_synth_t* synth, int nr, double level,
         double speed, double depth_ms, int type);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus_nr)(fluid_synth_t* synth, int nr);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus_level)(fluid_synth_t* synth, double level);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus_speed)(fluid_synth_t* synth, double speed);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus_depth)(fluid_synth_t* synth, double depth_ms);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_set_chorus_type)(fluid_synth_t* synth, int type);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_nr)(fluid_synth_t* synth, int nr);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_level)(fluid_synth_t* synth, double level);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_speed)(fluid_synth_t* synth, double speed);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_depth)(fluid_synth_t* synth, double depth_ms);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_type)(fluid_synth_t* synth, int type);
 
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_get_chorus_nr)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_chorus_level)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_chorus_speed)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern double(WINAPI* fluid_synth_get_chorus_depth)(fluid_synth_t* synth);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_get_chorus_type)(fluid_synth_t* synth); /* see fluid_chorus_mod */
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_nr)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_chorus_level)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_chorus_speed)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern double(FLUIDSYNTH_IMP* fluid_synth_get_chorus_depth)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_type)(fluid_synth_t* synth); /* see fluid_chorus_mod */
 
-    extern int (WINAPI* fluid_synth_set_chorus_group_nr)(fluid_synth_t* synth, int fx_group, int nr);
-    extern int (WINAPI* fluid_synth_set_chorus_group_level)(fluid_synth_t* synth, int fx_group, double level);
-    extern int (WINAPI* fluid_synth_set_chorus_group_speed)(fluid_synth_t* synth, int fx_group, double speed);
-    extern int (WINAPI* fluid_synth_set_chorus_group_depth)(fluid_synth_t* synth, int fx_group, double depth_ms);
-    extern int (WINAPI* fluid_synth_set_chorus_group_type)(fluid_synth_t* synth, int fx_group, int type);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_group_nr)(fluid_synth_t* synth, int fx_group, int nr);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_group_level)(fluid_synth_t* synth, int fx_group, double level);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_group_speed)(fluid_synth_t* synth, int fx_group, double speed);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_group_depth)(fluid_synth_t* synth, int fx_group, double depth_ms);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_chorus_group_type)(fluid_synth_t* synth, int fx_group, int type);
 
-    extern int (WINAPI* fluid_synth_get_chorus_group_nr)(fluid_synth_t* synth, int fx_group, int* nr);
-    extern int (WINAPI* fluid_synth_get_chorus_group_level)(fluid_synth_t* synth, int fx_group, double* level);
-    extern int (WINAPI* fluid_synth_get_chorus_group_speed)(fluid_synth_t* synth, int fx_group, double* speed);
-    extern int (WINAPI* fluid_synth_get_chorus_group_depth)(fluid_synth_t* synth, int fx_group, double* depth_ms);
-    extern int (WINAPI* fluid_synth_get_chorus_group_type)(fluid_synth_t* synth, int fx_group, int* type);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_group_nr)(fluid_synth_t* synth, int fx_group, int* nr);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_group_level)(fluid_synth_t* synth, int fx_group, double* level);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_group_speed)(fluid_synth_t* synth, int fx_group, double* speed);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_group_depth)(fluid_synth_t* synth, int fx_group, double* depth_ms);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_chorus_group_type)(fluid_synth_t* synth, int fx_group, int* type);
     /** @} Chorus */
 
     /**
@@ -240,21 +240,21 @@ extern "C" {
      *
      * @{
      */
-    extern int (WINAPI* fluid_synth_count_midi_channels)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_count_audio_channels)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_count_audio_groups)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_count_effects_channels)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_count_effects_groups)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_count_midi_channels)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_count_audio_channels)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_count_audio_groups)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_count_effects_channels)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_count_effects_groups)(fluid_synth_t* synth);
 
-    FLUID_DEPRECATED extern void(WINAPI* fluid_synth_set_sample_rate)(fluid_synth_t* synth, float sample_rate);
-    extern void(WINAPI* fluid_synth_set_gain)(fluid_synth_t* synth, float gain);
-    extern float (WINAPI* fluid_synth_get_gain)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_set_polyphony)(fluid_synth_t* synth, int polyphony);
-    extern int (WINAPI* fluid_synth_get_polyphony)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_get_active_voice_count)(fluid_synth_t* synth);
-    extern int (WINAPI* fluid_synth_get_internal_bufsize)(fluid_synth_t* synth);
+    FLUID_DEPRECATED extern void(FLUIDSYNTH_IMP* fluid_synth_set_sample_rate)(fluid_synth_t* synth, float sample_rate);
+    extern void(FLUIDSYNTH_IMP* fluid_synth_set_gain)(fluid_synth_t* synth, float gain);
+    extern float (FLUIDSYNTH_IMP* fluid_synth_get_gain)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_polyphony)(fluid_synth_t* synth, int polyphony);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_polyphony)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_active_voice_count)(fluid_synth_t* synth);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_internal_bufsize)(fluid_synth_t* synth);
 
-    extern int (WINAPI* fluid_synth_set_interp_method)(fluid_synth_t* synth, int chan, int interp_method);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_interp_method)(fluid_synth_t* synth, int chan, int interp_method);
 
     /**
      * Synthesis interpolation method.
@@ -279,8 +279,8 @@ extern "C" {
         FLUID_SYNTH_ADD,              /**< Sum up modulator amounts */
     };
 
-    extern int (WINAPI* fluid_synth_add_default_mod)(fluid_synth_t* synth, const fluid_mod_t* mod, int mode);
-    extern int (WINAPI* fluid_synth_remove_default_mod)(fluid_synth_t* synth, const fluid_mod_t* mod);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_add_default_mod)(fluid_synth_t* synth, const fluid_mod_t* mod, int mode);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_remove_default_mod)(fluid_synth_t* synth, const fluid_mod_t* mod);
     /** @} Synthesis Parameters */
 
 
@@ -292,18 +292,18 @@ extern "C" {
      *
      * @{
      */
-    extern int(WINAPI* fluid_synth_activate_key_tuning)(fluid_synth_t* synth, int bank, int prog,
+    extern int(FLUIDSYNTH_IMP* fluid_synth_activate_key_tuning)(fluid_synth_t* synth, int bank, int prog,
         const char* name, const double* pitch, int apply);
-    extern int(WINAPI* fluid_synth_activate_octave_tuning)(fluid_synth_t* synth, int bank, int prog,
+    extern int(FLUIDSYNTH_IMP* fluid_synth_activate_octave_tuning)(fluid_synth_t* synth, int bank, int prog,
         const char* name, const double* pitch, int apply);
-    extern int(WINAPI* fluid_synth_tune_notes)(fluid_synth_t* synth, int bank, int prog,
+    extern int(FLUIDSYNTH_IMP* fluid_synth_tune_notes)(fluid_synth_t* synth, int bank, int prog,
         int len, const int* keys, const double* pitch, int apply);
-    extern int(WINAPI* fluid_synth_activate_tuning)(fluid_synth_t* synth, int chan, int bank, int prog,
+    extern int(FLUIDSYNTH_IMP* fluid_synth_activate_tuning)(fluid_synth_t* synth, int chan, int bank, int prog,
         int apply);
-    extern int(WINAPI* fluid_synth_deactivate_tuning)(fluid_synth_t* synth, int chan, int apply);
-    extern void(WINAPI* fluid_synth_tuning_iteration_start)(fluid_synth_t* synth);
-    extern int(WINAPI* fluid_synth_tuning_iteration_next)(fluid_synth_t* synth, int* bank, int* prog);
-    extern int (WINAPI* fluid_synth_tuning_dump)(fluid_synth_t* synth, int bank, int prog,
+    extern int(FLUIDSYNTH_IMP* fluid_synth_deactivate_tuning)(fluid_synth_t* synth, int chan, int apply);
+    extern void(FLUIDSYNTH_IMP* fluid_synth_tuning_iteration_start)(fluid_synth_t* synth);
+    extern int(FLUIDSYNTH_IMP* fluid_synth_tuning_iteration_next)(fluid_synth_t* synth, int* bank, int* prog);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_tuning_dump)(fluid_synth_t* synth, int bank, int prog,
         char* name, int len, double* pitch);
     /** @} MIDI Tuning */
 
@@ -334,16 +334,16 @@ extern "C" {
      *
      * @{
      */
-    extern int (WINAPI* fluid_synth_write_s16)(fluid_synth_t* synth, int len,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_write_s16)(fluid_synth_t* synth, int len,
         void* lout, int loff, int lincr,
         void* rout, int roff, int rincr);
-    extern int (WINAPI* fluid_synth_write_float)(fluid_synth_t* synth, int len,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_write_float)(fluid_synth_t* synth, int len,
         void* lout, int loff, int lincr,
         void* rout, int roff, int rincr);
-    FLUID_DEPRECATED extern int (WINAPI* fluid_synth_nwrite_float)(fluid_synth_t* synth, int len,
+    FLUID_DEPRECATED extern int (FLUIDSYNTH_IMP* fluid_synth_nwrite_float)(fluid_synth_t* synth, int len,
         float** left, float** right,
         float** fx_left, float** fx_right);
-    extern int (WINAPI* fluid_synth_process)(fluid_synth_t* synth, int len,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_process)(fluid_synth_t* synth, int len,
         int nfx, float* fx[],
         int nout, float* out[]);
     /** @} Audio Rendering */
@@ -379,7 +379,7 @@ extern "C" {
         FLUID_IIR_NO_GAIN_AMP = 1 << 2 /**< The Soundfont spec requires to correct the gain of the filter depending on the filter's Q. If this flag is set the filter gain will not be corrected. */
     };
 
-    extern int (WINAPI* fluid_synth_set_custom_filter)(fluid_synth_t*, int type, int flags);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_custom_filter)(fluid_synth_t*, int type, int flags);
     /** @} IIR Filter */
 
 
@@ -408,7 +408,7 @@ extern "C" {
         CHANNEL_TYPE_DRUM = 1 /**< Drum midi channel */
     };
 
-    extern int (WINAPI* fluid_synth_set_channel_type)(fluid_synth_t* synth, int chan, int type);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_channel_type)(fluid_synth_t* synth, int chan, int type);
     /** @} Channel Type */
 
 
@@ -438,13 +438,13 @@ extern "C" {
         FLUID_CHANNEL_MODE_LAST /**< @internal Value defines the count of basic channel modes (#fluid_basic_channel_modes) @warning This symbol is not part of the public API and ABI stability guarantee and may change at any time! */
     };
 
-    extern int (WINAPI* fluid_synth_reset_basic_channel)(fluid_synth_t* synth, int chan);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_reset_basic_channel)(fluid_synth_t* synth, int chan);
 
-    extern int (WINAPI* fluid_synth_get_basic_channel)(fluid_synth_t* synth, int chan,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_basic_channel)(fluid_synth_t* synth, int chan,
         int* basic_chan_out,
         int* mode_chan_out,
         int* basic_val_out);
-    extern int (WINAPI* fluid_synth_set_basic_channel)(fluid_synth_t* synth, int chan, int mode, int val);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_basic_channel)(fluid_synth_t* synth, int chan, int mode, int val);
 
     /** @} Basic Channel Mode */
 
@@ -462,8 +462,8 @@ extern "C" {
         FLUID_CHANNEL_LEGATO_MODE_LAST /**< @internal Value defines the count of legato modes (#fluid_channel_legato_mode) @warning This symbol is not part of the public API and ABI stability guarantee and may change at any time! */
     };
 
-    extern int (WINAPI* fluid_synth_set_legato_mode)(fluid_synth_t* synth, int chan, int legatomode);
-    extern int (WINAPI* fluid_synth_get_legato_mode)(fluid_synth_t* synth, int chan, int* legatomode);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_legato_mode)(fluid_synth_t* synth, int chan, int legatomode);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_legato_mode)(fluid_synth_t* synth, int chan, int* legatomode);
     /** @} Legato Mode */
 
     /** @name Portamento Mode
@@ -483,9 +483,9 @@ extern "C" {
                                              stability guarantee and may change at any time! */
     };
 
-    extern int (WINAPI* fluid_synth_set_portamento_mode)(fluid_synth_t* synth,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_portamento_mode)(fluid_synth_t* synth,
         int chan, int portamentomode);
-    extern int (WINAPI* fluid_synth_get_portamento_mode)(fluid_synth_t* synth,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_portamento_mode)(fluid_synth_t* synth,
         int chan, int* portamentomode);
     /** @} Portamento Mode */
 
@@ -503,34 +503,34 @@ extern "C" {
         FLUID_CHANNEL_BREATH_SYNC = 0x40,  /**< when channel is mono, this flag indicates that the breath controller(MSB)triggers noteon/noteoff on the running note */
     };
 
-    extern int (WINAPI* fluid_synth_set_breath_mode)(fluid_synth_t* synth,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_set_breath_mode)(fluid_synth_t* synth,
         int chan, int breathmode);
-    extern int (WINAPI* fluid_synth_get_breath_mode)(fluid_synth_t* synth,
+    extern int (FLUIDSYNTH_IMP* fluid_synth_get_breath_mode)(fluid_synth_t* synth,
         int chan, int* breathmode);
     /** @} Breath Mode */
     /** @} MIDI Channel Setup */
 
 
     /** @ingroup settings */
-    extern fluid_settings_t* (WINAPI* fluid_synth_get_settings)(fluid_synth_t* synth);
+    extern fluid_settings_t* (FLUIDSYNTH_IMP* fluid_synth_get_settings)(fluid_synth_t* synth);
 
     /** @ingroup soundfont_loader */
-    extern void(WINAPI* fluid_synth_add_sfloader)(fluid_synth_t* synth, fluid_sfloader_t* loader);
+    extern void(FLUIDSYNTH_IMP* fluid_synth_add_sfloader)(fluid_synth_t* synth, fluid_sfloader_t* loader);
 
     /** @ingroup soundfont_loader */
-    extern fluid_preset_t* (WINAPI* fluid_synth_get_channel_preset)(fluid_synth_t* synth, int chan);
+    extern fluid_preset_t* (FLUIDSYNTH_IMP* fluid_synth_get_channel_preset)(fluid_synth_t* synth, int chan);
 
     /** @ingroup midi_input */
-    extern int (WINAPI* fluid_synth_handle_midi_event)(void* data, fluid_midi_event_t* event);
+    extern int (FLUIDSYNTH_IMP* fluid_synth_handle_midi_event)(void* data, fluid_midi_event_t* event);
 
     /** @ingroup soundfonts */
-    extern int(WINAPI* fluid_synth_pin_preset)(fluid_synth_t* synth, int sfont_id, int bank_num, int preset_num);
+    extern int(FLUIDSYNTH_IMP* fluid_synth_pin_preset)(fluid_synth_t* synth, int sfont_id, int bank_num, int preset_num);
 
     /** @ingroup soundfonts */
-    extern int(WINAPI* fluid_synth_unpin_preset)(fluid_synth_t* synth, int sfont_id, int bank_num, int preset_num);
+    extern int(FLUIDSYNTH_IMP* fluid_synth_unpin_preset)(fluid_synth_t* synth, int sfont_id, int bank_num, int preset_num);
 
     /** @ingroup ladspa */
-    extern fluid_ladspa_fx_t* (WINAPI* fluid_synth_get_ladspa_fx)(fluid_synth_t* synth);
+    extern fluid_ladspa_fx_t* (FLUIDSYNTH_IMP* fluid_synth_get_ladspa_fx)(fluid_synth_t* synth);
 
 #ifdef __cplusplus
 }

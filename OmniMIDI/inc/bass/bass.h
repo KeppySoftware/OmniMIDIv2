@@ -28,15 +28,15 @@ typedef unsigned __int64 QWORD;
 #include <stdint.h>
 #define WINAPI
 #define CALLBACK
-typedef uint8_t BYTE;
-typedef uint16_t WORD;
-typedef uint32_t DWORD;
-typedef uint64_t QWORD;
+#define BYTE uint8_t
+#define WORD uint16_t
+#define DWORD uint32_t
+#define QWORD uint64_t
 #ifdef __OBJC__
-typedef int BOOL32;
+#define BOOL32 int32_t
 #define BOOL BOOL32 // override objc's BOOL
 #else
-typedef int BOOL;
+#define BOOL int
 #endif
 #ifndef TRUE
 #define TRUE 1
@@ -56,15 +56,15 @@ typedef int BOOL;
 
 #define BASSDEF(f)			WINAPI f
 
-typedef DWORD HMUSIC;		// MOD music handle
-typedef DWORD HSAMPLE;		// sample handle
-typedef DWORD HCHANNEL;		// sample playback handle
-typedef DWORD HSTREAM;		// sample stream handle
-typedef DWORD HRECORD;		// recording handle
-typedef DWORD HSYNC;		// synchronizer handle
-typedef DWORD HDSP;			// DSP handle
-typedef DWORD HFX;			// effect handle
-typedef DWORD HPLUGIN;		// plugin handle
+#define HMUSIC DWORD		// MOD music handle
+#define HSAMPLE DWORD		// sample handle
+#define HCHANNEL DWORD		// sample playback handle
+#define HSTREAM DWORD		// sample stream handle
+#define HRECORD DWORD		// recording handle
+#define HSYNC DWORD			// synchronizer handle
+#define HDSP DWORD			// DSP handle
+#define HFX DWORD			// effect handle
+#define HPLUGIN DWORD		// plugin handle
 
 // Error codes returned by BASS_ErrorGetCode
 #define BASS_OK				0	// all is OK

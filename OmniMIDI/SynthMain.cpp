@@ -60,10 +60,10 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 		return &SoundFonts;
 
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-		swprintf_s(OMPath, L"%s\\OmniMIDI\\lists\\OmniMIDI_A.json\0", OMPath);
+		swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\lists\\OmniMIDI_A.json\0", OMPath);
 
 		std::fstream sfs;
-		sfs.open(!list.empty() ? list.c_str() : OMPath, std::fstream::in);
+		sfs.open((char*)(!list.empty() ? list.c_str() : OMPath), std::fstream::in);
 
 		if (sfs.is_open()) {
 			try {
@@ -90,7 +90,13 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 
 								path = SF.path.c_str();
 
-								if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) {
+#ifdef _WIN32
+								if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) 					
+#else
+								std::ifstream fileCheck(path);
+								if (fileCheck.good())
+#endif
+								{
 									SF.xgdrums = subitem["xgdrums"].is_null() ? SF.xgdrums : (bool)subitem["xgdrums"];
 									SF.linattmod = subitem["linattmod"].is_null() ? SF.linattmod : (bool)subitem["linattmod"];
 									SF.lindecvol = subitem["lindecvol"].is_null() ? SF.lindecvol : (bool)subitem["lindecvol"];
@@ -145,7 +151,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 				auto example = eSF.GetExampleList();
 
 				sfs.close();
-				sfs.open(OMPath, std::fstream::out | std::fstream::trunc);
+				sfs.open((char*)OMPath, std::fstream::out | std::fstream::trunc);
 				std::string dump = example.dump(4);
 				sfs.write(dump.c_str(), dump.length());
 				sfs.close();

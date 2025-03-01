@@ -26,6 +26,8 @@
  *
  ****************************************************************************/
 
+#ifdef _WIN32
+
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NONSTDC_NO_WARNINGS
@@ -19314,4 +19316,6 @@ unsigned short* WIN_UTF8ToString(const char* s) { int l = MultiByteToWideChar(CP
 #if (defined(_MSC_VER) && (!defined(WINAPI_FAMILY) || WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP))
 #pragma comment (lib, "winmm.lib")
 #endif
+#endif
+
 #endif

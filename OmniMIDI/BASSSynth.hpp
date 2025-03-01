@@ -19,14 +19,20 @@
 
 #include "inc/bass/bass.h"
 #include "inc/bass/bassmidi.h"
+#define	BASE_IMPORTS	35
 
 #if defined(_WIN32)
 #include "inc/bass/bass_vst.h"
 #include "inc/bass/bassasio.h"
 #include "inc/bass/basswasapi.h"
+#define	ADD_IMPORTS		33
+#else
+#define ADD_IMPORTS		0
 #endif
 
-#define BASSSYNTH_STR "BASSSynth"
+#define FINAL_IMPORTS	BASE_IMPORTS + ADD_IMPORTS
+
+#define BASSSYNTH_STR	"BASSSynth"
 
 namespace OmniMIDI {
 	enum BASSEngine {
@@ -157,7 +163,7 @@ namespace OmniMIDI {
 		Lib* BAsiLib = nullptr;
 		HPLUGIN BFlaLib = 0;
 
-		LibImport LibImports[68] = {
+		LibImport LibImports[FINAL_IMPORTS] = {
 			// BASS
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
@@ -196,10 +202,11 @@ namespace OmniMIDI {
 			ImpFunc(BASS_MIDI_StreamEvents),
 			ImpFunc(BASS_MIDI_StreamGetEvent),
 			ImpFunc(BASS_MIDI_StreamSetFonts),
-			ImpFunc(BASS_MIDI_StreamGetChannel),
+			ImpFunc(BASS_MIDI_StreamGetChannel)
 
+#ifdef _WIN32
 			// BASSWASAPI
-			ImpFunc(BASS_WASAPI_Init),
+			,ImpFunc(BASS_WASAPI_Init),
 			ImpFunc(BASS_WASAPI_Free),
 			ImpFunc(BASS_WASAPI_IsStarted),
 			ImpFunc(BASS_WASAPI_Start),
@@ -210,10 +217,8 @@ namespace OmniMIDI {
 			ImpFunc(BASS_WASAPI_GetLevelEx),
 			ImpFunc(BASS_WASAPI_SetNotify),
 
-#ifdef _WIN32
 			// BASSVST
 			ImpFunc(BASS_VST_ChannelSetDSP),
-#endif
 
 			// BASSASIO
 			ImpFunc(BASS_ASIO_CheckRate),
@@ -238,7 +243,9 @@ namespace OmniMIDI {
 			ImpFunc(BASS_ASIO_Start),
 			ImpFunc(BASS_ASIO_Stop),
 			ImpFunc(BASS_ASIO_IsStarted)
+#endif
 		};
+
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		unsigned char ASIOBuf[2048] = { 0 };

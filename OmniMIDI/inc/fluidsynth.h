@@ -23,10 +23,14 @@
 
 #ifdef WIN32
 #include <Windows.h>
+#define FLUIDSYNTH_IMP WINAPI
+#else
+#define FLUIDSYNTH_IMP
 #endif
+
 #include <stdio.h>
 
-#define BUILD_SHARED_LIBS 1
+#define BUILD_SHARED_LIBS 0
 
 #if (BUILD_SHARED_LIBS == 0)
     #define FLUIDSYNTH_API // building static lib? no visibility control then

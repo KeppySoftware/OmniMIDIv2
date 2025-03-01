@@ -1,3 +1,12 @@
+/*
+
+	OmniMIDI v15+ (Rewrite) for Windows NT
+
+	This file contains the required code to run the driver under Windows 7 SP1 and later.
+	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+
+*/
+
 #ifdef _WIN32
 
 #include "StreamPlayer.hpp"
@@ -22,7 +31,7 @@ OmniMIDI::CookedPlayer::~CookedPlayer() {
 
 void OmniMIDI::CookedPlayer::PlayerThread() {
 	bool noMoreDelta = false;
-	unsigned long long deltaMicroseconds = 0;
+	unsigned long deltaMicroseconds = 0;
 
 	LOG("PlayerThread is ready.");
 	while (!goToBed) {
@@ -72,13 +81,13 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 				deltaMicroseconds = (tempo * deltaTicks / ticksPerQN);
 				timeAcc += deltaMicroseconds;
 
-				MiscFuncs.uSleep(((signed long long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
+				MiscFuncs.uSleep(((signed long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
 				noMoreDelta = true;
 				
 				break;
 			}
 			else if (smpte) {
-				double fpsToFrlen = (1000000 / smpteFramerate) / smpteFrameTicks;
+				unsigned long fpsToFrlen = (unsigned long)((1000000 / smpteFramerate) / smpteFrameTicks);
 				timeAcc += fpsToFrlen;
 				MiscFuncs.uSleep(fpsToFrlen * -1);
 			}
@@ -201,7 +210,7 @@ bool OmniMIDI::CookedPlayer::EmptyQueue() {
 }
 
 void OmniMIDI::CookedPlayer::GetPosition(MMTIME* mmtime) {
-	signed long long totalSeconds = timeAcc / 1000000;
+	signed long totalSeconds = timeAcc / 1000000;
 	unsigned int playedSamples = (unsigned int)(timeAcc / (1000000 / synthModule->GetSampleRate()));
 
 	mmtime->u.cb = byteAcc;
@@ -212,7 +221,7 @@ void OmniMIDI::CookedPlayer::GetPosition(MMTIME* mmtime) {
 	mmtime->u.smpte.frame = (unsigned char)(totalSeconds / smpteFrameTicks) % smpteFramerate;
 	mmtime->u.smpte.sec = totalSeconds % 60;
 	mmtime->u.smpte.min = (totalSeconds / 60) % 60;
-	mmtime->u.smpte.hour = totalSeconds / 3600;
+	mmtime->u.smpte.hour = (unsigned char)(totalSeconds / 3600);
 
 	mmtime->u.sample = playedSamples;
 

@@ -63,13 +63,13 @@ namespace OmniMIDI {
 		unsigned char smpteFramerate = 30;
 		unsigned char smpteFrameTicks = 4;
 		double smpteFrameLen = 3.33333333333333364E+39;
-		unsigned long long timeAcc = 0;
+		unsigned long timeAcc = 0;
 
 		unsigned int tempo = 500000;
 		unsigned short ticksPerQN = 0x18;
 		unsigned int bpm = 60000000 / tempo;
-		unsigned long long byteAcc = 0;
-		unsigned long long tickAcc = 0;
+		unsigned long byteAcc = 0;
+		unsigned long tickAcc = 0;
 
 		std::jthread _CooThread;
 		void PlayerThread();

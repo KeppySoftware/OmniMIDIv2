@@ -8,6 +8,14 @@
 
 #include "ErrSys.hpp"
 
+void ErrorSystem::Logger::ShowError(const char* Message, const char* Title, bool IsSeriousError) {
+#if defined(_WIN32) && !defined(_M_ARM)
+	MsgBox(NULL, Message, Title, IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+#else
+	std::cout << Message << std::endl;
+#endif
+}
+
 void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
 #if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
@@ -24,6 +32,8 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 	delete[] tBuf;
 
 	va_end(vl);
+#else
+	std::cout << Message << std::endl;
 #endif
 }
 
@@ -78,6 +88,8 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	}
 
 	va_end(vl);
+#else
+	std::cout << Error << std::endl;
 #endif
 }
 
@@ -97,7 +109,8 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
 	std::async([&Buf]() { std::cout << Buf << std::endl; });
 	delete[] Buf;
-
-	throw std::runtime_error(Error);
+#else
+	std::cout << Error << std::endl;
 #endif
+	throw std::runtime_error(Error);
 }
