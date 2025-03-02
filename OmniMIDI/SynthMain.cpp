@@ -48,7 +48,6 @@ bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
 				assert(swp != -1);
 
 				if (swp != -1) {
-					LOG("Will it work? %s", Name);
 					Library = loadLib(DLLPath);
 					lastErr = getError();
 
@@ -71,18 +70,12 @@ bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
 
 					if (!Library)
 					{
-						LOG("No %s at \"%s\" (ERR: %x), trying from system folder...", Name, DLLPath, lastErr);
-
 						if (Utils.GetFolderPath(OMShared::FIDs::CurrentDirectory, SysDir, sizeof(SysDir))) {
 #ifdef _WIN32
 							swp = snprintf(DLLPath, MAX_PATH, "%s/%s", SysDir, Name);
 #else
 							swp = snprintf(DLLPath, MAX_PATH, "%s/lib%s.so", SysDir, Name);
 #endif
-							assert(swp != -1);
-
-							LOG("No %s at \"%s\"!!! ERROR %x!", Name, DLLPath, lastErr);
-
 							assert(swp != -1);
 							if (swp != -1) {
 								Library = loadLib(DLLPath);
@@ -196,17 +189,12 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 		return &SoundFonts;
 
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils))) {
-		LOG("got user folder");
-
 		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
-		LOG("got final path");
 
 		std::fstream sfs;
 		sfs.open(!list.empty() ? list.c_str() : OMPath, std::fstream::in);
 
 		if (sfs.is_open()) {
-			LOG("SF list is open");
-
 			try {
 				// Read the JSON data from there
 				auto json = nlohmann::json::parse(sfs, nullptr, false, true);

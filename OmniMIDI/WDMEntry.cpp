@@ -57,7 +57,7 @@ extern "C" {
 						}
 					}
 
-#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
 					if (AllocConsole()) {
 						FILE* dummy;
 						freopen_s(&dummy, "CONOUT$", "w", stdout);
@@ -82,7 +82,7 @@ extern "C" {
 
 		case DLL_PROCESS_DETACH:
 			if (DriverComponent) {
-#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
 				FreeConsole();
 #endif
 
@@ -555,7 +555,7 @@ extern "C" {
 	// Internal benchmark tools for myself!!!
 
 	EXPORT void WINAPI BufferThroughput(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow) {
-#if !defined(_DEBUG) && !defined(WIN7VERBOSE)
+#if !defined(_DEBUG) && !defined(VERBOSE_LOG)
 		if (AllocConsole()) {
 			FILE* dummy;
 			freopen_s(&dummy, "CONOUT$", "w", stdout);

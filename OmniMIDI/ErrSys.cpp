@@ -24,7 +24,7 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 	char* tBuf = new char[BufSize];
 
 	vsnprintf(tBuf, SZBufSize, Message, vl);
-	snprintf(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
+	snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
 	std::cout << cBuf << std::endl;
 
 	delete[] cBuf;
@@ -71,10 +71,10 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 		vsnprintf(tBuf, SZBufSize, Error, vl);
 
 #if defined(_DEBUG) || defined(WIN7VERBOSE)
-		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s",
+		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %lu - Error: %s",
 			Func, File, Line, tBuf);
 
-		snprintf(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
+		snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
 		std::cout << cBuf << std::endl;
 		delete[] cBuf;
 
@@ -94,7 +94,7 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 	char* Buf = new char[BufSize];
 
 #if defined(_DEBUG) || defined(WIN7VERBOSE)
-	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
+	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %lu - Error:%s",
 		Func, File, Line, Error);
 #else
 	snprintf(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 

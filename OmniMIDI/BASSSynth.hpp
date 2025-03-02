@@ -19,13 +19,13 @@
 
 #include "inc/bass/bass.h"
 #include "inc/bass/bassmidi.h"
-#define	BASE_IMPORTS	35
+#include "inc/bass/bass_fx.h"
+#define	BASE_IMPORTS	36
 
 #if defined(_WIN32)
-#include "inc/bass/bass_vst.h"
 #include "inc/bass/bassasio.h"
 #include "inc/bass/basswasapi.h"
-#define	ADD_IMPORTS		33
+#define	ADD_IMPORTS		32
 #define DEFAULT_ENGINE	WASAPI
 #else
 #define ADD_IMPORTS		0
@@ -69,6 +69,7 @@ namespace OmniMIDI {
 		bool ExperimentalMultiThreaded = false;
 		size_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 
+#ifdef _WIN32
 		// WASAPI
 		float WASAPIBuf = 32.0f;
 
@@ -77,6 +78,7 @@ namespace OmniMIDI {
 		std::string ASIODevice = "None";
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
+#endif
 
 		BASSSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
 
@@ -160,9 +162,13 @@ namespace OmniMIDI {
 	private:
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;
+		Lib* BEfxLib = nullptr;
+
+#ifdef _WIN32
 		Lib* BWasLib = nullptr;
-		Lib* BVstLib = nullptr;
 		Lib* BAsiLib = nullptr;
+#endif
+
 		HPLUGIN BFlaLib = 0;
 
 		LibImport LibImports[FINAL_IMPORTS] = {
@@ -181,7 +187,6 @@ namespace OmniMIDI {
 			ImpFunc(BASS_ChannelStop),
 			ImpFunc(BASS_ChannelUpdate),
 			ImpFunc(BASS_ErrorGetCode),
-			ImpFunc(BASS_FXSetParameters),
 			ImpFunc(BASS_Free),
 			ImpFunc(BASS_Update),
 			ImpFunc(BASS_GetDevice),
@@ -204,7 +209,10 @@ namespace OmniMIDI {
 			ImpFunc(BASS_MIDI_StreamEvents),
 			ImpFunc(BASS_MIDI_StreamGetEvent),
 			ImpFunc(BASS_MIDI_StreamSetFonts),
-			ImpFunc(BASS_MIDI_StreamGetChannel)
+			ImpFunc(BASS_MIDI_StreamGetChannel),
+
+			ImpFunc(BASS_FXGetParameters),
+			ImpFunc(BASS_FXSetParameters)
 
 #ifdef _WIN32
 			// BASSWASAPI
@@ -218,9 +226,6 @@ namespace OmniMIDI {
 			ImpFunc(BASS_WASAPI_GetDevice),
 			ImpFunc(BASS_WASAPI_GetLevelEx),
 			ImpFunc(BASS_WASAPI_SetNotify),
-
-			// BASSVST
-			ImpFunc(BASS_VST_ChannelSetDSP),
 
 			// BASSASIO
 			ImpFunc(BASS_ASIO_CheckRate),
@@ -251,6 +256,7 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		unsigned char ASIOBuf[2048] = { 0 };
+		HFX audioLimiter = 0;
 		unsigned int* AudioStreams = nullptr;
 		std::jthread _BASThread;
 

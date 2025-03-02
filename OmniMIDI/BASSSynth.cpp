@@ -246,6 +246,9 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 	if (!BMidLib->LoadLib())
 		return false;
 
+	if (!BEfxLib->LoadLib())
+		return false;
+
 	switch (Settings->AudioEngine) {
 #ifdef _WIN32
 	case WASAPI:
@@ -263,22 +266,19 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 		break;
 	}
 
-#if defined(WIN32) && (!defined(_M_ARM) && !defined(_M_ARM64))
-	if (Settings->LoudMax)
-	{
-		if (!BVstLib->LoadLib())
-			return false;
-	}
-#endif
-
 	return true;
 }
 
 bool OmniMIDI::BASSSynth::ClearFuncs() {
-	if (!BAsiLib->UnloadLib())
+#if defined(WIN32) && (!defined(_M_ARM) && !defined(_M_ARM64))
+	if (!BWasLib->UnloadLib())
 		return false;
 
-	if (!BWasLib->UnloadLib())
+	if (!BAsiLib->UnloadLib())
+		return false;
+#endif
+
+	if (!BEfxLib->UnloadLib())
 		return false;
 
 	if (!BMidLib->UnloadLib())
@@ -286,11 +286,6 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 
 	if (!BAudLib->UnloadLib())
 		return false;
-
-#if defined(WIN32) && (!defined(_M_ARM) && !defined(_M_ARM64))
-	if (!BVstLib->UnloadLib())
-		return false;
-#endif
 
 	return true;
 }
@@ -380,17 +375,15 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	if (!BMidLib)
 		BMidLib = new Lib("bassmidi", ErrLog, &ptr, LibImportsSize);
 
+	if (!BEfxLib)
+		BEfxLib = new Lib("bass_fx", ErrLog, &ptr, LibImportsSize);
+
 #if defined(_WIN32)
 	if (!BWasLib)
 		BWasLib = new Lib("basswasapi", ErrLog, &ptr, LibImportsSize);
 
 	if (!BAsiLib)
 		BAsiLib = new Lib("bassasio", ErrLog, &ptr, LibImportsSize);
-#endif
-
-#if defined(_WIN32) && (defined(_M_AMD64) || defined(_M_IX86))
-	if (!BVstLib)
-		BVstLib = new Lib("bass_vst", ErrLog, &ptr, LibImportsSize);
 #endif
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
@@ -441,12 +434,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	bool bInfoGood = false;
 	bool noFreqChange = false;
 	double devFreq = 0.0;
-	double asioFreq = (double)Settings->SampleRate;
-	unsigned int leftChID = -1, rightChID = -1;
-	unsigned int minBuf = 0;
-	const char* lCh = Settings->ASIOLCh.c_str();
-	const char* rCh = Settings->ASIORCh.c_str();
-	const char* dev = Settings->ASIODevice.c_str();
 	BASS_INFO defInfo = BASS_INFO();
 
 #if defined(_WIN32)
@@ -456,6 +443,13 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	bool asioCheck = false;
 	unsigned int asioCount = 0, asioDev = 0;
+
+	double asioFreq = (double)Settings->SampleRate;
+	unsigned int leftChID = -1, rightChID = -1;
+	unsigned int minBuf = 0;
+	const char* lCh = Settings->ASIOLCh.c_str();
+	const char* rCh = Settings->ASIORCh.c_str();
+	const char* dev = Settings->ASIODevice.c_str();
 #endif
 
 	unsigned int deviceFlags = 
@@ -470,11 +464,13 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	if ((Settings->AudioEngine < Internal || Settings->AudioEngine > BASSENGINE_COUNT) || Settings->AudioEngine == XAudio2)
 		Settings->AudioEngine = Internal;
 
+#ifdef _WIN32
 	if (!(streamFlags & BASS_SAMPLE_FLOAT) && 
 		Settings->AudioEngine == ASIO) {
 		NERROR("The selected engine does not support integer audio.\nIt will render with floating point audio.", false);
 		streamFlags |= BASS_SAMPLE_FLOAT;
 	}
+#endif
 
 	if (Settings->ExperimentalMultiThreaded) {
 		if (Settings->AudioEngine != Internal)
@@ -513,10 +509,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		BASS_SetConfig(BASS_CONFIG_BUFFER, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-
-#ifndef _WIN32
-		minBuf += 30;
-#endif
 
 		BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, bInfoGood ? defInfo.minbuf : 0);
 		BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, bInfoGood ? (defInfo.minbuf * 2) : 0);
@@ -722,26 +714,22 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	char* tmpUtils = new char[MAX_PATH];
 
 	// Sorry ARM users!
-#if defined(_WIN32) && (defined(_M_AMD64) || defined(_M_IX86))
-	if (Settings->FloatRendering) {
-		if (Settings->LoudMax && Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH))
-		{
-#if defined(_M_AMD64)
-			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/LoudMax/LoudMax64.dll", tmpUtils);
-#elif defined(_M_IX86)
-			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/LoudMax/LoudMax32.dll", tmpUtils);
-#endif
 
-			if (Utils.DoesFileExist(OMPath)) {
-				for (int i = 0; i < AudioStreamSize; i++) {
-					if (AudioStreams[i] != 0) {
-						BASS_VST_ChannelSetDSP(AudioStreams[i], OMPath, BASS_UNICODE, 1);
-					}
-				}
+	if (Settings->FloatRendering && Settings->LoudMax) {
+		BASS_BFX_COMPRESSOR2 compressor;
+		LOG("Enabling compressor...");
+
+		for (int i = 0; i < AudioStreamSize; i++) {
+			if (AudioStreams[i] != 0) {
+				audioLimiter = BASS_ChannelSetFX(AudioStreams[i], BASS_FX_BFX_COMPRESSOR2, 0);
 			}
 		}
+
+		BASS_FXGetParameters(audioLimiter, &compressor);
+		BASS_FXSetParameters(audioLimiter, &compressor);
+		LOG("Got compressor...");
 	}
-#endif
+
 
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH)) {
 #ifdef _WIN32
