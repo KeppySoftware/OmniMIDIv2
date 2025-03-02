@@ -26,7 +26,6 @@ bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
 	char DLLPath[MAX_PATH] = { 0 };
 
 	int swp = 0;
-	int lastErr = 0;
 
 	if (Library == nullptr) {
 #ifdef _WIN32
@@ -49,7 +48,6 @@ bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
 
 				if (swp != -1) {
 					Library = loadLib(DLLPath);
-					lastErr = getError();
 
 					if (!Library)
 						return false;
@@ -66,7 +64,6 @@ bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
 
 				if (swp != -1) {
 					Library = loadLib(Name);
-					lastErr = getError();
 
 					if (!Library)
 					{

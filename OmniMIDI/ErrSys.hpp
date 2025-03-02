@@ -27,14 +27,14 @@
 #include <Windows.h>
 #include <Psapi.h>
 #else
-#define WIN7VERBOSE
+#define VERBOSE_LOG
 #include <stdarg.h>
 #endif
 
 #ifdef _WIN32
 #define MsgBox						MessageBoxA
 #else
-#define MsgBox
+#define MsgBox(...)					0
 #define MB_ICONWARNING				0
 #define MB_ICONERROR				0
 #define MB_SYSTEMMODAL				0
@@ -49,7 +49,7 @@
 #define FNERROR(text)				ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
 
 #define LOGI(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
-#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
 #define LOG(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #define LOGV(text, ...)				ErrLog->Log(S1(text), __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #else

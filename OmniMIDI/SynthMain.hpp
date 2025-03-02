@@ -406,8 +406,8 @@ namespace OmniMIDI {
 			}
 
 
-			char* userProfile = new char[MAX_PATH];
-			SettingsPath = new char[MAX_PATH_LONG];
+			char* userProfile = new char[MAX_PATH] { 0 };
+			SettingsPath = new char[MAX_PATH_LONG] { 0 };
 			size_t szSetPath = sizeof(SettingsPath) * MAX_PATH_LONG;
 
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile) * MAX_PATH)) {

@@ -711,8 +711,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		return false;
 	}
 
-	char* tmpUtils = new char[MAX_PATH];
-
 	// Sorry ARM users!
 
 	if (Settings->FloatRendering && Settings->LoudMax) {
@@ -731,19 +729,20 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 
 
+	char* tmpUtils = new char[MAX_PATH] { 0 };
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH)) {
 #ifdef _WIN32
-		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/libbassflac.so", tmpUtils);
-#else
 		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/bassflac", tmpUtils);
+#else		
+		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/libbassflac.so", tmpUtils);
 #endif
 
+		LOG("BFlaLib >> %s", OMPath);
 		BFlaLib = BASS_PluginLoad(OMPath, BASS_UNICODE);
 
 		if (!BFlaLib) LOG("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLib);
 		else LOG("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLib);
 	}
-
 	delete[] tmpUtils;
 
 	for (int i = 0; i < AudioStreamSize; i++) {
