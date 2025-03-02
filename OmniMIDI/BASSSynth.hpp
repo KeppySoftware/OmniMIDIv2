@@ -85,13 +85,10 @@ namespace OmniMIDI {
 		void RewriteSynthConfig() override {
 			nlohmann::json DefConfig = {
 				ConfGetVal(AsyncMode),
-				ConfGetVal(ASIODevice),
-				ConfGetVal(ASIOLCh),
-				ConfGetVal(ASIORCh),
 				ConfGetVal(StreamDirectFeed),
 				ConfGetVal(FloatRendering),
 				ConfGetVal(MonoRendering),
-				ConfGetVal(ASIOChunksDivision),
+
 				ConfGetVal(OneThreadMode),
 				ConfGetVal(ExperimentalMultiThreaded),
 				ConfGetVal(FollowOverlaps),
@@ -101,7 +98,14 @@ namespace OmniMIDI {
 				ConfGetVal(LoudMax),
 				ConfGetVal(RenderTimeLimit),
 				ConfGetVal(VoiceLimit),
-				ConfGetVal(WASAPIBuf)
+
+#if defined(_WIN32)
+				ConfGetVal(ASIODevice),
+				ConfGetVal(ASIOLCh),
+				ConfGetVal(ASIORCh),
+				ConfGetVal(ASIOChunksDivision),
+				ConfGetVal(WASAPIBuf),
+#endif
 			};
 
 			if (AppendToConfig(DefConfig))
@@ -123,16 +127,19 @@ namespace OmniMIDI {
 				SynthSetVal(bool, FloatRendering);
 				SynthSetVal(bool, MonoRendering);
 				SynthSetVal(bool, FollowOverlaps);
-				SynthSetVal(float, WASAPIBuf);
 				SynthSetVal(int, AudioEngine);
-				SynthSetVal(std::string, ASIODevice);
-				SynthSetVal(std::string, ASIOLCh);
-				SynthSetVal(std::string, ASIORCh);
 				SynthSetVal(unsigned int, SampleRate);
 				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, RenderTimeLimit);
 				SynthSetVal(unsigned int, VoiceLimit);
+
+#ifdef _WIN32
+				SynthSetVal(std::string, ASIODevice);
+				SynthSetVal(std::string, ASIOLCh);
+				SynthSetVal(std::string, ASIORCh);
 				SynthSetVal(unsigned int, ASIOChunksDivision);
+				SynthSetVal(float, WASAPIBuf);
+#endif
 
 				if (SampleRate == 0 || SampleRate > 384000)
 					SampleRate = 48000;
@@ -212,11 +219,11 @@ namespace OmniMIDI {
 			ImpFunc(BASS_MIDI_StreamGetChannel),
 
 			ImpFunc(BASS_FXGetParameters),
-			ImpFunc(BASS_FXSetParameters)
+			ImpFunc(BASS_FXSetParameters),
 
 #ifdef _WIN32
 			// BASSWASAPI
-			,ImpFunc(BASS_WASAPI_Init),
+			ImpFunc(BASS_WASAPI_Init),
 			ImpFunc(BASS_WASAPI_Free),
 			ImpFunc(BASS_WASAPI_IsStarted),
 			ImpFunc(BASS_WASAPI_Start),

@@ -70,7 +70,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 
 		vsnprintf(tBuf, SZBufSize, Error, vl);
 
-#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
 		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %lu - Error: %s",
 			Func, File, Line, tBuf);
 
@@ -93,7 +93,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line) {
 	char* Buf = new char[BufSize];
 
-#if defined(_DEBUG) || defined(WIN7VERBOSE)
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
 	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %lu - Error:%s",
 		Func, File, Line, Error);
 #else

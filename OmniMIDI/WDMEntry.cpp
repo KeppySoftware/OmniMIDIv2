@@ -7,10 +7,6 @@
 
 */
 
-#ifdef _WIN32
-
-#ifdef _MSC_VER
-
 #ifdef _WIN64
 #define EXPORT	__declspec(dllexport) 
 #define APICALL
@@ -18,14 +14,6 @@
 #define EXPORT
 #define APICALL __stdcall
 #endif
-
-#else
-
-#define EXPORT
-#define APICALL
-
-#endif
-
 
 #include "WDMEntry.hpp"
 
@@ -550,135 +538,6 @@ extern "C" {
 
 		return Host->GetActiveVoices();
 	}
-
-#if defined(_WIN32) && defined(_MSC_VER)
-	// Internal benchmark tools for myself!!!
-
-	EXPORT void WINAPI BufferThroughput(HWND hwnd, HINSTANCE hinst, LPWSTR pszCmdLine, int nCmdShow) {
-#if !defined(_DEBUG) && !defined(VERBOSE_LOG)
-		if (AllocConsole()) {
-			FILE* dummy;
-			freopen_s(&dummy, "CONOUT$", "w", stdout);
-			freopen_s(&dummy, "CONOUT$", "w", stderr);
-			freopen_s(&dummy, "CONIN$", "r", stdin);
-			std::cout.clear();
-			std::clog.clear();
-			std::cerr.clear();
-			std::cin.clear();
-		}
-		else exit(0);
-#else
-		FILE* dummy;
-		freopen_s(&dummy, "CONOUT$", "w", stdout);
-		freopen_s(&dummy, "CONOUT$", "w", stderr);
-		freopen_s(&dummy, "CONIN$", "r", stdin);
-		std::cout.clear();
-		std::clog.clear();
-		std::cerr.clear();
-		std::cin.clear();
-#endif
-
-		volatile bool stop = true;
-		volatile bool waitThread = false;
-
-		std::vector<size_t> mesS, mesR, mesW;
-		size_t avgS = 0, avgR = 0, avgW = 0;
-		std::atomic<size_t> senderBufProc = 0, receiverBufProc = 0, waitingBufProc = 0;
-
-		OMShared::Funcs d;
-		OmniMIDI::EvBuf* buffer = new OmniMIDI::EvBuf(0x7FFFFFF);
-		int count = 0;
-		int interval = 5;
-
-		std::jthread sender;
-		std::jthread receiver;
-		std::jthread checker;
-		std::stop_source ssource;
-
-		sender = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.MicroSleep(-1);
-
-			while (!stoken.stop_requested()) {
-				while (waitThread);
-
-				buffer->Write(0x10, 0x10, 0x10);
-				senderBufProc++;
-			}
-			});
-
-		receiver = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.MicroSleep(-1);
-
-			while (!stoken.stop_requested()) {
-				while (waitThread);
-
-				if (buffer->Read())
-					receiverBufProc++;
-				else
-					waitingBufProc++;
-			}
-			});
-
-		checker = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.MicroSleep(-1);
-
-			while (!stoken.stop_requested()) {
-				d.MicroSleep(-2500000);
-				waitThread = true;
-
-				auto s = (size_t)senderBufProc * 4;
-				auto r = (size_t)receiverBufProc * 4;
-				auto w = (size_t)waitingBufProc * 4;
-				mesS.push_back(s);
-				mesR.push_back(r);
-				mesW.push_back(w);
-
-				LOG("sent %llu - received %llu (lost %llu)", mesS[count], mesR[count], mesW[count]);
-				count++;
-
-				senderBufProc = 0;
-				receiverBufProc = 0;
-				waitingBufProc = 0;
-
-				waitThread = false;
-			}
-			});
-
-		MessageBoxA(NULL, "Press OK to start benchmark", "OMB", MB_OK | MB_SYSTEMMODAL);
-
-		stop = false;
-		Sleep(interval * 1000);
-		ssource.request_stop();
-		sender.join();
-		receiver.join();
-		checker.join();
-
-		for (int i = 0; i < mesS.size(); i++) {
-			avgS += mesS[i];
-			avgR += mesR[i];
-			avgW += mesW[i];
-		}
-
-		auto totalS = avgS;
-		auto totalR = avgR;
-		auto totalW = avgW;
-		auto potential = totalR + totalW;
-		auto lost = std::abs((long long)totalR - (long long)totalS);
-		avgS = avgS / mesS.size();
-		avgR = avgR / mesS.size();
-		avgW = avgW / mesW.size();
-		auto avgPotential = avgR + avgW;
-
-		int perc = 10000 - (totalW * 10000 + potential / 2) / potential;
-
-		char* Text = new char[256];
-
-		sprintf(Text, "Sent %llu ev/sec, and processed %llu ev/sec (%llu/%llu ?%llu). The theoretical maximum could be %llu ev/sec. (Loss percentage is %0.2f%%)", avgS, avgR, totalS, totalR, lost, avgPotential, 100.0f - ((float)perc / 100.0f));
-		MessageBoxA(NULL, Text, "OMB", MB_OK | MB_SYSTEMMODAL);
-	}
-
-
-#endif
 }
 
 #endif

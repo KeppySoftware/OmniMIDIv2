@@ -199,6 +199,7 @@ void OmniMIDI::BASSSynth::ProcessEvBufChk() {
 	while (ShortEvents->NewEventsAvailable());
 }
 
+#if defined(_WIN32)
 unsigned long CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, unsigned long length, BASSSynth* me) {
 	auto buf = (unsigned char*)buffer;
 	unsigned long len = 0;
@@ -220,7 +221,6 @@ unsigned long CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void* buffer, unsig
 	return AudioProcesser(buffer, length, me);
 }
 
-#if defined(_WIN32)
 unsigned long CALLBACK OmniMIDI::BASSSynth::WasapiProc(void* buffer, unsigned long length, void* user) {
 	return AudioProcesser(buffer, length, (BASSSynth*)user);
 }
@@ -434,6 +434,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	bool bInfoGood = false;
 	bool noFreqChange = false;
 	double devFreq = 0.0;
+	unsigned int minBuf = 0;
 	BASS_INFO defInfo = BASS_INFO();
 
 #if defined(_WIN32)
@@ -446,7 +447,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	double asioFreq = (double)Settings->SampleRate;
 	unsigned int leftChID = -1, rightChID = -1;
-	unsigned int minBuf = 0;
 	const char* lCh = Settings->ASIOLCh.c_str();
 	const char* rCh = Settings->ASIORCh.c_str();
 	const char* dev = Settings->ASIODevice.c_str();

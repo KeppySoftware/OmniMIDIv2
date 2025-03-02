@@ -47,8 +47,11 @@ target("OmniMIDI")
 		add_ldflags("-shared")
 		add_syslinks("asound")
 
+		remove_files("bassasio.cpp")
+		remove_files("basswasapi.cpp")
+		remove_files("WDMEntry.cpp")
 		remove_files("StreamPlayer.cpp")
 		remove_files("WDMDrv.cpp")
-		remove_files("WDMEntry.cpp")
+		remove_files("WDMEntry.cpp")	
 	end
 target_end()

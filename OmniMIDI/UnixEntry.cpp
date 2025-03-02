@@ -326,6 +326,15 @@ extern "C" {
         SendDirectData(ev);
     }
 
+    unsigned int EXPORT SendDirectLongData(char* IIMidiHdr, unsigned int IIMidiHdrSize) {
+        return Host->PlayLongEvent(IIMidiHdr, IIMidiHdrSize) == SYNTH_OK ? 0 : 11;
+    }
+
+    unsigned int EXPORT SendDirectLongDataNoBuf(char* IIMidiHdr, unsigned int IIMidiHdrSize) {
+        // Unsupported, forward to SendDirectLongData
+        return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
+    }
+
     int EXPORT SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
         return Host->TalkToSynthDirectly(evt, chan, param);
     }
