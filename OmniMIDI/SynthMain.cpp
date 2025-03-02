@@ -8,6 +8,141 @@
 
 #include "SynthMain.hpp"
 
+OmniMIDI::Lib::Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
+	Name = pName;
+	Funcs = *pFuncs;
+	FuncsCount = pFuncsCount;
+	ErrLog = PErr;
+}
+
+OmniMIDI::Lib::~Lib() {
+	UnloadLib();
+}
+
+bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
+	OMShared::Funcs Utils;
+
+	char SysDir[MAX_PATH] = { 0 };
+	char DLLPath[MAX_PATH] = { 0 };
+
+	int swp = 0;
+	int lastErr = 0;
+
+	if (Library == nullptr) {
+#ifdef _WIN32
+		if ((Library = getLib(Name)) != nullptr)
+		{
+			// (TODO) Make it so we can load our own version of it
+			// For now, just make the driver try and use that instead
+			LOG("%s already in memory.", Name);
+			return (AppSelfHosted = true);
+		}
+		else {
+#endif
+			if (CustomPath != nullptr) {
+#ifdef _WIN32
+				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/%s", CustomPath, Name);
+#else
+				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/lib%s.so", CustomPath, Name);
+#endif
+				assert(swp != -1);
+
+				if (swp != -1) {
+					LOG("Will it work? %s", Name);
+					Library = loadLib(DLLPath);
+					lastErr = getError();
+
+					if (!Library)
+						return false;
+				}
+				else return false;
+			}
+			else {
+#ifdef _WIN32
+				swp = snprintf(DLLPath, sizeof(DLLPath), "%s", Name);
+#else
+				swp = snprintf(DLLPath, sizeof(DLLPath), "lib%s", Name);
+#endif
+				assert(swp != -1);
+
+				if (swp != -1) {
+					Library = loadLib(Name);
+					lastErr = getError();
+
+					if (!Library)
+					{
+						LOG("No %s at \"%s\" (ERR: %x), trying from system folder...", Name, DLLPath, lastErr);
+
+						if (Utils.GetFolderPath(OMShared::FIDs::CurrentDirectory, SysDir, sizeof(SysDir))) {
+#ifdef _WIN32
+							swp = snprintf(DLLPath, MAX_PATH, "%s/%s", SysDir, Name);
+#else
+							swp = snprintf(DLLPath, MAX_PATH, "%s/lib%s.so", SysDir, Name);
+#endif
+							assert(swp != -1);
+
+							LOG("No %s at \"%s\"!!! ERROR %x!", Name, DLLPath, lastErr);
+
+							assert(swp != -1);
+							if (swp != -1) {
+								Library = loadLib(DLLPath);
+								assert(Library != 0);
+
+								if (!Library) {
+									NERROR("The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, Name);
+									return false;
+								}
+							}
+							else return false;
+						}
+						else return false;
+					}
+				}
+				else return false;
+
+			}
+#ifdef _WIN32
+		}
+#endif
+	}
+
+	LOG("%s --> 0x%08x", Name, Library);
+
+	for (size_t i = 0; i < FuncsCount; i++)
+	{
+		if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
+			LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+	}
+
+	LOG("%s ready!", Name);
+
+	Initialized = true;
+	return true;
+}
+
+bool OmniMIDI::Lib::UnloadLib() {
+	if (Library != nullptr) {
+		if (AppSelfHosted)
+		{
+			AppSelfHosted = false;
+		}
+		else {
+			bool r = freeLib(Library);
+			assert(r == true);
+			if (!r) {
+				throw;
+			}
+			else LOG("%s unloaded.", Name);
+		}
+
+		Library = nullptr;
+	}
+
+	LoadFailed = false;
+	Initialized = false;
+	return true;
+}
+
 void OmniMIDI::SoundFontSystem::SoundFontThread() {
 	while (StayAwake) {
 		if (ListPath) {
@@ -23,7 +158,7 @@ void OmniMIDI::SoundFontSystem::SoundFontThread() {
 			}
 		}
 
-		MiscFuncs.uSleep(-1000000);
+		Utils.MicroSleep(-1000000);
 	}
 }
 
@@ -51,21 +186,27 @@ bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
 	return true;
 }
 
-std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstring list) {
-	wchar_t OMPath[MAX_PATH_LONG] = { 0 };
+std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::string list) {
+	char tmpUtils[MAX_PATH] = { 0 };
+	char OMPath[MAX_PATH_LONG] = { 0 };
 	const char* path = nullptr;
 	bool succeed = false;
 
 	if (SoundFonts.size() > 0)
 		return &SoundFonts;
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-		swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\lists\\OmniMIDI_A.json\0", OMPath);
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils))) {
+		LOG("got user folder");
+
+		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
+		LOG("got final path");
 
 		std::fstream sfs;
-		sfs.open((char*)(!list.empty() ? list.c_str() : OMPath), std::fstream::in);
+		sfs.open(!list.empty() ? list.c_str() : OMPath, std::fstream::in);
 
 		if (sfs.is_open()) {
+			LOG("SF list is open");
+
 			try {
 				// Read the JSON data from there
 				auto json = nlohmann::json::parse(sfs, nullptr, false, true);
@@ -90,12 +231,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 
 								path = SF.path.c_str();
 
-#ifdef _WIN32
-								if (GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES) 					
-#else
-								std::ifstream fileCheck(path);
-								if (fileCheck.good())
-#endif
+								if (Utils.DoesFileExist(SF.path))
 								{
 									SF.xgdrums = subitem["xgdrums"].is_null() ? SF.xgdrums : (bool)subitem["xgdrums"];
 									SF.linattmod = subitem["linattmod"].is_null() ? SF.linattmod : (bool)subitem["linattmod"];
@@ -118,10 +254,10 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::wstri
 							// If it's not, then let's loop until the end of the JSON struct
 						}
 
-						ListPath = new wchar_t[MAX_PATH_LONG];
+						ListPath = new char[MAX_PATH_LONG];
 
 						if (ListPath)
-							wcscpy(ListPath, OMPath);
+							strncpy(ListPath, OMPath, sizeof(OMPath));
 
 						succeed = true;
 					}

@@ -42,7 +42,7 @@ bool OmniMIDI::SynthHost::SpFree() {
 #endif
 
 void OmniMIDI::SynthHost::HostHealthCheck() {
-	wchar_t* confPath = _SHSettings->GetConfigPath();
+	char* confPath = _SHSettings->GetConfigPath();
 
 	if (confPath) {
 		auto ftime = std::filesystem::last_write_time(confPath);

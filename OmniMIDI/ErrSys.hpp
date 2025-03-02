@@ -26,12 +26,16 @@
 #include <tchar.h>
 #include <Windows.h>
 #include <Psapi.h>
+#else
+#define WIN7VERBOSE
+#include <stdarg.h>
 #endif
 
 #ifdef _WIN32
 #define MsgBox						MessageBoxA
 #else
 #define MsgBox
+#define MB_ICONWARNING				0
 #define MB_ICONERROR				0
 #define MB_SYSTEMMODAL				0
 #define MB_OK						0

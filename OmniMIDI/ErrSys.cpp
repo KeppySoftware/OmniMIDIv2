@@ -17,38 +17,35 @@ void ErrorSystem::Logger::ShowError(const char* Message, const char* Title, bool
 }
 
 void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
-#if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
 	va_start(vl, Line);
-	
-	char* cBuf = new char[SZBufSize];
-	char* tBuf = new char[SZBufSize];
-	
-	vsprintf_s(tBuf, SZBufSize, Message, vl);
-	sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
+
+	char* cBuf = new char[BufSize];
+	char* tBuf = new char[BufSize];
+
+	vsnprintf(tBuf, SZBufSize, Message, vl);
+	snprintf(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
 	std::cout << cBuf << std::endl;
 
 	delete[] cBuf;
 	delete[] tBuf;
 
 	va_end(vl);
-#else
-	std::cout << Message << std::endl;
-#endif
 }
 
 void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...) {
-#if defined(_WIN32) && !defined(_M_ARM)
 	va_list vl;
 	va_start(vl, Line);
 
-	int GLE = GetLastError();
 	char* Buf = nullptr;
 	char* tBuf = nullptr;
 	char* cBuf = nullptr;
-	LPSTR GLEBuf = nullptr;
 
 	if (!Error) {
+#if defined(_WIN32) && !defined(_M_ARM)
+		int GLE = GetLastError();
+		LPSTR GLEBuf = nullptr;
+
 		size_t MsgBufSize = FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM |
 			FORMAT_MESSAGE_IGNORE_INSERTS |
@@ -62,19 +59,22 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 			MsgBox(NULL, GLEBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 			LocalFree(GLEBuf);
 		}
+#else
+		return;
+#endif
 	}
 	else {
-		tBuf = new char[SZBufSize];
-		Buf = new char[SZBufSize];
-		cBuf = new char[SZBufSize];
+		tBuf = new char[BufSize];
+		Buf = new char[BufSize];
+		cBuf = new char[BufSize];
 
-		vsprintf_s(tBuf, SZBufSize, Error, vl);
+		vsnprintf(tBuf, SZBufSize, Error, vl);
 
 #if defined(_DEBUG) || defined(WIN7VERBOSE)
-		sprintf_s(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s",
+		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %d - Error: %s",
 			Func, File, Line, tBuf);
 
-		sprintf_s(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
+		snprintf(cBuf, SZBufSize, "[%s -> %s, L%d] >> %s", Func, File, Line, tBuf);
 		std::cout << cBuf << std::endl;
 		delete[] cBuf;
 
@@ -88,29 +88,22 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	}
 
 	va_end(vl);
-#else
-	std::cout << Error << std::endl;
-#endif
 }
 
 void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line) {
-#if defined(_WIN32) && !defined(_M_ARM)
-	char* Buf = new char[SZBufSize];
+	char* Buf = new char[BufSize];
 
 #if defined(_DEBUG) || defined(WIN7VERBOSE)
-	sprintf_s(Buf, BufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
+	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %s - Error:%s",
 		Func, File, Line, Error);
-
 #else
-	sprintf_s(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 
+	snprintf(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 
 		Func, Error);
 #endif
 
 	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
 	std::async([&Buf]() { std::cout << Buf << std::endl; });
 	delete[] Buf;
-#else
-	std::cout << Error << std::endl;
-#endif
+
 	throw std::runtime_error(Error);
 }

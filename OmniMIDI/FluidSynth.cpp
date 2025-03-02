@@ -14,14 +14,14 @@
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!AudioDrivers[0])
-		MiscFuncs.uSleep(-1);
+		MiscFuncs.MicroSleep(-1);
 
 	for (int i = 0; i < AudioStreamSize; i++)
 		fluid_synth_system_reset(AudioStreams[i]);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			MiscFuncs.uSleep(-1);
+			MiscFuncs.MicroSleep(-1);
 	}
 }
 
@@ -136,7 +136,7 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 		}
 
 		if (!FluiLib)
-			FluiLib = new Lib(L"libfluidsynth-3", ErrLog, &ptr, fLibImpLen);
+			FluiLib = new Lib("libfluidsynth-3", ErrLog, &ptr, fLibImpLen);
 
 		if (!FluiLib->LoadLib())
 			return false;
@@ -199,7 +199,7 @@ void OmniMIDI::FluidSynth::LoadSoundFonts() {
 		if (dSFv.size() > 0) {
 			for (int i = 0; i < dSFv.size(); i++) {
 				for (int a = 0; a < AudioStreamSize; a++) {
-					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], dSFv[i].path.c_str(), 1));
+					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], (const char*)dSFv[i].path.c_str(), 1));
 				}
 			}
 		}	

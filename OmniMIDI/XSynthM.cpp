@@ -13,7 +13,7 @@
 
 void OmniMIDI::XSynth::XSynthThread() {
 	while (!IsSynthInitialized())
-		MiscFuncs.uSleep(-1);
+		MiscFuncs.MicroSleep(-1);
 
 	while (IsSynthInitialized()) {
 		auto data = XSynth_Realtime_GetStats();
@@ -21,7 +21,7 @@ void OmniMIDI::XSynth::XSynthThread() {
 		RenderingTime = data.render_time * 100.0f;
 		ActiveVoices = data.voice_count;
 
-		MiscFuncs.uSleep(-10000);
+		MiscFuncs.MicroSleep(-10000);
 	}
 }
 
@@ -41,7 +41,7 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	}
 
 	if (!XLib)
-		XLib = new Lib(L"xsynth", ErrLog, &ptr, xLibImpLen);
+		XLib = new Lib("xsynth", ErrLog, &ptr, xLibImpLen);
 
 	if (XLib->IsOnline())
 		return true;
@@ -150,7 +150,7 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 					sf.use_effects = dSFv[i].minfx;
 					sf.linear_release = dSFv[i].linattmod;
 
-					SoundFonts.push_back(XSynth_Soundfont_LoadNew(dSFv[i].path.c_str(), sf));
+					SoundFonts.push_back(XSynth_Soundfont_LoadNew((const char*)dSFv[i].path.c_str(), sf));
 				}
 			}		
 		}

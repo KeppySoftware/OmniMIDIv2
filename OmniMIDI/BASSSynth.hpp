@@ -26,8 +26,10 @@
 #include "inc/bass/bassasio.h"
 #include "inc/bass/basswasapi.h"
 #define	ADD_IMPORTS		33
+#define DEFAULT_ENGINE	WASAPI
 #else
 #define ADD_IMPORTS		0
+#define DEFAULT_ENGINE	Internal
 #endif
 
 #define FINAL_IMPORTS	BASE_IMPORTS + ADD_IMPORTS
@@ -49,7 +51,7 @@ namespace OmniMIDI {
 		// Global settings
 		unsigned int EvBufSize = 32768;
 		unsigned int RenderTimeLimit = 95;
-		int AudioEngine = (int)WASAPI;
+		int AudioEngine = (int)DEFAULT_ENGINE;
 
 		bool FollowOverlaps = false;
 		bool LoudMax = false;
@@ -266,7 +268,7 @@ namespace OmniMIDI {
 		void ProcessEvBufChk();
 
 		void AudioThread(unsigned int id);
-		void EventsThread();
+		void EventsThread(unsigned int id);
 		void BASSThread();
 
 		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, BASSSynth*);

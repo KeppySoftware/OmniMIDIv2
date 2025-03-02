@@ -26,31 +26,29 @@ namespace OmniMIDI {
 	class SHSettings : public OMSettings {
 	public:
 		std::vector<std::string> Blacklist;
+		OMShared::Funcs Utils;
 
 		SHSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
 #ifdef _WIN32
 			// When you initialize Settings(), load OM's own settings by default
-			OMShared::SysPath Utils;
-			wchar_t OMPath[MAX_PATH] = { 0 };
-			wchar_t OMBPath[MAX_PATH] = { 0 };
-			wchar_t OMDBPath[MAX_PATH] = { 0 };
+			char OMPath[MAX_PATH] = { 0 };
+			char OMBPath[MAX_PATH] = { 0 };
+			char OMDBPath[MAX_PATH] = { 0 };
 
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				wcscpy(OMBPath, OMPath);
-				wcscpy(OMDBPath, OMPath);
-				swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\settings.json\0", OMPath);
-				swprintf(OMBPath, sizeof(OMBPath), L"%s\\OmniMIDI\\blacklist.json\0", OMBPath);
-				swprintf(OMDBPath, sizeof(OMDBPath), L"%s\\OmniMIDI\\defblacklist.json\0", OMDBPath);
+				snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/settings.json", OMPath);
+				snprintf(OMBPath, sizeof(OMBPath), "%s/OmniMIDI/blacklist.json", OMBPath);
+				snprintf(OMDBPath, sizeof(OMDBPath), "%s/OmniMIDI/defblacklist.json", OMDBPath);
 				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 				LoadBlacklist(OMBPath);
 			}
 #endif
 		}
 
-		void LoadBlacklist(wchar_t* Path) {
+		void LoadBlacklist(char* Path) {
 #ifdef _WIN32
 			std::fstream st;
-			st.open((char*)Path, std::fstream::in);
+			st.open(Path, std::fstream::in);
 
 			if (st.is_open()) {
 				try {

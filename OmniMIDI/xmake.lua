@@ -10,25 +10,30 @@ target("OmniMIDI")
 	-- Statically link libunwind
 	add_defines("NDEBUG", "OMNIMIDI_EXPORTS")
 	
-
 	set_languages("clatest", "cxxlatest")
 	add_cxxflags("-fexperimental-library")
 	add_ldflags("-j")
 
 	add_includedirs("inc")
 	add_files("*.cpp")
-	add_files("*.c")
 
 	if is_plat("windows", "mingw") then
+		add_defines("WIN7VERBOSE", "_WIN32", "_WIN32_WINNT=0x5000")
+
 		-- Remove lib prefix
-		add_defines("WIN7VERBOSE", "UNICODE", "_UNICODE", "_WIN32", "_WIN32_WINNT=0x5000")
 		set_prefixname("")
+
+		-- Why GCC, WHYYYYYYYYYY
 		add_syslinks("-l:libunwind.a")
+		
 		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32")
 		add_ldflags("-MUNICODE")
 		add_files("OMRes.rc")
 		remove_files("UnixEntry.cpp")
 	else
+		add_cxxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
+		add_ldflags("-shared")
+		add_syslinks("asound")
 		remove_files("StreamPlayer.cpp")
 		remove_files("WDMDrv.cpp")
 		remove_files("WDMEntry.cpp")

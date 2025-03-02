@@ -6,7 +6,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 
 	auto pEvt = ShortEvents->ReadPtr();
 
-	if (pEvt == nullptr)
+	if (!pEvt)
 		return false;
 
 	unsigned int evtDword = *pEvt;
@@ -247,6 +247,7 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 		return false;
 
 	switch (Settings->AudioEngine) {
+#ifdef _WIN32
 	case WASAPI:
 		if (!BWasLib->LoadLib())
 			return false;
@@ -255,6 +256,10 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 	case ASIO:
 		if (!BAsiLib->LoadLib())
 			return false;
+		break;
+#endif
+
+	default:
 		break;
 	}
 
@@ -298,7 +303,7 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 				ProcessEvBufChk();
 
 			BASS_ChannelUpdate(AudioStreams[id], 1);
-			MiscFuncs.uSleep(-1);
+			MiscFuncs.MicroSleep(-1);
 		}
 		break;
 
@@ -307,19 +312,23 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 	}
 }
 
-void OmniMIDI::BASSSynth::EventsThread() {
+void OmniMIDI::BASSSynth::EventsThread(unsigned int id) {
 	size_t count = 0;
+
+	LOG("_EvtThread[%d] idling, waiting for AudioStreams to come up.", id);
 
 	// Spin while waiting for the stream to go online
 	while (AudioStreams[0] == 0)
-		MiscFuncs.uSleep(-1);
+		MiscFuncs.MicroSleep(-1);
+
+	LOG("_EvtThread[%d] spinned up.", id);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
 			count++;
 
 		if (count > 4096) {
-			MiscFuncs.uSleep(-1);
+			MiscFuncs.MicroSleep(-1);
 			count = 0;
 		}
 	}
@@ -333,7 +342,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 	float tv = 0.0f;
 
 	while (AudioStreams[0] == 0)
-		MiscFuncs.uSleep(-1);
+		MiscFuncs.MicroSleep(-1);
 
 	while (IsSynthInitialized()) {
 		for (size_t i = 0; i < AudioStreamSize; i++) {
@@ -353,7 +362,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 		itv = 0;
 		rtr = 0.0f;
 
-		MiscFuncs.uSleep(-100000);
+		MiscFuncs.MicroSleep(-100000);
 	}
 }
 
@@ -366,22 +375,22 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	}
 
 	if (!BAudLib)
-		BAudLib = new Lib(L"BASS", ErrLog, &ptr, LibImportsSize);
+		BAudLib = new Lib("bass", ErrLog, &ptr, LibImportsSize);
 
 	if (!BMidLib)
-		BMidLib = new Lib(L"BASSMIDI", ErrLog, &ptr, LibImportsSize);
-
-	if (!BWasLib)
-		BWasLib = new Lib(L"BASSWASAPI", ErrLog, &ptr, LibImportsSize);
+		BMidLib = new Lib("bassmidi", ErrLog, &ptr, LibImportsSize);
 
 #if defined(_WIN32)
+	if (!BWasLib)
+		BWasLib = new Lib("basswasapi", ErrLog, &ptr, LibImportsSize);
+
 	if (!BAsiLib)
-		BAsiLib = new Lib(L"BASSASIO", ErrLog, &ptr, LibImportsSize);
+		BAsiLib = new Lib("bassasio", ErrLog, &ptr, LibImportsSize);
 #endif
 
 #if defined(_WIN32) && (defined(_M_AMD64) || defined(_M_IX86))
 	if (!BVstLib)
-		BVstLib = new Lib(L"BASS_VST", ErrLog, &ptr, LibImportsSize);
+		BVstLib = new Lib("bass_vst", ErrLog, &ptr, LibImportsSize);
 #endif
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
@@ -389,11 +398,13 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 		NERROR("Something went wrong here!!!", true);
 		return false;
 	}
+	else LOG("Libraries loaded.");
 
 	if (!AllocateShortEvBuf(Settings->EvBufSize)) {
 		NERROR("AllocateShortEvBuf failed.", true);
 		return false;
 	}
+	else LOG("Buffers allocated. (EVBUF >> %u)", Settings->EvBufSize);
 
 	return true;
 }
@@ -423,8 +434,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		return true;
 
 	// SF path
-	OMShared::SysPath Utils;
-	wchar_t OMPath[MAX_PATH] = { 0 };
+	OMShared::Funcs Utils;
+	char OMPath[MAX_PATH] = { 0 };
 
 	// BASS stream flags
 	bool bInfoGood = false;
@@ -432,6 +443,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	double devFreq = 0.0;
 	double asioFreq = (double)Settings->SampleRate;
 	unsigned int leftChID = -1, rightChID = -1;
+	unsigned int minBuf = 0;
 	const char* lCh = Settings->ASIOLCh.c_str();
 	const char* rCh = Settings->ASIORCh.c_str();
 	const char* dev = Settings->ASIODevice.c_str();
@@ -489,8 +501,10 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 		if (BASS_Init(-1, Settings->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
-			if ((bInfoGood = BASS_GetInfo(&defInfo)))
+			if ((bInfoGood = BASS_GetInfo(&defInfo))) {
+				minBuf = defInfo.minbuf;
 				LOG("minbuf %d", defInfo.minbuf);
+			}
 
 			BASS_Free();
 		}
@@ -499,6 +513,10 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		BASS_SetConfig(BASS_CONFIG_BUFFER, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
+
+#ifndef _WIN32
+		minBuf += 30;
+#endif
 
 		BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, bInfoGood ? defInfo.minbuf : 0);
 		BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, bInfoGood ? (defInfo.minbuf * 2) : 0);
@@ -527,6 +545,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				NERROR("_AudThread failed. (ID: %x)", true, _AudThread[i].get_id());
 				return false;
 			}
+			else LOG("_AudThread running! (ID: %x)", _AudThread[i].get_id());
 		}
 
 		LOG("bassDev %d >> devFreq %d", -1, Settings->SampleRate);
@@ -700,18 +719,20 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		return false;
 	}
 
+	char* tmpUtils = new char[MAX_PATH];
+
 	// Sorry ARM users!
 #if defined(_WIN32) && (defined(_M_AMD64) || defined(_M_IX86))
 	if (Settings->FloatRendering) {
-		if (Settings->LoudMax && Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath)))
+		if (Settings->LoudMax && Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH))
 		{
 #if defined(_M_AMD64)
-			swprintf(OMPath, L"%s\\OmniMIDI\\LoudMax\\LoudMax64.dll", OMPath);
+			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/LoudMax/LoudMax64.dll", tmpUtils);
 #elif defined(_M_IX86)
-			swprintf(OMPath, L"%s\\OmniMIDI\\LoudMax\\LoudMax32.dll", OMPath);
+			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/LoudMax/LoudMax32.dll", tmpUtils);
 #endif
 
-			if (GetFileAttributesW(OMPath) != INVALID_FILE_ATTRIBUTES) {
+			if (Utils.DoesFileExist(OMPath)) {
 				for (int i = 0; i < AudioStreamSize; i++) {
 					if (AudioStreams[i] != 0) {
 						BASS_VST_ChannelSetDSP(AudioStreams[i], OMPath, BASS_UNICODE, 1);
@@ -722,14 +743,20 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	}
 #endif
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-		swprintf(OMPath, sizeof(OMPath), L"%s\\OmniMIDI\\SupportLibraries\\bassflac", OMPath);
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH)) {
+#ifdef _WIN32
+		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/libbassflac.so", tmpUtils);
+#else
+		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/bassflac", tmpUtils);
+#endif
 
 		BFlaLib = BASS_PluginLoad(OMPath, BASS_UNICODE);
 
 		if (!BFlaLib) LOG("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLib);
 		else LOG("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLib);
 	}
+
+	delete[] tmpUtils;
 
 	for (int i = 0; i < AudioStreamSize; i++) {
 		if (AudioStreams[i] != 0) {
@@ -745,16 +772,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	LOG("Stream settings loaded.");
 
 	if (!Settings->OneThreadMode || Settings->ExperimentalMultiThreaded) {
-		_EvtThread = new std::jthread[EvtThreadsSize];
-
-		for (int i = 0; i < Settings->ExpMTKeyboardDiv; i++)
-		{
-			_EvtThread[i] = std::jthread(&BASSSynth::EventsThread, this);
-			if (!_EvtThread[i].joinable()) {
-				NERROR("_EvtThread[%d] failed. (ID: %x)", true, i, _EvtThread[i].get_id());
-				return false;
-			}
+		_EvtThread = std::jthread(&BASSSynth::EventsThread, this, 0);
+		if (!_EvtThread.joinable()) {
+			NERROR("_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
+			return false;
 		}
+		else LOG("_EvtThread running! (ID: %x)", _EvtThread.get_id());
 	}
 
 	LoadSoundFonts();
@@ -766,31 +789,37 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			NERROR("_BASThread failed. (ID: %x)", true, _BASThread.get_id());
 			return false;
 		}
+		else LOG("_BASThread running! (ID: %x)", _BASThread.get_id());
 
 		_LogThread = std::jthread(&BASSSynth::LogFunc, this);
 		if (!_LogThread.joinable()) {
 			NERROR("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			return false;
 		}
+		else LOG("_LogThread running! (ID: %x)", _LogThread.get_id());
 
 		Settings->OpenConsole();
 	}
 
+#ifdef _WIN32
 	if (Settings->ExperimentalMultiThreaded) {
+#endif
 		LOG("Experimental mode is enabled. Preloading samples to avoid crashes...");
 		for (int i = 0; i < 128; i++) {
 			for (int j = 127; j < 128; j++) {
 				if (i < 0) i = 0;
 
-				this->PlayShortEvent(NoteOn, i, j);
-				this->PlayShortEvent(NoteOff, i, 0);
+				PlayShortEvent(NoteOn, i, j);
+				PlayShortEvent(NoteOff, i, 0);
 
-				MiscFuncs.uSleep(-100000);
+				MiscFuncs.MicroSleep(-100000);
 			}
 		}
 
 		LOG("Samples are ready.");
+#ifdef _WIN32
 	}
+#endif
 
 	PlayShortEvent(SystemReset, 0x00, 0x00);
 	PlayShortEvent(PitchBend, 0x00, 0x40);
@@ -819,6 +848,8 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 
 			if (dSFv.size() > 0) {
 				for (int i = 0; i < dSFv.size(); i++) {
+					const char* sfPath = dSFv[i].path.c_str();
+
 					if (!dSFv[i].enabled)
 						continue;
 
@@ -838,13 +869,24 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 					bmfiflags |= dSFv[i].nolimits ? BASS_MIDI_FONT_SBLIMITS : BASS_MIDI_FONT_NOSBLIMITS;
 					bmfiflags |= dSFv[i].norampin ? BASS_MIDI_FONT_NORAMPIN : 0;
 
-					sf.font = BASS_MIDI_FontInit(dSFv[i].path.c_str(), bmfiflags);
+#ifdef _WIN32
+					sf.font = BASS_MIDI_FontInit(MiscFuncs.GetUTF16((char*)sfPath), bmfiflags | BASS_UNICODE);
+#else
+					sf.font = BASS_MIDI_FontInit(sfPath, bmfiflags);
+#endif
+				
 
-					// Check if the soundfont loads, if it does then it's valid
-					if (BASS_MIDI_FontLoadEx(sf.font, sf.spreset, sf.sbank, 0, 0))
-						SoundFonts.push_back(sf);
+					if (sf.font != 0) {
+						// Check if the soundfont loads, if it does then it's valid
+						if (BASS_MIDI_FontLoadEx(sf.font, sf.spreset, sf.sbank, 0, 0)) {
+							SoundFonts.push_back(sf);
+							LOG("\"%s\" loaded!", sfPath);
+						}
 
-					else NERROR("Error 0x%x occurred while loading \"%s\"!", false, BASS_ErrorGetCode(), dSFv[i].path.c_str());
+
+						else NERROR("Error 0x%x occurred while loading \"%s\"!", false, BASS_ErrorGetCode(), sfPath);
+					}
+					else NERROR("Error 0x%x occurred while initializing \"%s\"!", false, BASS_ErrorGetCode(), sfPath);
 				}
 
 				for (int i = 0; i < AudioStreamSize; i++) {
@@ -875,16 +917,9 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		LOG("Streams wiped.");
 	}
 	
-	if (_EvtThread != nullptr) {
-		for (int i = 0; i < EvtThreadsSize; i++) {
-			if (_EvtThread[i].joinable()) {
-#ifdef _DEBUG
-				LOG("Freeing _EvtThread[%d]...", i);
-#endif
-				_EvtThread[i].join();
-			}
-		}
-		LOG("_EvtThreads wiped.");
+	if (_EvtThread.joinable()) {
+		_EvtThread.join();
+		LOG("_EvtThread freed.");
 	}
 
 	if (_AudThread != nullptr) {
@@ -927,7 +962,7 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	case ASIO:
 		BASS_ASIO_Stop();
 		BASS_ASIO_Free();
-		MiscFuncs.uSleep(-5000000);
+		MiscFuncs.MicroSleep(-5000000);
 		LOG("BASSASIO freed.");
 		break;
 #endif
@@ -944,11 +979,6 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 
 	BASS_Free();
 	LOG("BASS freed.");
-
-	if (_EvtThread != nullptr) {
-		delete[] _EvtThread;
-		_EvtThread = nullptr;
-	}
 
 	if (AudioStreams != nullptr) {
 		delete[] AudioStreams;

@@ -51,7 +51,7 @@ extern "C" {
 
 				if ((ret = DriverComponent->SetLibraryHandle(hModule)) == true) {
 					if (!TickStart) {
-						if (!(MiscFuncs.querySystemTime(&TickStart) == 0)) {
+						if (!(MiscFuncs.QuerySystemTime(&TickStart) == 0)) {
 							delete DriverComponent;
 							return FALSE;
 						}
@@ -533,7 +533,7 @@ extern "C" {
 
 	EXPORT unsigned long long WINAPI timeGetTime64() {
 		signed long long CurrentTime;
-		MiscFuncs.querySystemTime(&CurrentTime);
+		MiscFuncs.QuerySystemTime(&CurrentTime);
 		return (unsigned long long)((CurrentTime-TickStart) / 10000.0);
 	}
 
@@ -596,7 +596,7 @@ extern "C" {
 		std::stop_source ssource;
 
 		sender = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.uSleep(-1);
+			while (stop) d.MicroSleep(-1);
 
 			while (!stoken.stop_requested()) {
 				while (waitThread);
@@ -607,7 +607,7 @@ extern "C" {
 			});
 
 		receiver = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.uSleep(-1);
+			while (stop) d.MicroSleep(-1);
 
 			while (!stoken.stop_requested()) {
 				while (waitThread);
@@ -620,10 +620,10 @@ extern "C" {
 			});
 
 		checker = std::jthread([&, stoken = ssource.get_token()]() {
-			while (stop) d.uSleep(-1);
+			while (stop) d.MicroSleep(-1);
 
 			while (!stoken.stop_requested()) {
-				d.uSleep(-2500000);
+				d.MicroSleep(-2500000);
 				waitThread = true;
 
 				auto s = (size_t)senderBufProc * 4;

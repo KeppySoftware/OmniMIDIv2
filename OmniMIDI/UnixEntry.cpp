@@ -11,7 +11,6 @@
 
 #ifndef _WIN32
 
-#include "SynthMain.hpp"
 #include <alsa/asoundlib.h>
 #include <signal.h>
 #include <thread>
@@ -20,6 +19,10 @@
 #include <unistd.h>
 #include <vector>
 #include "SynthHost.hpp"
+
+
+#define EXPORT __attribute__((__visibility__("default")))
+
 
 // Global objects
 static ErrorSystem::Logger* ErrLog = nullptr;
@@ -268,32 +271,9 @@ void __attribute__((constructor)) _init(void) {
     try {
         // Initialize logger
         ErrLog = new ErrorSystem::Logger();
-        std::cout << "ERR LOG INIT" << std::endl;
-
         Host = new OmniMIDI::SynthHost(ErrLog);
-        std::cout << "SYNHOST INIT" << std::endl;
 
-        if (Host->Start()) {
-            std::cout << "Synthesizer initialized successfully." << std::endl;
-
-            // Initialize ALSA MIDI
-            if (init_alsa_midi()) {
-                running = true;
-
-                // Start MIDI processing thread
-                midi_thread = std::thread(process_midi);
-
-                std::cout << "OmniMIDI initialized successfully." << std::endl;
-            }
-            else {
-                std::cerr << "Failed to initialize ALSA MIDI." << std::endl;
-                cleanup();
-            }
-        }
-        else {
-            std::cerr << "Failed to start synthesizer." << std::endl;
-            cleanup();
-        }
+        std::cout << "Synthesizer initialized successfully." << std::endl;
     }
     catch (const std::exception& e) {
         std::cerr << "Exception during initialization: " << e.what() << std::endl;
@@ -308,65 +288,65 @@ void __attribute__((destructor)) _fini(void) {
     std::cout << "OmniMIDI shutdown complete." << std::endl;
 }
 
-#define EXPORT __attribute__((visibility("default")))
-
-EXPORT int IsKDMAPIAvailable() {
-    return (int)Host->IsKDMAPIAvailable();
-}
-
-EXPORT int InitializeKDMAPIStream() {
-    if (Host->Start()) {
-        LOG("KDMAPI initialized.");
-        return 1;
+extern "C" {
+    int EXPORT IsKDMAPIAvailable() {
+        return (int)Host->IsKDMAPIAvailable();
     }
 
-    LOG("KDMAPI failed to initialize.");
-    return 0;
-}
+    int EXPORT InitializeKDMAPIStream() {
+        if (Host->Start()) {
+            LOG("KDMAPI initialized.");
+            return 1;
+        }
 
-EXPORT int TerminateKDMAPIStream() {
-    if (Host->Stop()) {
-        LOG("KDMAPI freed.");
-        return 1;
-    }
-
-    LOG("KDMAPI failed to free its resources.");
-    return 0;
-}
-
-EXPORT void ResetKDMAPIStream() {
-    Host->PlayShortEvent(0xFF, 0x01, 0x01);
-}
-
-EXPORT void SendDirectData(unsigned int ev) {
-    Host->PlayShortEvent(ev);
-}
-
-EXPORT void SendDirectDataNoBuf(unsigned int ev) {
-    // Unsupported, forward to SendDirectData
-    SendDirectData(ev);
-}
-
-EXPORT int SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
-    return Host->TalkToSynthDirectly(evt, chan, param);
-}
-
-EXPORT int DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
-    return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
-}
-
-EXPORT float GetRenderingTime() {
-    if (Host == nullptr)
-        return 0.0f;
-
-    return Host->GetRenderingTime();
-}
-
-EXPORT unsigned int GetActiveVoices() {
-    if (Host == nullptr)
+        LOG("KDMAPI failed to initialize.");
         return 0;
+    }
 
-    return Host->GetActiveVoices();
+    int EXPORT TerminateKDMAPIStream() {
+        if (Host->Stop()) {
+            LOG("KDMAPI freed.");
+            return 1;
+        }
+
+        LOG("KDMAPI failed to free its resources.");
+        return 0;
+    }
+
+    void EXPORT ResetKDMAPIStream() {
+        Host->PlayShortEvent(0xFF, 0x01, 0x01);
+    }
+
+    void EXPORT SendDirectData(unsigned int ev) {
+        Host->PlayShortEvent(ev);
+    }
+
+    void EXPORT SendDirectDataNoBuf(unsigned int ev) {
+        // Unsupported, forward to SendDirectData
+        SendDirectData(ev);
+    }
+
+    int EXPORT SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
+        return Host->TalkToSynthDirectly(evt, chan, param);
+    }
+
+    int EXPORT DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+        return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
+    }
+
+    float EXPORT GetRenderingTime() {
+        if (Host == nullptr)
+            return 0.0f;
+
+        return Host->GetRenderingTime();
+    }
+
+    unsigned int EXPORT GetActiveVoices() {
+        if (Host == nullptr)
+            return 0;
+
+        return Host->GetActiveVoices();
+    }
 }
 
 #endif
