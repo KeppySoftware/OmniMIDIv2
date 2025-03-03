@@ -122,9 +122,6 @@
     <ClCompile Include="bassasio.cpp">
       <Filter>Source Files\Synthesizer\BASS</Filter>
     </ClCompile>
-    <ClCompile Include="bass_vst.cpp">
-      <Filter>Source Files\Synthesizer\BASS</Filter>
-    </ClCompile>
     <ClCompile Include="FluidSynth.cpp">
       <Filter>Source Files\Synthesizer\Synth modules</Filter>
     </ClCompile>

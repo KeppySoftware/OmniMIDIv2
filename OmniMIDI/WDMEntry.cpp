@@ -7,6 +7,8 @@
 
 */
 
+#ifdef _WIN32
+
 #ifdef _WIN64
 #define EXPORT	__declspec(dllexport) 
 #define APICALL
@@ -517,6 +519,10 @@ extern "C" {
 		}
 
 		return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
+	}
+
+	EXPORT int APICALL LoadCustomSoundFontsList(LPWSTR Directory) {
+		return 1;
 	}
 
 	EXPORT unsigned long long WINAPI timeGetTime64() {

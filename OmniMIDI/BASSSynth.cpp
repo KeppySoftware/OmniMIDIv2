@@ -970,11 +970,13 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	if (AudioStreams != nullptr) {
 		delete[] AudioStreams;
 		AudioStreams = nullptr;
+		LOG("Audio streams freed.");
 	}
 
 	if (_AudThread != nullptr) {
 		delete[] _AudThread;
 		_AudThread = nullptr;
+		LOG("Audio threads freed.");
 	}
 
 	return true;

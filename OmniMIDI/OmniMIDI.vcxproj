@@ -991,7 +991,6 @@
     <ClCompile Include="SynthMain.cpp" />
     <ClCompile Include="UnixEntry.cpp" />
     <ClCompile Include="ShakraPipe.cpp" />
-    <ClCompile Include="bass_vst.cpp" />
     <ClCompile Include="basswasapi.cpp" />
     <ClCompile Include="StreamPlayer.cpp" />
     <ClCompile Include="ErrSys.cpp" />
