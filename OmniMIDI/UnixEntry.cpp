@@ -11,7 +11,6 @@
 
 #ifndef _WIN32
 
-#include <alsa/asoundlib.h>
 #include <signal.h>
 #include <thread>
 #include <atomic>
@@ -30,7 +29,6 @@ static OmniMIDI::SynthHost* Host = nullptr;
 // Cleanup resources
 void cleanup() {
     if (Host) {
-        Host->Stop();
         delete Host;
         Host = nullptr;
     }

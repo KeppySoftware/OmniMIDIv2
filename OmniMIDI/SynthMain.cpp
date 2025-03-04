@@ -118,6 +118,12 @@ bool OmniMIDI::Lib::UnloadLib() {
 		}
 		else {
 			bool r = freeLib(Library);
+
+#ifndef _WIN32
+			// flip the boolean for non Win32 OSes
+			r = !r;
+#endif
+
 			assert(r == true);
 			if (!r) {
 				throw;

@@ -278,14 +278,18 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 		return false;
 #endif
 
+	LOG("a unloaded.");
 	if (!BEfxLib->UnloadLib())
 		return false;
+	LOG("BEfxLib unloaded.");
 
 	if (!BMidLib->UnloadLib())
 		return false;
+	LOG("BMidLib unloaded.");
 
 	if (!BAudLib->UnloadLib())
 		return false;
+	LOG("BAudLib unloaded.");
 
 	return true;
 }

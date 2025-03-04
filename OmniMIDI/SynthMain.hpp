@@ -49,13 +49,8 @@
 #include "inc/nlohmann/json.hpp"
 #include <thread>
 #include <fstream>
-#include <future>
 #include <string>
 #include <filesystem>
-
-#ifdef _WIN32
-#include <codecvt>
-#endif
 
 namespace OmniMIDI {
 	enum MIDIEventType {

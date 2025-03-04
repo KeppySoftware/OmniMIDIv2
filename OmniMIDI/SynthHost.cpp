@@ -138,9 +138,13 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 
 	if (!oSynth->StopSynthModule()) 
 		FNERROR("StopSynthModule() failed!!!");
+	else
+		LOG("StopSynthModule() ok.");
 
 	if (!oSynth->UnloadSynthModule())
 		FNERROR("UnloadSynthModule() failed!!!");
+	else
+		LOG("StopSynthModule() ok.");
 
 	delete oSynth;
 

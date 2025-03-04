@@ -45,7 +45,6 @@ target("OmniMIDI")
 
 		add_cxxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 		add_ldflags("-shared")
-		add_syslinks("asound")
 
 		remove_files("bassasio.cpp")
 		remove_files("basswasapi.cpp")
