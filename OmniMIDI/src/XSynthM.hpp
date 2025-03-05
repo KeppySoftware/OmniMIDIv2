@@ -16,7 +16,7 @@
 #include <windows.h>
 #endif
 
-#include "inc/xsynth.h"
+#include "xsynth.h"
 #include <atomic>
 #include <algorithm>
 #include <iostream>

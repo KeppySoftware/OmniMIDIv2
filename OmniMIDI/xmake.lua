@@ -3,7 +3,7 @@ set_project("OmniMIDIv2")
 
 set_allowedplats("windows", "linux")
 set_allowedmodes("debug", "release")
-set_allowedarchs("x86", "x86_64", "x64", "arm64")
+set_allowedarchs("x86", "x64", "x86_64", "arm64")
 	
 add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxxlatest")
@@ -27,14 +27,15 @@ target("OmniMIDI")
 	add_ldflags("-j")
 
 	add_includedirs("inc")
-	add_files("*.cpp")
+	add_files("src/*.cpp")
 
 	if is_plat("windows") then	
 		set_toolchains("mingw")
 
 		-- Remove lib prefix
 		set_prefixname("")
-
+		
+		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
 		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32", "-l:libwinpthread.a")
 		add_defines("_WIN32", "_WIN32_WINNT=0x6000")

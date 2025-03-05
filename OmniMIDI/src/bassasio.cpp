@@ -14,7 +14,7 @@
 
 #ifdef _WIN32
 
-#include "inc/bass/bassasio.h"
+#include "bass/bassasio.h"
 
 unsigned int (WINAPI* BASS_ASIO_GetVersion)() = 0;
 int (WINAPI* BASS_ASIO_SetUnicode)(int unicode) = 0;
