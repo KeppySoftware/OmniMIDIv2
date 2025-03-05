@@ -19,7 +19,7 @@
 
 #include <windows.h>
 #include <math.h>
-#include "inc/cmmddk.h"
+#include "cmmddk.h"
 #include <mmeapi.h>
 #include <assert.h>
 #include "ErrSys.hpp"

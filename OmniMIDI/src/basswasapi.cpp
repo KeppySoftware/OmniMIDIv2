@@ -14,7 +14,7 @@
 
 #ifdef _WIN32
 
-#include "inc/bass/basswasapi.h"
+#include "bass/basswasapi.h"
 
 DWORD(WINAPI* BASS_WASAPI_GetVersion)() = 0;
 BOOL(WINAPI* BASS_WASAPI_SetNotify)(WASAPINOTIFYPROC* proc, void* user) = 0;
