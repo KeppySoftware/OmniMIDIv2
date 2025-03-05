@@ -1,141 +1,177 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
 #include "SynthMain.hpp"
 
-OmniMIDI::Lib::Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
-	Name = pName;
-	Funcs = *pFuncs;
-	FuncsCount = pFuncsCount;
-	ErrLog = PErr;
-}
+bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, size_t pSynthName_sz) {
+	char* userProfile = new char[MAX_PATH_LONG] { 0 };
+	SettingsPath = new char[MAX_PATH_LONG] { 0 };
+	size_t szSetPath = sizeof(SettingsPath) * MAX_PATH_LONG;
 
-OmniMIDI::Lib::~Lib() {
-	UnloadLib();
-}
+	if (JSONStream && JSONStream->is_open())
+		CloseConfig();
 
-bool OmniMIDI::Lib::LoadLib(char* CustomPath) {
-	OMShared::Funcs Utils;
+	if (SynthName == nullptr && pSynthName != nullptr) {
+		if (strcmp(pSynthName, DUMMY_STR)) {
+			if (pSynthName_sz > SYNTHNAME_SZ)
+				pSynthName_sz = SYNTHNAME_SZ;
 
-	char SysDir[MAX_PATH] = { 0 };
-	char DLLPath[MAX_PATH] = { 0 };
-
-	int swp = 0;
-
-	if (Library == nullptr) {
-#ifdef _WIN32
-		if ((Library = getLib(Name)) != nullptr)
-		{
-			// (TODO) Make it so we can load our own version of it
-			// For now, just make the driver try and use that instead
-			LOG("%s already in memory.", Name);
-			return (AppSelfHosted = true);
-		}
-		else {
-#endif
-			if (CustomPath != nullptr) {
-#ifdef _WIN32
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/%s", CustomPath, Name);
-#else
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/lib%s.so", CustomPath, Name);
-#endif
-				assert(swp != -1);
-
-				if (swp != -1) {
-					Library = loadLib(DLLPath);
-
-					if (!Library)
-						return false;
-				}
-				else return false;
+			SynthName = new char[pSynthName_sz];
+			if (strcpy(SynthName, pSynthName) != SynthName) {
+				NERROR("An error has occurred while parsing SynthName!", true);
+				CloseConfig();
+				return false;
 			}
-			else {
-#ifdef _WIN32
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s", Name);
-#else
-				swp = snprintf(DLLPath, sizeof(DLLPath), "lib%s", Name);
-#endif
-				assert(swp != -1);
-
-				if (swp != -1) {
-					Library = loadLib(Name);
-
-					if (!Library)
-					{
-						if (Utils.GetFolderPath(OMShared::FIDs::CurrentDirectory, SysDir, sizeof(SysDir))) {
-#ifdef _WIN32
-							swp = snprintf(DLLPath, MAX_PATH, "%s/%s", SysDir, Name);
-#else
-							swp = snprintf(DLLPath, MAX_PATH, "%s/lib%s.so", SysDir, Name);
-#endif
-							assert(swp != -1);
-							if (swp != -1) {
-								Library = loadLib(DLLPath);
-								assert(Library != 0);
-
-								if (!Library) {
-									NERROR("The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, Name);
-									return false;
-								}
-							}
-							else return false;
-						}
-						else return false;
-					}
-				}
-				else return false;
-
-			}
-#ifdef _WIN32
 		}
-#endif
+	}
+	else {
+		NERROR("InitConfig called with no SynthName specified!", true);
+		CloseConfig();
+		return false;
 	}
 
-	LOG("%s --> 0x%08x", Name, Library);
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile) * MAX_PATH_LONG)) {
+		LOG("Utils.GetFolderPath path: %s", userProfile);
 
-	for (size_t i = 0; i < FuncsCount; i++)
-	{
-		if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
-			LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+		snprintf(SettingsPath, szSetPath, "%s/OmniMIDI/settings.json", userProfile);
+		LOG("Configuration path: %s", SettingsPath);
+
+		JSONStream->open((char*)SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
+		if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
+			JSONStream->clear();
+			JSONStream->seekg(0, std::ios::beg);
+			jsonptr = nlohmann::json::parse(*JSONStream, nullptr, false, true);
+		}
+
+		if (jsonptr == nullptr || jsonptr["OmniMIDI"] == nullptr) {
+			NERROR("No configuration file found! A new reference one will be created for you.", false);
+
+			jsonptr["OmniMIDI"] = {
+				ConfGetVal(Renderer),
+				ConfGetVal(CustomRenderer),
+				ConfGetVal(KDMAPIEnabled),
+				ConfGetVal(DebugMode),
+				ConfGetVal(Renderer),
+				{ "SynthModules", nlohmann::json::object({})}
+			};
+
+			WriteConfig();
+		}
+			
+		mainptr = jsonptr["OmniMIDI"];
+		if (mainptr == nullptr) {
+			NERROR("An error has occurred while parsing the settings for OmniMIDI!", true);
+			CloseConfig();
+			return false;
+		}
+
+		MainSetVal(int, Renderer);
+		MainSetVal(bool, DebugMode);
+		MainSetVal(bool, KDMAPIEnabled);
+		MainSetVal(std::string, CustomRenderer);
+
+		if (SynthName) {
+			synptr = mainptr["SynthModules"][SynthName];
+			if (synptr == nullptr) {
+				NERROR("No configuration settings found for the selected renderer \"%s\"! A new reference one will be created for you.", false, SynthName);
+				return false;
+			}
+		}
+
+		return true;
 	}
+	else NERROR("An error has occurred while parsing the user profile path!", true);
 
-	LOG("%s ready!", Name);
+	return false;
+}
 
-	Initialized = true;
+bool OmniMIDI::SettingsModule::WriteConfig() {
+	JSONStream->close();
+
+	JSONStream->open((char*)SettingsPath, std::fstream::out | std::fstream::trunc);
+	std::string dump = jsonptr.dump(4);
+	JSONStream->write(dump.c_str(), dump.length());
+	JSONStream->close();
+
 	return true;
 }
 
-bool OmniMIDI::Lib::UnloadLib() {
-	if (Library != nullptr) {
-		if (AppSelfHosted)
-		{
-			AppSelfHosted = false;
-		}
-		else {
-			bool r = freeLib(Library);
+bool OmniMIDI::SettingsModule::ReloadConfig() {
+	JSONStream->close();
+	return InitConfig();
+}
 
-#ifndef _WIN32
-			// flip the boolean for non Win32 OSes
-			r = !r;
-#endif
-
-			assert(r == true);
-			if (!r) {
-				throw;
-			}
-			else LOG("%s unloaded.", Name);
-		}
-
-		Library = nullptr;
+void OmniMIDI::SettingsModule::CloseConfig() {
+	if (jsonptr != nullptr && !jsonptr.is_null()) {
+		jsonptr.clear();
 	}
 
-	LoadFailed = false;
-	Initialized = false;
+	if (mainptr != nullptr && !mainptr.is_null()) {
+		mainptr.clear();
+	}
+
+	if (synptr != nullptr && !synptr.is_null()) {
+		synptr.clear();
+	}
+
+	if (JSONStream->is_open())
+		JSONStream->close();
+
+	if (SettingsPath != nullptr) {
+		delete SettingsPath;
+		SettingsPath = nullptr;
+	}
+
+	if (SynthName != nullptr) {
+		delete SynthName;
+		SynthName = nullptr;
+	}
+}
+
+void OmniMIDI::SettingsModule::OpenConsole() {
+#if defined _WIN32 && !defined _DEBUG
+	if (IsDebugMode()) {
+		if (AllocConsole()) {
+			OwnConsole = true;
+			FILE* dummy;
+			freopen_s(&dummy, "CONOUT$", "w", stdout);
+			freopen_s(&dummy, "CONOUT$", "w", stderr);
+			freopen_s(&dummy, "CONIN$", "r", stdin);
+			std::cout.clear();
+			std::clog.clear();
+			std::cerr.clear();
+			std::cin.clear();
+		}
+	}
+#endif
+}
+
+void OmniMIDI::SettingsModule::CloseConsole() {
+#if defined _WIN32 && !defined _DEBUG
+	if (IsDebugMode() && OwnConsole) {
+		FreeConsole();
+		OwnConsole = false;
+	}
+#endif
+}
+
+bool OmniMIDI::SettingsModule::AppendToConfig(nlohmann::json &content) {
+	if (content == nullptr)
+		return false;
+
+	if (jsonptr["OmniMIDI"]["SynthModules"][SynthName] != nullptr) {
+		jsonptr["OmniMIDI"]["SynthModules"].erase(SynthName);
+	}
+
+	jsonptr["OmniMIDI"]["SynthModules"][SynthName] = content;
+	mainptr = jsonptr["OmniMIDI"];
+	synptr = mainptr["SynthModules"][SynthName];
+
 	return true;
 }
 
@@ -183,19 +219,32 @@ bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
 }
 
 std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::string list) {
-	char tmpUtils[MAX_PATH] = { 0 };
-	char OMPath[MAX_PATH_LONG] = { 0 };
-	const char* path = nullptr;
 	bool succeed = false;
+
+	char tmpUtils[MAX_PATH_LONG] = { 0 };
+	char OMPath[MAX_PATH_LONG] = { 0 };
+
+	char* listPath = nullptr;
+	size_t szListPath = 0;
+
+	const char* soundfontPath = nullptr;
 
 	if (SoundFonts.size() > 0)
 		return &SoundFonts;
 
 	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils))) {
-		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
+		if (list.empty()) {
+			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
+			listPath = OMPath;
+			szListPath = sizeof(OMPath);
+		}
+		else {
+			listPath = (char*)list.c_str();
+			szListPath = list.size();
+		}
 
 		std::fstream sfs;
-		sfs.open(!list.empty() ? list.c_str() : OMPath, std::fstream::in);
+		sfs.open(listPath, std::fstream::in);
 
 		if (sfs.is_open()) {
 			try {
@@ -220,7 +269,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 								if (SF.path.empty())
 									continue;
 
-								path = SF.path.c_str();
+								soundfontPath = SF.path.c_str();
 
 								if (Utils.DoesFileExist(SF.path))
 								{
@@ -239,20 +288,20 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 
 									SoundFonts.push_back(SF);
 								}
-								else NERROR("The SoundFont \"%s\" could not be found!", false, path);
+								else NERROR("The SoundFont \"%s\" could not be found!", false, soundfontPath);
 							}
 
 							// If it's not, then let's loop until the end of the JSON struct
 						}
 
-						ListPath = new char[MAX_PATH_LONG];
+						ListPath = new char[szListPath];
 
 						if (ListPath)
-							strncpy(ListPath, OMPath, sizeof(OMPath));
+							strncpy(ListPath, listPath, szListPath);
 
 						succeed = true;
 					}
-					else NERROR("\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, !list.empty() ? list.c_str() : OMPath);
+					else NERROR("\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, listPath);
 				}
 				else NERROR("Invalid JSON structure!", false);
 			}
@@ -268,22 +317,20 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 			}
 
 			sfs.close();
+			
 			return succeed ? &SoundFonts : nullptr;
 		}
 		else {
-			if (list.empty()) {
-				NERRORV(L"SoundFonts JSON at path \"%s\" does not exist. The driver will create an example one for you to edit.", false, OMPath);
+			NERRORV(L"SoundFonts JSON at path \"%s\" does not exist. The driver will create an example one for you to edit.", false, listPath);
 
-				SoundFont eSF;
-				auto example = eSF.GetExampleList();
+			SoundFont eSF;
+			auto example = eSF.GetExampleList();
 
-				sfs.close();
-				sfs.open((char*)OMPath, std::fstream::out | std::fstream::trunc);
-				std::string dump = example.dump(4);
-				sfs.write(dump.c_str(), dump.length());
-				sfs.close();
-			}
-			else NERRORV(L"SoundFonts JSON at path \"%s\" does not exist!", true, list.c_str());
+			sfs.close();
+			sfs.open((char*)OMPath, std::fstream::out | std::fstream::trunc);
+			std::string dump = example.dump(4);
+			sfs.write(dump.c_str(), dump.length());
+			sfs.close();
 		}
 	}
 

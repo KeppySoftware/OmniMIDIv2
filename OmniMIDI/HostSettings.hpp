@@ -1,9 +1,8 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
@@ -23,26 +22,30 @@
 #include "KDMAPI.hpp"
 
 namespace OmniMIDI {
-	class SHSettings : public OMSettings {
+	class HostSettings : public SettingsModule {
 	public:
 		std::vector<std::string> Blacklist;
 		OMShared::Funcs Utils;
 
-		SHSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {
-#ifdef _WIN32
+		HostSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {
 			// When you initialize Settings(), load OM's own settings by default
 			char OMPath[MAX_PATH] = { 0 };
+
+#ifdef _WIN32
 			char OMBPath[MAX_PATH] = { 0 };
 			char OMDBPath[MAX_PATH] = { 0 };
+#endif
 
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/settings.json", OMPath);
+				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
+#ifdef _WIN32
 				snprintf(OMBPath, sizeof(OMBPath), "%s/OmniMIDI/blacklist.json", OMBPath);
 				snprintf(OMDBPath, sizeof(OMDBPath), "%s/OmniMIDI/defblacklist.json", OMDBPath);
-				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 				LoadBlacklist(OMBPath);
-			}
 #endif
+			}
+
 		}
 
 		void LoadBlacklist(char* Path) {
@@ -70,8 +73,9 @@ namespace OmniMIDI {
 		}
 
 		bool IsBlacklistedProcess() {
-#ifdef _WIN32
 			bool flag = false;
+
+#ifdef _WIN32
 			char* szFilePath = new char[MAX_PATH_LONG];
 			char* szFileName = new char[MAX_PATH_LONG];
 
@@ -101,15 +105,14 @@ namespace OmniMIDI {
 						break;
 					}
 				}
-		flag = false;
 
+				flag = false;
 			}
+
 			delete[] szFilePath;
 			delete[] szFileName;
-			return flag;
-#else
-			return false;
 #endif
+			return flag;
 		}
 	};
 }

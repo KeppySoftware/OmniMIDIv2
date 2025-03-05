@@ -1,3 +1,11 @@
+/*
+
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
+
+	This file contains the required code to run the driver under both Windows and Linux
+
+*/
+
 #include "BASSSynth.hpp"
 
 bool OmniMIDI::BASSSynth::ProcessEvBuf() {
@@ -278,7 +286,6 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 		return false;
 #endif
 
-	LOG("a unloaded.");
 	if (!BEfxLib->UnloadLib())
 		return false;
 	LOG("BEfxLib unloaded.");
@@ -864,8 +871,7 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 					sf.font = BASS_MIDI_FontInit(MiscFuncs.GetUTF16((char*)sfPath), bmfiflags | BASS_UNICODE);
 #else
 					sf.font = BASS_MIDI_FontInit(sfPath, bmfiflags);
-#endif
-				
+#endif		
 
 					if (sf.font != 0) {
 						// Check if the soundfont loads, if it does then it's valid
@@ -1017,8 +1023,8 @@ bool OmniMIDI::BASSSynth::SettingsManager(unsigned int setting, bool get, void* 
 		break;
 	}
 
-	case 0xFFFFE:
-	case 0xFFFFF:
+	case WINMMWRP_ON:
+	case WINMMWRP_OFF:
 		// Old WinMMWRP code, ignore
 		break;
 

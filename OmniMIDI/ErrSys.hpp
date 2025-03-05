@@ -1,16 +1,13 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
 #ifndef _ERRSYS_H
 #define _ERRSYS_H
-
-#include "Common.hpp"
 
 #include <future>
 #include <iostream>

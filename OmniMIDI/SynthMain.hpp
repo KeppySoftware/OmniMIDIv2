@@ -38,6 +38,7 @@
 		else setting = *(type*)var; \
 		break;
 
+#define SYNTHNAME_SZ		64
 #define DUMMY_STR			"dummy"
 #define EMPTYMODULE			0xDEADBEEF
 
@@ -51,6 +52,8 @@
 #include <fstream>
 #include <string>
 #include <filesystem>
+
+using namespace OMShared;
 
 namespace OmniMIDI {
 	enum MIDIEventType {
@@ -252,78 +255,7 @@ namespace OmniMIDI {
 		}
 	};
 
-	class LibImport
-	{
-	protected:
-		void** funcptr = nullptr;
-		const char* funcname = nullptr;
-
-	public:
-		LibImport(void** pptr, const char* pfuncname) {
-			funcptr = pptr;
-			*(funcptr) = nullptr;
-			funcname = pfuncname;
-		}
-
-		~LibImport() {
-			*(funcptr) = nullptr;
-		}
-
-		void* GetPtr() { return *(funcptr); }
-		const char* GetName() { return funcname; }
-		bool LoadFailed() { return funcptr == nullptr || (funcptr != nullptr && *(funcptr) == nullptr); }
-
-		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr) {
-			void* ptr = nullptr;
-
-			if (lib == nullptr && ptrname == nullptr)
-			{
-				if (funcptr)
-					*(funcptr) = nullptr;
-
-				return true;
-			}
-
-			if (lib == nullptr)
-				return false;
-
-			ptr = (void*)getAddr(lib, ptrname);
-
-			if (!ptr) {
-				return false;
-			}
-
-			if (ptr != *(funcptr))
-				*(funcptr) = ptr;
-
-			return true;
-		}
-	};
-
-	class Lib {
-	protected:
-		const char* Name;
-		void* Library = nullptr;
-		bool Initialized = false;
-		bool LoadFailed = false;
-		bool AppSelfHosted = false;
-		ErrorSystem::Logger* ErrLog;
-
-		LibImport* Funcs = nullptr;
-		size_t FuncsCount = 0;
-
-	public:
-		void* Ptr() { return Library; }
-		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
-
-		Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount);
-		~Lib();
-
-		bool LoadLib(char* CustomPath = nullptr);
-		bool UnloadLib();
-	};
-
-	class OMSettings {
+	class SettingsModule {
 	protected:
 		// When you initialize Settings(), load OM's own settings by default
 		ErrorSystem::Logger* ErrLog = nullptr;
@@ -357,12 +289,12 @@ namespace OmniMIDI {
 		unsigned int SampleRate = 48000;
 		unsigned int VoiceLimit = 1024;
 
-		OMSettings(ErrorSystem::Logger* PErr) {
+		SettingsModule(ErrorSystem::Logger* PErr) {
 			JSONStream = new std::fstream;
 			ErrLog = PErr;
 		}
 
-		virtual ~OMSettings() {
+		virtual ~SettingsModule() {
 			CloseConfig();
 			delete JSONStream;
 			JSONStream = nullptr;
@@ -377,187 +309,23 @@ namespace OmniMIDI {
 		virtual const bool IsDebugMode() { return DebugMode; }
 		virtual const char* GetCustomRenderer() { return CustomRenderer.c_str(); }
 
-		bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 64) {
-			if (JSONStream && JSONStream->is_open())
-				CloseConfig();
+		virtual bool InitConfig(bool write = false, const char* pSynthName = nullptr, size_t pSynthName_sz = 0);
+		virtual bool AppendToConfig(nlohmann::json &content);
+		virtual bool WriteConfig();
+		virtual bool ReloadConfig();
+		virtual void CloseConfig();
 
-			if (SynthName == nullptr && pSynthName != nullptr) {
-				if (strcmp(pSynthName, DUMMY_STR)) {
-					if (pSynthName_sz > 64)
-						pSynthName_sz = 64;
+		virtual void OpenConsole();
+		virtual void CloseConsole();
 
-					SynthName = new char[pSynthName_sz];
-					if (strcpy(SynthName, pSynthName) != SynthName) {
-						NERROR("An error has occurred while parsing SynthName!", true);
-						CloseConfig();
-						return false;
-					}
-				}
-			}
-			else {
-				NERROR("InitConfig called with no SynthName specified!", true);
-				CloseConfig();
-				return false;
-			}
-
-
-			char* userProfile = new char[MAX_PATH] { 0 };
-			SettingsPath = new char[MAX_PATH_LONG] { 0 };
-			size_t szSetPath = sizeof(SettingsPath) * MAX_PATH_LONG;
-
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile) * MAX_PATH)) {
-				LOG("Utils.GetFolderPath path: %s", userProfile);
-
-				snprintf(SettingsPath, szSetPath, "%s/OmniMIDI/settings.json", userProfile);
-				LOG("Configuration path: %s", SettingsPath);
-
-				JSONStream->open((char*)SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
-				if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
-					JSONStream->clear();
-					JSONStream->seekg(0, std::ios::beg);
-					jsonptr = nlohmann::json::parse(*JSONStream, nullptr, false, true);
-				}
-
-				if (jsonptr == nullptr || jsonptr["OmniMIDI"] == nullptr) {
-					NERROR("No configuration file found! A new reference one will be created for you.", false);
-
-					jsonptr["OmniMIDI"] = {
-						ConfGetVal(Renderer),
-						ConfGetVal(CustomRenderer),
-						ConfGetVal(KDMAPIEnabled),
-						ConfGetVal(DebugMode),
-						ConfGetVal(Renderer),
-						{ "SynthModules", nlohmann::json::object({})}
-					};
-
-					WriteConfig();
-				}
-					
-				mainptr = jsonptr["OmniMIDI"];
-				if (mainptr == nullptr) {
-					NERROR("An error has occurred while parsing the settings for OmniMIDI!", true);
-					CloseConfig();
-					return false;
-				}
-
-				MainSetVal(int, Renderer);
-				MainSetVal(bool, DebugMode);
-				MainSetVal(bool, KDMAPIEnabled);
-				MainSetVal(std::string, CustomRenderer);
-
-				if (SynthName) {
-					synptr = mainptr["SynthModules"][SynthName];
-					if (synptr == nullptr) {
-						NERROR("No configuration settings found for the selected renderer \"%s\"! A new reference one will be created for you.", false, SynthName);
-						return false;
-					}
-				}
-
-				return true;
-			}
-			else NERROR("An error has occurred while parsing the user profile path!", true);
-
-			return false;
-		}
-
-		bool AppendToConfig(nlohmann::json &content) {
-			if (content == nullptr)
-				return false;
-
-			if (jsonptr["OmniMIDI"]["SynthModules"][SynthName] != nullptr) {
-				jsonptr["OmniMIDI"]["SynthModules"].erase(SynthName);
-			}
-
-			jsonptr["OmniMIDI"]["SynthModules"][SynthName] = content;
-			mainptr = jsonptr["OmniMIDI"];
-			synptr = mainptr["SynthModules"][SynthName];
-
-			return true;
-		}
-
-		bool WriteConfig() {
-			JSONStream->close();
-
-			JSONStream->open((char*)SettingsPath, std::fstream::out | std::fstream::trunc);
-			std::string dump = jsonptr.dump(4);
-			JSONStream->write(dump.c_str(), dump.length());
-			JSONStream->close();
-
-			return true;
-		}
-
-		bool ReloadConfig() {
-			JSONStream->close();
-			return InitConfig();
-		}
-
-		bool IsConfigOpen() { return JSONStream && JSONStream->is_open(); }
-
-		bool IsSynthConfigValid() { return synptr != nullptr; }
-
-		char* GetConfigPath() { return SettingsPath; }
-
-		void CloseConfig() {
-			if (jsonptr != nullptr && !jsonptr.is_null()) {
-				jsonptr.clear();
-			}
-
-			if (mainptr != nullptr && !mainptr.is_null()) {
-				mainptr.clear();
-			}
-
-			if (synptr != nullptr && !synptr.is_null()) {
-				synptr.clear();
-			}
-
-			if (JSONStream->is_open())
-				JSONStream->close();
-
-			if (SettingsPath != nullptr) {
-				delete SettingsPath;
-				SettingsPath = nullptr;
-			}
-
-			if (SynthName != nullptr) {
-				delete SynthName;
-				SynthName = nullptr;
-			}
-		}
-
-		virtual void OpenConsole() {
-			IsDebugMode();
-
-#if defined _WIN32 && !defined _DEBUG
-			if (IsDebugMode()) {
-				if (AllocConsole()) {
-					OwnConsole = true;
-					FILE* dummy;
-					freopen_s(&dummy, "CONOUT$", "w", stdout);
-					freopen_s(&dummy, "CONOUT$", "w", stderr);
-					freopen_s(&dummy, "CONIN$", "r", stdin);
-					std::cout.clear();
-					std::clog.clear();
-					std::cerr.clear();
-					std::cin.clear();
-				}
-			}
-#endif
-		}
-
-		virtual void CloseConsole() {
-#if defined _WIN32 && !defined _DEBUG
-			if (IsDebugMode() && OwnConsole) {
-				FreeConsole();
-				OwnConsole = false;
-			}
-#endif
-		}
-
+		virtual bool IsConfigOpen() { return JSONStream && JSONStream->is_open(); }
+		virtual bool IsSynthConfigValid() { return synptr != nullptr; }
+		virtual char* GetConfigPath() { return SettingsPath; }
 	};
 
 	class SynthModule {
 	protected:
-		OMSettings* Settings = nullptr;
+		SettingsModule* Settings = nullptr;
 		std::vector<OmniMIDI::SoundFont>* SoundFontsVector = nullptr;
 		OMShared::Funcs MiscFuncs;
 		ErrorSystem::Logger* ErrLog = nullptr;
@@ -584,6 +352,7 @@ namespace OmniMIDI {
 		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
 		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
+		SynthModule() { ErrLog = nullptr; }
 		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }

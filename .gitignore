@@ -38,7 +38,9 @@
 */Debug
 */Release*
 */.vs
-OmniMIDI/cmakebuild/
-OmniMIDI/WIN7DBG/
-OmniMIDI/.idea/
+
+# OmniMIDIv2
 .xmake/
+OmniMIDI/.idea/
+OmniMIDI/.vscode/
+OmniMIDI/WIN7DBG/

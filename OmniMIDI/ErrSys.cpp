@@ -1,8 +1,8 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 

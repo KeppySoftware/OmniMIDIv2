@@ -19,7 +19,6 @@
 #include <vector>
 #include "SynthHost.hpp"
 
-
 #define EXPORT __attribute__((__visibility__("default")))
 
 // Global objects
@@ -29,6 +28,7 @@ static OmniMIDI::SynthHost* Host = nullptr;
 // Cleanup resources
 void cleanup() {
     if (Host) {
+        Host->Stop();
         delete Host;
         Host = nullptr;
     }
@@ -39,15 +39,13 @@ void cleanup() {
     }
 }
 
-// Library initialization
 void __attribute__((constructor)) _init(void) {
-    std::cout << "Initializing OmniMIDI for Linux..." << std::endl;
     try {
         // Initialize logger
         ErrLog = new ErrorSystem::Logger();
         Host = new OmniMIDI::SynthHost(ErrLog);
 
-        std::cout << "Synthesizer initialized successfully." << std::endl;
+        LOG("_init succeeded! OmniMIDI loaded.");
     }
     catch (const std::exception& e) {
         std::cerr << "Exception during initialization: " << e.what() << std::endl;
@@ -55,11 +53,9 @@ void __attribute__((constructor)) _init(void) {
     }
 }
 
-// Library cleanup
 void __attribute__((destructor)) _fini(void) {
-    std::cout << "Shutting down OmniMIDI..." << std::endl;
+    LOG("_fini called. Terminating OmniMIDI...");
     cleanup();
-    std::cout << "OmniMIDI shutdown complete." << std::endl;
 }
 
 extern "C" {
@@ -114,11 +110,11 @@ extern "C" {
     }
 
     int EXPORT DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
-        return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
+        return 1;
     }
 
-    int EXPORT LoadCustomSoundFontsList(wchar_t* Directory) {
-        return 1;
+    int EXPORT LoadCustomSoundFontsList(char* Directory) {
+        return DriverSettings(KDMAPI_SOUNDFONT, true, Directory, MAX_PATH_LONG);
     }
 
     float EXPORT GetRenderingTime() {

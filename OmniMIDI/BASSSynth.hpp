@@ -1,10 +1,8 @@
-
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
@@ -46,7 +44,7 @@ namespace OmniMIDI {
 		BASSENGINE_COUNT = ASIO
 	};
 
-	class BASSSettings : public OMSettings {
+	class BASSSettings : public SettingsModule {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
@@ -63,7 +61,7 @@ namespace OmniMIDI {
 
 		// EXP
 		const unsigned char ChannelDiv = 16;
-		unsigned char ExpMTKeyboardDiv = 8;
+		unsigned char ExpMTKeyboardDiv = 4;
 		unsigned char KeyboardChunk = 128 / ExpMTKeyboardDiv;
 
 		bool ExperimentalMultiThreaded = false;
@@ -80,7 +78,7 @@ namespace OmniMIDI {
 		std::string ASIORCh = "0";
 #endif
 
-		BASSSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
+		BASSSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {}
 
 		void RewriteSynthConfig() override {
 			nlohmann::json DefConfig = {
@@ -91,6 +89,7 @@ namespace OmniMIDI {
 
 				ConfGetVal(OneThreadMode),
 				ConfGetVal(ExperimentalMultiThreaded),
+				ConfGetVal(ExpMTKeyboardDiv),
 				ConfGetVal(FollowOverlaps),
 				ConfGetVal(AudioEngine),
 				ConfGetVal(SampleRate),
@@ -170,13 +169,14 @@ namespace OmniMIDI {
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;
 		Lib* BEfxLib = nullptr;
+		HPLUGIN BFlaLib = 0;
 
 #ifdef _WIN32
 		Lib* BWasLib = nullptr;
 		Lib* BAsiLib = nullptr;
-#endif
 
-		HPLUGIN BFlaLib = 0;
+		unsigned char ASIOBuf[2048] = { 0 };
+#endif
 
 		LibImport LibImports[FINAL_IMPORTS] = {
 			// BASS
@@ -262,7 +262,6 @@ namespace OmniMIDI {
 
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-		unsigned char ASIOBuf[2048] = { 0 };
 		HFX audioLimiter = 0;
 		unsigned int* AudioStreams = nullptr;
 		std::jthread _BASThread;

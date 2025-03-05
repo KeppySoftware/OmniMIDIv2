@@ -45,24 +45,32 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 	char* confPath = _SHSettings->GetConfigPath();
 
 	if (confPath) {
-		auto ftime = std::filesystem::last_write_time(confPath);
-		auto chktime = ftime;
+		auto curChkTime = std::filesystem::last_write_time(confPath);
+		auto lastChkTime = curChkTime;
 
 		while (!Synth->IsSynthInitialized());
 
-		while (Synth->IsSynthInitialized() && Synth->SynthID() != EMPTYMODULE) {
-			ftime = std::filesystem::last_write_time(confPath);
+		LOG("Monitoring config at \"%s\" for changes...", confPath);
+		while (Synth->IsSynthInitialized()) {
+			curChkTime = std::filesystem::last_write_time(confPath);
 
-			if (chktime != ftime) {			
+			if (lastChkTime != curChkTime) {	
+				LOG("Config changed, applied changes...");
+
 				if (Stop(true)) {
-					Start();
-					confPath = _SHSettings->GetConfigPath();
-					while (!Synth->IsSynthInitialized() && Synth->SynthID() != EMPTYMODULE);
-					chktime = std::filesystem::last_write_time(confPath);
+					if (Start()) {
+						confPath = _SHSettings->GetConfigPath();
+						curChkTime = std::filesystem::last_write_time(confPath);
+						lastChkTime = curChkTime;
+					}
+					else NERROR("Something went terribly wrong while reloading the settings!", true);
+
+					LOG("Config applied!");
 				}
 			}
 
-			Sleep(100);
+			if (Synth->SynthID() == EMPTYMODULE)
+				break;
 		}
 	}
 }
@@ -70,7 +78,7 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 void OmniMIDI::SynthHost::RefreshSettings() {
 	LOG("Refreshing synth host settings...");
 
-	auto tSHSettings = new OmniMIDI::SHSettings(ErrLog);
+	auto tSHSettings = new OmniMIDI::HostSettings(ErrLog);
 	auto oSHSettings = _SHSettings;
 
 	_SHSettings = tSHSettings;
@@ -144,9 +152,10 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 	if (!oSynth->UnloadSynthModule())
 		FNERROR("UnloadSynthModule() failed!!!");
 	else
-		LOG("StopSynthModule() ok.");
+		LOG("UnloadSynthModule() ok.");
 
 	delete oSynth;
+	LOG("Deleted synth from memory.");
 
 	if (!restart) {
 #ifdef _WIN32 

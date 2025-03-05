@@ -23,8 +23,6 @@
 #include <assert.h>
 #include "ErrSys.hpp"
 
-
-
 namespace WinDriver {
 	typedef void(CALLBACK* midiOutProc)(HMIDIOUT hmOut, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR Param1, DWORD_PTR Param2);
 

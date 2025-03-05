@@ -6,7 +6,7 @@
 	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
 	This header has been modified to work properly with the new rewrite.
 
-	Copyright (c) 1999-2021 Un4seen Developments Ltd.
+	Copyright (c) 1999-2025 Un4seen Developments Ltd.
 
 	See the BASSASIO.CHM file for more detailed documentation
 

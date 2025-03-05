@@ -13,6 +13,9 @@
 
 #include <cstring>
 #include <fstream>
+#include <cassert>
+#include "Common.hpp"
+#include "ErrSys.hpp"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -45,6 +48,77 @@ namespace OMShared {
 		CurrentDirectory,
 		System,
 		UserFolder
+	};
+
+	class LibImport
+	{
+	protected:
+		void** funcptr = nullptr;
+		const char* funcname = nullptr;
+
+	public:
+		LibImport(void** pptr, const char* pfuncname) {
+			funcptr = pptr;
+			*(funcptr) = nullptr;
+			funcname = pfuncname;
+		}
+
+		~LibImport() {
+			*(funcptr) = nullptr;
+		}
+
+		void* GetPtr() { return *(funcptr); }
+		const char* GetName() { return funcname; }
+		bool LoadFailed() { return funcptr == nullptr || (funcptr != nullptr && *(funcptr) == nullptr); }
+
+		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr) {
+			void* ptr = nullptr;
+
+			if (lib == nullptr && ptrname == nullptr)
+			{
+				if (funcptr)
+					*(funcptr) = nullptr;
+
+				return true;
+			}
+
+			if (lib == nullptr)
+				return false;
+
+			ptr = (void*)getAddr(lib, ptrname);
+
+			if (!ptr) {
+				return false;
+			}
+
+			if (ptr != *(funcptr))
+				*(funcptr) = ptr;
+
+			return true;
+		}
+	};
+
+	class Lib {
+	protected:
+		const char* Name;
+		void* Library = nullptr;
+		bool Initialized = false;
+		bool LoadFailed = false;
+		bool AppSelfHosted = false;
+		ErrorSystem::Logger* ErrLog;
+
+		LibImport* Funcs = nullptr;
+		size_t FuncsCount = 0;
+
+	public:
+		void* Ptr() { return Library; }
+		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
+
+		Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount);
+		~Lib();
+
+		bool LoadLib(char* CustomPath = nullptr);
+		bool UnloadLib();
 	};
 
 	class Funcs {

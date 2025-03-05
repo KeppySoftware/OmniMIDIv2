@@ -1,9 +1,8 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
@@ -31,7 +30,7 @@
 #define FLUIDSYNTH_STR	"FluidSynth"
 
 namespace OmniMIDI {
-	class FluidSettings : public OMSettings {
+	class FluidSettings : public SettingsModule {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
@@ -47,7 +46,7 @@ namespace OmniMIDI {
 		std::string Driver = "wasapi";
 		std::string SampleFormat = "float";
 
-		FluidSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) { }
+		FluidSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) { }
 
 		void RewriteSynthConfig() {
 			nlohmann::json DefConfig = {

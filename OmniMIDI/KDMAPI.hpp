@@ -1,9 +1,8 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
@@ -17,6 +16,9 @@
 #define KDMAPI_GET						0x1
 #define KDMAPI_MANAGE					0x2
 #define KDMAPI_LEAVE					0x3
+
+// ??
+#define KDMAPI_SOUNDFONT				0xF0000
 
 // DO NOT USE THOSE, THEY ARE USED INTERNALLY BY OMNIMIDI
 #define WINMMWRP_OFF					0xFFFFE

@@ -1,9 +1,8 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
 
@@ -12,7 +11,7 @@
 
 #include "ErrSys.hpp"
 #include "SynthMain.hpp"
-#include "SHSettings.hpp"
+#include "HostSettings.hpp"
 
 #ifdef _WIN32
 // Cooked player, let it cook...
@@ -35,7 +34,7 @@ namespace OmniMIDI {
 		// Ours
 		ErrorSystem::Logger* ErrLog = nullptr;
 		SynthModule* Synth = nullptr;
-		SHSettings* _SHSettings = nullptr;
+		HostSettings* _SHSettings = nullptr;
 		std::jthread _HealthThread;
 		void* extModule = nullptr;
 
@@ -47,6 +46,12 @@ namespace OmniMIDI {
 #endif
 
 	public:
+		SynthHost(ErrorSystem::Logger* PErr) {
+			_SHSettings = new OmniMIDI::HostSettings(ErrLog);
+			Synth = new OmniMIDI::SynthModule(ErrLog);
+			ErrLog = PErr;
+		}
+
 #ifdef _WIN32
 		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) {
 			DrvCallback = dcasrc;
@@ -54,12 +59,6 @@ namespace OmniMIDI {
 			_SHSettings = new OmniMIDI::SHSettings(ErrLog);
 			Synth = new OmniMIDI::SynthModule(ErrLog);
 			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
-			ErrLog = PErr;
-		}
-#else
-		SynthHost(ErrorSystem::Logger* PErr) {
-			_SHSettings = new OmniMIDI::SHSettings(ErrLog);
-			Synth = new OmniMIDI::SynthModule(ErrLog);
 			ErrLog = PErr;
 		}
 #endif
