@@ -254,19 +254,25 @@ bool OmniMIDI::BASSSynth::LoadFuncs() {
 	if (!BMidLib->LoadLib())
 		return false;
 
-	if (!BEfxLib->LoadLib())
-		return false;
+	if (!BEfxLib->LoadLib()) {
+		NERROR("Failed to load BASS_FX, LoudMax will not be available.", true);
+		Settings->LoudMax = false;
+	}
 
 	switch (Settings->AudioEngine) {
 #ifdef _WIN32
 	case WASAPI:
-		if (!BWasLib->LoadLib())
-			return false;
+		if (!BWasLib->LoadLib()){
+			NERROR("Failed to load BASSWASAPI, defaulting to internal output.", true);
+			Settings->AudioEngine = Internal;
+		}
 		break;
 
 	case ASIO:
-		if (!BAsiLib->LoadLib())
-			return false;
+		if (!BAsiLib->LoadLib()){
+			NERROR("Failed to load BASSASIO, defaulting to internal output.", true);
+			Settings->AudioEngine = Internal;
+		}
 		break;
 #endif
 
@@ -285,6 +291,10 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 	if (!BAsiLib->UnloadLib())
 		return false;
 #endif
+
+	if (!BFlaLib->UnloadLib())
+		return false;
+	LOG("BFlaLib unloaded.");
 
 	if (!BEfxLib->UnloadLib())
 		return false;
@@ -386,6 +396,9 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	if (!BMidLib)
 		BMidLib = new Lib("bassmidi", ErrLog, &ptr, LibImportsSize);
 
+	if (!BFlaLib)
+		BFlaLib = new Lib("bassflac", ErrLog);
+		
 	if (!BEfxLib)
 		BEfxLib = new Lib("bass_fx", ErrLog, &ptr, LibImportsSize);
 
@@ -739,21 +752,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		LOG("Got compressor...");
 	}
 
-
-	char* tmpUtils = new char[MAX_PATH] { 0 };
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils) * MAX_PATH)) {
-#ifdef _WIN32
-		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/bassflac", tmpUtils);
-#else		
-		snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/SupportLibraries/libbassflac.so", tmpUtils);
-#endif
-
-		LOG("BFlaLib >> %s", OMPath);
-		BFlaLib = BASS_PluginLoad(OMPath, BASS_UNICODE);
-
-		if (!BFlaLib) LOG("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLib);
-		else LOG("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLib);
+	char* tmpUtils = new char[MAX_PATH_LONG] { 0 };
+	if (BFlaLib->GetLibPath(tmpUtils)) {
+		BFlaLibHandle = BASS_PluginLoad(OMPath, BASS_UNICODE);
+		LOG("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLibHandle);
 	}
+	else LOG("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLibHandle);
 	delete[] tmpUtils;
 
 	for (int i = 0; i < AudioStreamSize; i++) {
@@ -842,6 +846,8 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 		SoundFontsVector = SFSystem.LoadList();
 
 		if (SoundFontsVector != nullptr) {
+			wchar_t* szPath;
+			size_t szCount = 0;
 			auto& dSFv = *SoundFontsVector;
 
 			if (dSFv.size() > 0) {
@@ -868,7 +874,11 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 					bmfiflags |= dSFv[i].norampin ? BASS_MIDI_FONT_NORAMPIN : 0;
 
 #ifdef _WIN32
-					sf.font = BASS_MIDI_FontInit(MiscFuncs.GetUTF16((char*)sfPath), bmfiflags | BASS_UNICODE);
+					wchar_t* szPath = MiscFuncs.GetUTF16((char*)sfPath);
+					if (szPath != nullptr) {
+						sf.font = BASS_MIDI_FontInit(szPath, bmfiflags | BASS_UNICODE);
+						delete[] szPath;
+					}
 #else
 					sf.font = BASS_MIDI_FontInit(sfPath, bmfiflags);
 #endif		
@@ -969,8 +979,8 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 		break;
 	}
 
-	if (BFlaLib) {
-		BASS_PluginFree(BFlaLib);
+	if (BFlaLibHandle) {
+		BASS_PluginFree(BFlaLibHandle);
 		LOG("BASSFLAC freed.");
 	}
 

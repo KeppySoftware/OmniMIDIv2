@@ -10,11 +10,14 @@
 #include "SynthHost.hpp"
 
 #ifdef _WIN32 
-bool OmniMIDI::SynthHost::SpInit() {
+bool OmniMIDI::SynthHost::SpInit(SynthModule* synthModule) {
 	if (StreamPlayer != nullptr)
 		SpFree();
 
-	StreamPlayer = new OmniMIDI::CookedPlayer(Synth, DrvCallback, ErrLog);
+	if (synthModule == nullptr)
+		synthModule = Synth;
+
+	StreamPlayer = new OmniMIDI::CookedPlayer(synthModule, DrvCallback, ErrLog);
 	LOG("StreamPlayer allocated.");
 
 	if (!StreamPlayer)
@@ -91,19 +94,19 @@ void OmniMIDI::SynthHost::RefreshSettings() {
 bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 	RefreshSettings();
 
-	auto tSynth = GetSynth();
-	auto oSynth = Synth;
+	auto newSynth = GetSynth();
+	auto oldSynth = Synth;
 
-	if (tSynth) {
-		if (tSynth->LoadSynthModule()) {
+	if (newSynth) {
+		if (newSynth->LoadSynthModule()) {
 #ifdef _WIN32 
-			tSynth->SetInstance(hwndMod);
+			Synth->SetInstance(hwndMod);
 #endif
 
-			if (tSynth->StartSynthModule()) {
+			if (newSynth->StartSynthModule()) {
 #ifdef _WIN32 
 				if (StreamPlayer) {
-					if (!SpInit())
+					if (!SpInit(newSynth))
 						return false;
 				}
 #endif
@@ -111,14 +114,14 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 				if (!_HealthThread.joinable()) 
 					_HealthThread = std::jthread(&SynthHost::HostHealthCheck, this);
 
-				if (_HealthThread.joinable()) {
-					Synth = tSynth;
-					delete oSynth;
+				if (_HealthThread.joinable()) {			
+					Synth = newSynth;
+					delete oldSynth;
 					return true;
 				}
 				else NERROR("_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
 
-				if (!tSynth->StopSynthModule())
+				if (!newSynth->StopSynthModule())
 					FNERROR("StopSynthModule() failed!!!");
 			}
 			else NERROR("StartSynthModule() failed! The driver will not output audio.", true);
@@ -126,35 +129,35 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 		else NERROR("LoadSynthModule() failed! The driver will not output audio.", true);
 	}
 
-	if (!tSynth->UnloadSynthModule())
+	if (!newSynth->UnloadSynthModule())
 		FNERROR("UnloadSynthModule() failed!!!");
 
-	delete tSynth;
+	delete newSynth;
 
 	return false;
 }
 
 bool OmniMIDI::SynthHost::Stop(bool restart) {
-	auto tSynth = new SynthModule(ErrLog);
-	auto oSynth = Synth;
+	auto dummySynth = new SynthModule(ErrLog);
+	auto deadSynth = Synth;
 
-	Synth = tSynth;
+	Synth = dummySynth;
 
 #ifdef _WIN32 
 	SpFree();
 #endif
 
-	if (!oSynth->StopSynthModule()) 
+	if (!deadSynth->StopSynthModule()) 
 		FNERROR("StopSynthModule() failed!!!");
 	else
 		LOG("StopSynthModule() ok.");
 
-	if (!oSynth->UnloadSynthModule())
+	if (!deadSynth->UnloadSynthModule())
 		FNERROR("UnloadSynthModule() failed!!!");
 	else
 		LOG("UnloadSynthModule() ok.");
 
-	delete oSynth;
+	delete deadSynth;
 	LOG("Deleted synth from memory.");
 
 	if (!restart) {

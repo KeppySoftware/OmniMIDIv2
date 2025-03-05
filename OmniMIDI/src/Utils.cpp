@@ -10,107 +10,117 @@
 
 OMShared::Lib::Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
 	Name = pName;
-	Funcs = *pFuncs;
-	FuncsCount = pFuncsCount;
 	ErrLog = PErr;
+
+	if (pFuncs != nullptr)
+		Funcs = *pFuncs;
+		
+	FuncsCount = pFuncsCount;
 }
 
 OMShared::Lib::~Lib() {
 	UnloadLib();
 }
 
-bool OMShared::Lib::LoadLib(char* CustomPath) {
+bool OMShared::Lib::GetLibPath(char* outPath) {
 	OMShared::Funcs Utils;
+	char buf[MAX_PATH_LONG] = { 0 };
+	int printStatus = 0;
+	bool skip = false;
+	bool gotLib = false;
 
-	char SysDir[MAX_PATH] = { 0 };
-	char DLLPath[MAX_PATH] = { 0 };
+	if (outPath == nullptr)
+		return false;
 
-	int swp = 0;
+	if (Utils.GetFolderPath(OMShared::FIDs::CurrentDirectory, buf, MAX_PATH_LONG)) {
+		printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/" LIBEXP(TYPE), buf, Name);
+
+		if (printStatus == -1)
+			skip = true;
+		
+		if (!skip && !Utils.DoesFileExist(outPath)) {
+			if (Utils.GetFolderPath(OMShared::FIDs::System, buf, MAX_PATH_LONG)) {
+				printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/" LIBEXP(TYPE), buf, Name);
+
+				if (printStatus == -1)
+					skip = true;
+				
+					if (!skip && !Utils.DoesFileExist(outPath)) {
+						if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, buf, MAX_PATH_LONG)) {
+							printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/OmniMIDI/SupportLibraries/" LIBEXP(TYPE), buf, Name);
+
+							if (printStatus == -1)
+								skip = true;
+							
+							if (!skip)
+								gotLib = Utils.DoesFileExist(outPath);	
+						}
+					}
+					else gotLib = true;		
+			}
+		}
+		else gotLib = true;		
+	}
+
+	return gotLib;
+}
+
+bool OMShared::Lib::LoadLib(char* CustomPath) {
+	char* libPath = nullptr;
+	char* finalPath= nullptr;
+
+	if (Funcs == nullptr || FuncsCount == 0)
+		return true;
 
 	if (Library == nullptr) {
-#ifdef _WIN32
-		if ((Library = getLib(Name)) != nullptr)
+		OMShared::Funcs Utils;
+		
+		Initialized = false;
+
+		if (CustomPath != nullptr) {
+			libPath = new char[MAX_PATH_LONG] { 0 };
+			snprintf(libPath, MAX_PATH_LONG, "%s/%s", CustomPath, Name);
+		}
+
+		Library = loadLib(libPath == nullptr ? Name : libPath);
+		if (Library == nullptr) {
+			libPath = new char[MAX_PATH_LONG] { 0 };
+
+			if (GetLibPath(libPath)) {
+				Library = loadLib(libPath);
+				if (Library == nullptr)
+					NERROR("The required library \"%s\" could not be loaded. This is required for the synthesizer to work.", true, Name);
+			}
+			else NERROR("The required library \"%s\" could not be found. This is required for the synthesizer to work.", true, Name);
+		}
+	}
+
+	finalPath = (libPath == nullptr) ? (char*)Name : libPath;
+
+	if (Library != nullptr) {
+		LOG("%s --> 0x%08x (FROM %s)", Name, Library, finalPath);
+
+		for (size_t i = 0; i < FuncsCount; i++)
 		{
-			// (TODO) Make it so we can load our own version of it
-			// For now, just make the driver try and use that instead
-			LOG("%s already in memory.", Name);
-			return (AppSelfHosted = true);
+			if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
+				LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
 		}
-		else {
-#endif
-			if (CustomPath != nullptr) {
-#ifdef _WIN32
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/%s", CustomPath, Name);
-#else
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s/lib%s.so", CustomPath, Name);
-#endif
-				assert(swp != -1);
-
-				if (swp != -1) {
-					Library = loadLib(DLLPath);
-
-					if (!Library)
-						return false;
-				}
-				else return false;
-			}
-			else {
-#ifdef _WIN32
-				swp = snprintf(DLLPath, sizeof(DLLPath), "%s", Name);
-#else
-				swp = snprintf(DLLPath, sizeof(DLLPath), "lib%s", Name);
-#endif
-				assert(swp != -1);
-
-				if (swp != -1) {
-					Library = loadLib(Name);
-
-					if (!Library)
-					{
-						if (Utils.GetFolderPath(OMShared::FIDs::CurrentDirectory, SysDir, sizeof(SysDir))) {
-#ifdef _WIN32
-							swp = snprintf(DLLPath, MAX_PATH, "%s/%s", SysDir, Name);
-#else
-							swp = snprintf(DLLPath, MAX_PATH, "%s/lib%s.so", SysDir, Name);
-#endif
-							assert(swp != -1);
-							if (swp != -1) {
-								Library = loadLib(DLLPath);
-								assert(Library != 0);
-
-								if (!Library) {
-									NERROR("The required library \"%s\" could not be loaded or found. This is required for the synthesizer to work.", true, Name);
-									return false;
-								}
-							}
-							else return false;
-						}
-						else return false;
-					}
-				}
-				else return false;
-
-			}
-#ifdef _WIN32
-		}
-#endif
+	
+		LOG("%s ready!", Name);
+	
+		Initialized = true;
 	}
 
-	LOG("%s --> 0x%08x", Name, Library);
+	if (libPath != nullptr)
+		delete[] libPath;
 
-	for (size_t i = 0; i < FuncsCount; i++)
-	{
-		if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
-			LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
-	}
-
-	LOG("%s ready!", Name);
-
-	Initialized = true;
-	return true;
+	return Initialized;
 }
 
 bool OMShared::Lib::UnloadLib() {
+	if (Funcs == nullptr || FuncsCount == 0)
+		return true;
+
 	if (Library != nullptr) {
 		if (AppSelfHosted)
 		{
@@ -255,6 +265,8 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	const char* envPath = nullptr;
 
 	switch (FolderID) {
+	case System:
+		envPath = "/usr/bin";
 	case UserFolder:
 		envPath = std::getenv("HOME");
 		break;
@@ -275,47 +287,51 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 
 #ifdef _WIN32
 wchar_t* OMShared::Funcs::GetUTF16(char* utf8) {
+	wchar_t* buf = nullptr;
+
 	int cc = 0;
 	int count = strlen(utf8);
 	// get length (cc) of the new widechar excluding the \0 terminator first
 	if ((cc = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0)) > 0)
 	{
 		// convert
-		wchar_t* buf = new wchar_t[cc];
+		buf = new wchar_t[cc];
 		if (buf) {
-			if (MultiByteToWideChar(CP_UTF8, 0, utf8, -1, buf, cc)) {
-				return buf;
+			if (!MultiByteToWideChar(CP_UTF8, 0, utf8, -1, buf, cc)) {
+				delete[] buf;
+				buf = nullptr;
 			}
 		}
 	}
 
-	return nullptr;
+	return buf;
 }
 #endif
 
 bool OMShared::Funcs::DoesFileExist(std::string filePath) {
-	bool doesIt = false;
-	char* fPath = filePath.data();
-
+	bool exists = false;
 #ifdef _WIN32
 	// I SURE LOVE UTF-16!!!!!!!!!!
-	wchar_t* buf = GetUTF16(fPath);
-	if (buf) {
-		if (GetFileAttributesW(buf) != INVALID_FILE_ATTRIBUTES)
-			doesIt = true;
+	const char* fPath = filePath.c_str();
+	wchar_t* fwPath = GetUTF16((char*)fPath);
 
-		delete[] buf;
+	if (fwPath != nullptr) {
+		if (GetFileAttributesW(fwPath) != INVALID_FILE_ATTRIBUTES)
+			exists = true;
 	}
+	else std::cout << "L!" << std::endl;
 
-	return doesIt;
+	if (fwPath != nullptr)
+		delete[] fwPath;
+
+	return exists;
 #else
 	std::ifstream fileCheck(filePath);
 
-	doesIt = fileCheck.good();
-
-	if (doesIt)
+	exists = fileCheck.good();
+	if (exists)
 		fileCheck.close();
 
-	return doesIt;
+	return exists;
 #endif
 }

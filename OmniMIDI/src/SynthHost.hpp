@@ -90,7 +90,7 @@ namespace OmniMIDI {
 		bool IsBlacklistedProcess() { return _SHSettings->IsBlacklistedProcess(); }
 
 		// Cooked player system
-		bool SpInit();
+		bool SpInit(SynthModule* synthModule = nullptr);
 		bool SpFree();
 		void SpStart() { StreamPlayer->Start(); }
 		void SpStop() { StreamPlayer->Stop(); }

@@ -169,7 +169,9 @@ namespace OmniMIDI {
 		Lib* BAudLib = nullptr;
 		Lib* BMidLib = nullptr;
 		Lib* BEfxLib = nullptr;
-		HPLUGIN BFlaLib = 0;
+
+		Lib* BFlaLib = nullptr;
+		HPLUGIN BFlaLibHandle = 0;
 
 #ifdef _WIN32
 		Lib* BWasLib = nullptr;

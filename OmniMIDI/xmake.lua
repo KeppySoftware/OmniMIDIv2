@@ -6,7 +6,7 @@ set_allowedmodes("debug", "release")
 set_allowedarchs("x86", "x64", "x86_64", "arm64")
 	
 add_rules("mode.release", "mode.debug")
-set_languages("clatest", "cxxlatest")
+set_languages("clatest", "cxx2a")
 set_runtimes("stdc++_static")
 
 target("OmniMIDI")
@@ -14,12 +14,14 @@ target("OmniMIDI")
 
 	if is_mode("debug") then
 		add_defines("DEBUG")
+		add_defines("_DEBUG")
 		set_symbols("debug")
 		set_optimize("none")
 	else	
 		add_defines("NDEBUG")
-		set_symbols("none")
+		set_symbols("hidden")
 		set_optimize("fastest")
+		set_strip("all")
 	end
 	
 	add_defines("OMNIMIDI_EXPORTS")
@@ -34,10 +36,10 @@ target("OmniMIDI")
 
 		-- Remove lib prefix
 		set_prefixname("")
-		
+
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("winmm", "shlwapi", "ole32", "-l:libwinpthread.a")
+		add_syslinks("winmm", "uuid", "shlwapi", "ole32", "-l:libwinpthread.a")
 		add_defines("_WIN32", "_WINXP", "_WIN32_WINNT=0x6000")
 
 		remove_files("UnixEntry.cpp")

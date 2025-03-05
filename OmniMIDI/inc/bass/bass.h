@@ -374,7 +374,12 @@ typedef struct {
 #define BASS_SPEAKER_REAR2RIGHT	BASS_SPEAKER_REAR2|BASS_SPEAKER_RIGHT
 
 #define BASS_ASYNCFILE			0x40000000	// read file asynchronously
+
+#ifdef _WIN32
 #define BASS_UNICODE			0x80000000	// UTF-16
+#else
+#define BASS_UNICODE			0
+#endif
 
 #define BASS_RECORD_PAUSE		0x8000	// start recording paused
 #define BASS_RECORD_ECHOCANCEL	0x2000

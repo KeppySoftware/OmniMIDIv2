@@ -30,6 +30,8 @@
 #define freeLib(x)			FreeLibrary((HMODULE)x)
 #define getLib				GetModuleHandleA
 #define getAddr(x, y)		GetProcAddress((HMODULE)x, y)
+#define TYPE				%s
+#define TYPENO				TYPE
 #else
 #include <dlfcn.h>
 #include <unistd.h>
@@ -41,7 +43,12 @@
 #define getLib()			0
 #define getLibErr()			dlerror
 #define getAddr				dlsym
+#define TYPE				lib%s.so
+#define TYPENO				lib%s
 #endif
+
+#define STREXP(X)			#X
+#define LIBEXP(X)			STREXP(X)
 
 namespace OMShared {
 	enum FIDs {
@@ -114,9 +121,10 @@ namespace OMShared {
 		void* Ptr() { return Library; }
 		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
 
-		Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount);
+		Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs = nullptr, size_t pFuncsCount = 0);
 		~Lib();
 
+		bool GetLibPath(char* outPath = nullptr);
 		bool LoadLib(char* CustomPath = nullptr);
 		bool UnloadLib();
 	};
