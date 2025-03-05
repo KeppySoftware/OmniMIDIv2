@@ -266,7 +266,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 
 	switch (FolderID) {
 	case System:
-		envPath = "/usr/bin";
+		envPath = "/usr/lib";
 	case UserFolder:
 		envPath = std::getenv("HOME");
 		break;
