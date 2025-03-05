@@ -56,7 +56,7 @@ namespace OmniMIDI {
 		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) {
 			DrvCallback = dcasrc;
 			hwndMod = mod;
-			_SHSettings = new OmniMIDI::SHSettings(ErrLog);
+			_SHSettings = new OmniMIDI::HostSettings(ErrLog);
 			Synth = new OmniMIDI::SynthModule(ErrLog);
 			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
 			ErrLog = PErr;

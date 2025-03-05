@@ -21,8 +21,8 @@
 
 #ifdef _WIN32
 #include <tchar.h>
-#include <Windows.h>
-#include <Psapi.h>
+#include <windows.h>
+#include <psapi.h>
 #else
 #define VERBOSE_LOG
 #include <stdarg.h>

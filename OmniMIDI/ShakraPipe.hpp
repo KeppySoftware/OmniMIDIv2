@@ -23,12 +23,12 @@
 #define WSP_STR "WinSynthPipe"
 
 namespace OmniMIDI {
-	class WSPSettings : public OMSettings {
+	class WSPSettings : public SettingsModule {
 	public:
 		// Global settings
 		unsigned int EvBufSize = 32768;
 
-		WSPSettings(ErrorSystem::Logger* PErr) : OMSettings(PErr) {}
+		WSPSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {}
 
 		void RewriteSynthConfig() {
 			nlohmann::json DefConfig = {

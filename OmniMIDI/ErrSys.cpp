@@ -105,5 +105,9 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 	std::async([&Buf]() { std::cout << Buf << std::endl; });
 	delete[] Buf;
 
+#ifdef _DEBUG
 	throw std::runtime_error(Error);
+#else
+	exit(-1);
+#endif
 }

@@ -126,7 +126,7 @@ bool OMShared::Lib::UnloadLib() {
 
 			assert(r == true);
 			if (!r) {
-				throw;
+				NERROR("A fatal error has occurred while unloading %s!!!", Name);
 			}
 			else LOG("%s unloaded.", Name);
 		}

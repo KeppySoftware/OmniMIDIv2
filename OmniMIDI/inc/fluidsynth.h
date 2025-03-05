@@ -22,7 +22,7 @@
 #define _FLUIDSYNTH_H
 
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 #define FLUIDSYNTH_IMP WINAPI
 #else
 #define FLUIDSYNTH_IMP

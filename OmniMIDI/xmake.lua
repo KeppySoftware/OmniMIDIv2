@@ -3,10 +3,11 @@ set_project("OmniMIDIv2")
 
 set_allowedplats("windows", "linux")
 set_allowedmodes("debug", "release")
-set_allowedarchs("x86", "x86_64", "arm64")
+set_allowedarchs("x86", "x86_64", "x64", "arm64")
 	
 add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxxlatest")
+set_runtimes("stdc++_static")
 
 target("OmniMIDI")
 	set_kind("shared")
@@ -34,8 +35,8 @@ target("OmniMIDI")
 		-- Remove lib prefix
 		set_prefixname("")
 
-		add_cxxflags("-fexperimental-library")
-		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32", "-l:libunwind.a")
+		add_shflags("-static-libgcc", { force = true })
+		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32", "-l:libwinpthread.a")
 		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
 
 		add_files("OMRes.rc")
@@ -43,7 +44,7 @@ target("OmniMIDI")
 	else
 		set_toolchains("gcc")
 
-		add_cxxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 		add_ldflags("-shared")
 
 		remove_files("bassasio.cpp")

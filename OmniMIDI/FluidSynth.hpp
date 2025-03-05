@@ -10,7 +10,7 @@
 #define _OFLUIDSYNTH_H
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #include "inc/fluidsynth.h"

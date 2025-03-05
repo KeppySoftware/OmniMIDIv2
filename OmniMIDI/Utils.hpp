@@ -18,12 +18,12 @@
 #include "ErrSys.hpp"
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #include <guiddef.h>
 #include <strsafe.h>
 #include <cassert>
 
-#include <ShlObj.h>
+#include <shlobj.h>
 
 #define loadLib				LoadLibraryA
 #define getError			GetLastError
