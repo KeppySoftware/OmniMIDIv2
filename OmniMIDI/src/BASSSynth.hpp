@@ -15,14 +15,14 @@
 #include <thread>
 #include <vector>
 
-#include "inc/bass/bass.h"
-#include "inc/bass/bassmidi.h"
-#include "inc/bass/bass_fx.h"
+#include "bass/bass.h"
+#include "bass/bassmidi.h"
+#include "bass/bass_fx.h"
 #define	BASE_IMPORTS	36
 
 #if defined(_WIN32)
-#include "inc/bass/bassasio.h"
-#include "inc/bass/basswasapi.h"
+#include "bass/bassasio.h"
+#include "bass/basswasapi.h"
 #define	ADD_IMPORTS		32
 #define DEFAULT_ENGINE	WASAPI
 #else

@@ -47,7 +47,7 @@
 #include "Utils.hpp"
 #include "EvBuf_t.hpp"
 #include "KDMAPI.hpp"
-#include "inc/nlohmann/json.hpp"
+#include "nlohmann/json.hpp"
 #include <thread>
 #include <fstream>
 #include <string>

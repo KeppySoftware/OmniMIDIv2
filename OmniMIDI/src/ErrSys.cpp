@@ -102,7 +102,7 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 #endif
 
 	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
-	std::async([&Buf]() { std::cout << Buf << std::endl; });
+	auto _ = std::async([&Buf]() { std::cout << Buf << std::endl; });
 	delete[] Buf;
 
 #ifdef _DEBUG

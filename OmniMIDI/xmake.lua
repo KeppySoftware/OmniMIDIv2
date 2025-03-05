@@ -27,7 +27,7 @@ target("OmniMIDI")
 	add_ldflags("-j")
 
 	add_includedirs("inc")
-	add_files("*.cpp")
+	add_files("src/*.cpp")
 
 	if is_plat("windows") then	
 		set_toolchains("mingw")
@@ -36,16 +36,14 @@ target("OmniMIDI")
 		set_prefixname("")
 
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("winmm", "uuid", "shlwapi", "shell32", "user32", "gdi32", "ole32", "-l:libwinpthread.a")
-		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
+		add_syslinks("winmm", "shlwapi", "ole32", "-l:libwinpthread.a")
+		add_defines("_WIN32", "_WINXP", "_WIN32_WINNT=0x6000")
 
-		add_files("OMRes.rc")
 		remove_files("UnixEntry.cpp")
 	else
 		set_toolchains("gcc")
 
 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
-		add_ldflags("-shared")
 
 		remove_files("bassasio.cpp")
 		remove_files("basswasapi.cpp")

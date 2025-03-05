@@ -65,6 +65,9 @@ extern "C" {
 
 					// Allocate a generic dummy synth for now
 					Host = new OmniMIDI::SynthHost(fDriverCallback, hModule, ErrLog);
+					OutputDebugStringW(L"Nice.");
+
+					return TRUE;
 				}
 			}
 

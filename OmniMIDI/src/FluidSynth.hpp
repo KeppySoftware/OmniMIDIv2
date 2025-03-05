@@ -13,7 +13,7 @@
 #include <windows.h>
 #endif
 
-#include "inc/fluidsynth.h"
+#include "fluidsynth.h"
 #include <thread>
 #include <atomic>
 #include <algorithm>

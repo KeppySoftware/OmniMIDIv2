@@ -206,7 +206,8 @@ unsigned int OMShared::Funcs::QuerySystemTime(signed long long* v) {
 }
 
 bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPath) {
-#ifdef _WIN32 
+#ifdef _WIN32
+#ifndef _WINXP
 	GUID id = GUID_NULL;
 
 	switch (FolderID) {
@@ -233,6 +234,23 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 
 		return succ;
 	}
+#else
+	int csidl = 0;
+
+	switch (FolderID) {
+	case CurrentDirectory:
+	case System:
+		csidl = CSIDL_SYSTEM;
+		break;
+	case UserFolder:
+		csidl = CSIDL_PROFILE;
+		break;
+	default:
+		break;
+	}
+
+	return !(bool)SHGetFolderPathA(nullptr, csidl, NULL, SHGFP_TYPE_CURRENT, path);
+#endif
 #else
 	const char* envPath = nullptr;
 
