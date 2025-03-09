@@ -15,28 +15,31 @@ Here are the main differences:
 - Written with modularity in mind, to allow other developers to take full advantage of it *(Modules support!)* and... 
 - ... support for more operating systems other than Windows, *and* more architectures other than i386 and AMD64, thanks to a built-in implementation of [TinySoundFont](https://github.com/schellingb/TinySoundFont)! *(Both a WinRT ARM32 and Linux AMD64 release have been tested internally so far.)*
 
-## Future of KDMAPI
-[**Keppy's Direct MIDI API**](https://github.com/KeppySoftware/OmniMIDI/blob/master/DeveloperContent/KDMAPI.md), introduced in OmniMIDI *v1*, *will* continue to be supported in OmniMIDI *v2*.
-<br />
-I will make sure old applications will *still* be able to communicate with v2, but it will definitely be deprecated in favor of a better API implementation with a *better name*. To be continued...
-
 ## What's present in the driver so far?
 Here's what available with OmniMIDI v2 so far.
 - ✔️ Driver (Uh...)
+    - ✔️ Support for Windows **and** Linux
     - ✔️ Modular synthesizer system, with built-in support for:
         - ✔️ [BASSMIDI](https://www.un4seen.com/bass.html) *(With support for WASAPI, ASIO, DirectSound and XAudio2)*
         - ✔️ [FluidSynth](https://github.com/FluidSynth/fluidsynth)
         - ✔️ [XSynth](https://github.com/arduano/xsynth)
-        - ✔️ [TinySoundFont](https://github.com/schellingb/TinySoundFont)
     - ❌ Events parser overrides (change note length, ignore events etc...)
-    - ❌ Hotkey support for hot reload of settings or SoundFont lists
+    - ✔️ Support for hot reload of settings or SoundFont lists
     - ❌ MIDI Feedback feature
-    - ❔ Blacklist system
-    - ❔ Audio limiter (anti-clipping)
-    - ❔ WinMMWRP support
+    - ✔️* Blacklist system
+    - ✔️ Audio limiter (anti-clipping)
+    - ✔️ WinMMWRP support
 - ❌ Configurator
 - ❌ MIDI channel mixer
-- ❌ Debug window
+- ✔️ Debug window
+
+## How to compile
+### Windows
+
+## Future of KDMAPI
+[**Keppy's Direct MIDI API**](https://github.com/KeppySoftware/OmniMIDI/blob/master/DeveloperContent/KDMAPI.md), introduced in OmniMIDI *v1*, *will* continue to be supported in OmniMIDI *v2*.
+<br />
+I will make sure old applications will *still* be able to communicate with v2, but it will definitely be deprecated in favor of a better API implementation with a *better name*. To be continued...
 
 ## Will it work on my Pentium 4 PC with Windows XP...
 Stop asking. No.

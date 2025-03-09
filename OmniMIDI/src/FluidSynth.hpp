@@ -29,6 +29,16 @@
 
 #define FLUIDSYNTH_STR	"FluidSynth"
 
+#ifdef _WIN32
+#define FLUIDLIB		"libfluidsynth-3"
+#define FLUIDSFX		nullptr
+#define AUDIODRV		"wasapi"
+#else
+#define FLUIDLIB		"fluidsynth"
+#define FLUIDSFX		".3"
+#define AUDIODRV		"alsa"
+#endif
+
 namespace OmniMIDI {
 	class FluidSettings : public SettingsModule {
 	public:
@@ -43,7 +53,7 @@ namespace OmniMIDI {
 		double OverflowPercussion = 10000.0;
 		double OverflowReleased = -10000.0;
 		double OverflowImportant = 0.0;
-		std::string Driver = "wasapi";
+		std::string Driver = AUDIODRV;
 		std::string SampleFormat = "float";
 
 		FluidSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) { }

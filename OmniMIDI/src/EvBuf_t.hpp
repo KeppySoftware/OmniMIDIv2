@@ -76,7 +76,7 @@ namespace OmniMIDI {
 		virtual void PeekLong(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
 
 		virtual bool NewEventsAvailable() { return false; }
-		virtual void ResetHeads() { writeHead = 0; readHead = 0; }
+		virtual void ResetHeads() { readHead = 0; writeHead = 0; }
 		virtual size_t GetReadHeadPos() { return 0; }
 		virtual size_t GetWriteHeadPos() { return 0; }
 	};

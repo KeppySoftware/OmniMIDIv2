@@ -40,7 +40,7 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 	}
 
 	if (!XLib)
-		XLib = new Lib("xsynth", ErrLog, &ptr, xLibImpLen);
+		XLib = new Lib("xsynth", nullptr, ErrLog, &ptr, xLibImpLen);
 
 	if (XLib->IsOnline())
 		return true;

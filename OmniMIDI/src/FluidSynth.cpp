@@ -135,7 +135,7 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 		}
 
 		if (!FluiLib)
-			FluiLib = new Lib("libfluidsynth-3", ErrLog, &ptr, fLibImpLen);
+			FluiLib = new Lib(FLUIDLIB, FLUIDSFX, ErrLog, &ptr, fLibImpLen);
 
 		if (!FluiLib->LoadLib())
 			return false;

@@ -53,8 +53,11 @@
 namespace OMShared {
 	enum FIDs {
 		CurrentDirectory,
-		System,
-		UserFolder
+		UserFolder,
+		LibGeneric,
+		Libi386,
+		LibAMD64,
+		LibAArch64
 	};
 
 	class LibImport
@@ -108,6 +111,7 @@ namespace OMShared {
 	class Lib {
 	protected:
 		const char* Name;
+		const char* Suffix;
 		void* Library = nullptr;
 		bool Initialized = false;
 		bool LoadFailed = false;
@@ -117,11 +121,13 @@ namespace OMShared {
 		LibImport* Funcs = nullptr;
 		size_t FuncsCount = 0;
 
+		bool IteratePath(char* outPath, OMShared::FIDs fid);
+
 	public:
 		void* Ptr() { return Library; }
 		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
 
-		Lib(const char* pName, ErrorSystem::Logger* PErr, LibImport** pFuncs = nullptr, size_t pFuncsCount = 0);
+		Lib(const char* pName, const char* Suffix, ErrorSystem::Logger* PErr, LibImport** pFuncs = nullptr, size_t pFuncsCount = 0);
 		~Lib();
 
 		bool GetLibPath(char* outPath = nullptr);

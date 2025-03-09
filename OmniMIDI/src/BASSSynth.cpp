@@ -391,23 +391,23 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	}
 
 	if (!BAudLib)
-		BAudLib = new Lib("bass", ErrLog, &ptr, LibImportsSize);
+		BAudLib = new Lib("bass", nullptr, ErrLog, &ptr, LibImportsSize);
 
 	if (!BMidLib)
-		BMidLib = new Lib("bassmidi", ErrLog, &ptr, LibImportsSize);
+		BMidLib = new Lib("bassmidi", nullptr, ErrLog, &ptr, LibImportsSize);
 
 	if (!BFlaLib)
-		BFlaLib = new Lib("bassflac", ErrLog);
+		BFlaLib = new Lib("bassflac", nullptr, ErrLog);
 		
 	if (!BEfxLib)
-		BEfxLib = new Lib("bass_fx", ErrLog, &ptr, LibImportsSize);
+		BEfxLib = new Lib("bass_fx", nullptr, ErrLog, &ptr, LibImportsSize);
 
 #if defined(_WIN32)
 	if (!BWasLib)
-		BWasLib = new Lib("basswasapi", ErrLog, &ptr, LibImportsSize);
+		BWasLib = new Lib("basswasapi", nullptr, ErrLog, &ptr, LibImportsSize);
 
 	if (!BAsiLib)
-		BAsiLib = new Lib("bassasio", ErrLog, &ptr, LibImportsSize);
+		BAsiLib = new Lib("bassasio", nullptr, ErrLog, &ptr, LibImportsSize);
 #endif
 
 	// LOG(SynErr, L"LoadBASSSynth called.");

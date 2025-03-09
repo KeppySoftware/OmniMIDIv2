@@ -27,7 +27,6 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 	MIDIOUTCAPSW CapsW;
 	MIDIOUTCAPS2A Caps2A;
 	MIDIOUTCAPS2W Caps2W;
-	size_t WCSTSRetVal;
 
 	// Why would this happen? Stupid MIDI app dev smh
 	if (CapsPointer == nullptr)
@@ -44,7 +43,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 	// I have to support all this s**t or else it won't work in some apps smh
 	switch (CapsSize) {
 	case (sizeof(MIDIOUTCAPSA)):
-		wcstombs_s(&WCSTSRetVal, CapsA.szPname, sizeof(CapsA.szPname), this->TemplateName, MAXPNAMELEN);
+		strncpy_s(CapsA.szPname, NAME, MAXPNAMELEN);
 		CapsA.dwSupport = this->Support;
 		CapsA.wChannelMask = 0xFFFF;
 		CapsA.wMid = this->ManufacturerID;
@@ -58,7 +57,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		break;
 
 	case (sizeof(MIDIOUTCAPSW)):
-		wcsncpy_s(CapsW.szPname, this->TemplateName, MAXPNAMELEN);
+		wcsncpy_s(CapsW.szPname, WNAME, MAXPNAMELEN);
 		CapsW.dwSupport = this->Support;
 		CapsW.wChannelMask = 0xFFFF;
 		CapsW.wMid = this->ManufacturerID;
@@ -72,7 +71,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		break;
 
 	case (sizeof(MIDIOUTCAPS2A)):
-		wcstombs_s(&WCSTSRetVal, Caps2A.szPname, sizeof(Caps2A.szPname), this->TemplateName, MAXPNAMELEN);
+		strncpy_s(Caps2A.szPname, NAME, MAXPNAMELEN);
 		Caps2A.dwSupport = this->Support;
 		Caps2A.wChannelMask = 0xFFFF;
 		Caps2A.wMid = this->ManufacturerID;
@@ -86,7 +85,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		break;
 
 	case (sizeof(MIDIOUTCAPS2W)):
-		wcsncpy_s(Caps2W.szPname, this->TemplateName, MAXPNAMELEN);
+		wcsncpy_s(Caps2W.szPname, WNAME, MAXPNAMELEN);
 		Caps2W.dwSupport = this->Support;
 		Caps2W.wChannelMask = 0xFFFF;
 		Caps2W.wMid = this->ManufacturerID;

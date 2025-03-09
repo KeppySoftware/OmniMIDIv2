@@ -115,6 +115,7 @@ namespace OmniMIDI {
 		SynthResult Reset() { return Synth->Reset(); }
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Synth->TalkToSynthDirectly(evt, chan, param); }
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return Synth->SettingsManager(setting, get, var, size); }
+		bool IsSynthInitialized() { return Synth->IsSynthInitialized(); }
 	};
 }
 

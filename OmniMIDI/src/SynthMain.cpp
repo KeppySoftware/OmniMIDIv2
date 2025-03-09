@@ -35,7 +35,7 @@ bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, si
 		return false;
 	}
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile) * MAX_PATH_LONG)) {
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, MAX_PATH_LONG)) {
 		LOG("Utils.GetFolderPath path: %s", userProfile);
 
 		snprintf(SettingsPath, szSetPath, "%s/OmniMIDI/settings.json", userProfile);

@@ -22,6 +22,7 @@
 #include "cmmddk.h"
 #include <mmeapi.h>
 #include <assert.h>
+#include "Common.hpp"
 #include "ErrSys.hpp"
 
 namespace WinDriver {
@@ -36,12 +37,6 @@ namespace WinDriver {
 
 	class DriverMask {
 	private:
-#ifdef _DEBUG
-		const wchar_t* TemplateName = L"OmniMIDI (Debug)\0";
-#else
-		const wchar_t* TemplateName = L"OmniMIDI\0";
-#endif
-
 		unsigned short ManufacturerID = 0xFFFF;
 		unsigned short ProductID = 0xFFFF;
 		unsigned short Technology = MOD_SWSYNTH;
