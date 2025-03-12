@@ -308,7 +308,15 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 		envPath = "/usr/lib/aarch64-linux-gnu";
 		break;
 	case UserFolder:
-		envPath = std::getenv("HOME");
+		if (std::getenv("XDG_CONFIG_HOME") != nullptr) {
+			envPath = std::getenv("XDG_CONFIG_HOME");
+		}
+		else {
+			// Default to ~/.config
+			static std::string configPath = std::format("{0}/.config", std::getenv("HOME"));
+			envPath = configPath.c_str();
+		}
+
 		break;
 	case CurrentDirectory:
 		return getcwd(path, szPath) != 0;
