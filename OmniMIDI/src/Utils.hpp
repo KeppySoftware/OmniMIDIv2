@@ -16,6 +16,7 @@
 #include <cassert>
 #include "Common.hpp"
 #include "ErrSys.hpp"
+#include <format>
 
 #ifdef _WIN32
 #include <windows.h>
