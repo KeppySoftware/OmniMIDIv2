@@ -244,40 +244,15 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	if (path == nullptr)
 		return false;
 		
-#ifdef _WIN32
-#ifndef _WINXP
-	GUID id = GUID_NULL;
-
-	switch (FolderID) {
-	case CurrentDirectory:
-	case System:
-		id = FOLDERID_System;
-		break;
-	case UserFolder:
-		id = FOLDERID_Profile;
-		break;
-	default:
-		break;
-	}
-
-	if (id != GUID_NULL) {
-		PWSTR Dir;
-		HRESULT SGKFP = SHGetKnownFolderPath(id, 0, NULL, &Dir);
-		bool succ = SUCCEEDED(SGKFP);
-
-		if (succ)
-			wcstombs(path, Dir, szPath);
-
-		CoTaskMemFree((LPVOID)Dir);
-
-		return succ;
-	}
-#else
+#if defined(_WIN32)
 	int csidl = 0;
 
 	switch (FolderID) {
 	case CurrentDirectory:
-	case System:
+	case LibGeneric:
+	case Libi386:
+	case LibAMD64:
+	case LibAArch64:
 		csidl = CSIDL_SYSTEM;
 		break;
 	case UserFolder:
@@ -288,7 +263,6 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	}
 
 	return !(bool)SHGetFolderPathA(nullptr, csidl, NULL, SHGFP_TYPE_CURRENT, path);
-#endif
 #else
 	const char* envPath = nullptr;
 

@@ -9,8 +9,12 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a")
 set_runtimes("stdc++_static")
 
+-- Self-hosted MIDI out for Linux
 target("OmniMIDI")
-	if is_plat("linux") then 	
+	if is_plat("windows") then 	
+		-- Dummy
+		set_enabled(false)	
+	else 
 		set_kind("binary")
 
 		if is_mode("debug") then
@@ -47,6 +51,7 @@ target("OmniMIDI")
 	end
 target_end()
 
+-- Actual lib (or user-mode driver, under Win32)
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
