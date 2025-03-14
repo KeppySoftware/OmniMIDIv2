@@ -6,7 +6,7 @@ set_allowedmodes("debug", "release")
 set_allowedarchs("x86", "x64", "x86_64", "arm64")
 	
 add_rules("mode.release", "mode.debug")
-set_languages("clatest", "cxx2a")
+set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
 -- Self-hosted MIDI out for Linux
