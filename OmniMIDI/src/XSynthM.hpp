@@ -13,7 +13,7 @@
 #include "Common.hpp"
 
 // Not supported on ARM Thumb-2!
-#ifdef _M_ARM
+#ifndef _M_ARM
 
 #include "SynthMain.hpp"
 

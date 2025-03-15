@@ -27,16 +27,16 @@
     #define Sleep			sleep
 #endif
 
-#if !defined(_M_IX86)
+#if !defined(_M_IX86) && defined(__i386__)
     #define _M_IX86         __i386__
 #endif
-#if !defined(_M_AMD64)
+#if !defined(_M_AMD64) && defined(__amd64__)
     #define _M_AMD64        __amd64__
 #endif
-#if !defined(_M_ARM)
+#if !defined(_M_ARM) && defined(__arm__)
     #define _M_ARM          __arm__
 #endif
-#if !defined(_M_ARM64)
+#if !defined(_M_ARM64) && defined(__aarch64__)
     #define _M_ARM64        __aarch64__
 #endif
 
