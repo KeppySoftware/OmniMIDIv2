@@ -19,9 +19,9 @@
 #endif
 
 // Synthesizers
+#include "XSynthM.hpp"
 #include "BASSSynth.hpp"
 #include "FluidSynth.hpp"
-#include "XSynthM.hpp"
 #include "ShakraPipe.hpp"
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();

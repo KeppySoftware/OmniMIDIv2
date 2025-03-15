@@ -45,11 +45,11 @@ bool OmniMIDI::ShakraPipe::StartSynthModule() {
 		if (temp) {
 			ShortEvents = (EvBuf*)temp;
 			ShortEvents->Allocate(Settings->EvBufSize);
-			LOG("ShortEvents mapping worked!");
+			Message("ShortEvents mapping worked!");
 		}
-		else NERROR("An error occurred while mapping the view for the PShortEvents file mapping!", true);
+		else Error("An error occurred while mapping the view for the PShortEvents file mapping!", true);
 	}
-	else NERROR("An error occurred while creating the PShortEvents file mapping!", true);
+	else Error("An error occurred while creating the PShortEvents file mapping!", true);
 
 	temp = nullptr;
 	if ((PLongEvents = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE | SEC_COMMIT, 0, sizeof(LEvBuf), LBName)) != 0) {
@@ -58,11 +58,11 @@ bool OmniMIDI::ShakraPipe::StartSynthModule() {
 		if (temp) {
 			LongEvents = (LEvBuf*)temp;
 			LongEvents->Allocate(32);
-			LOG("LongEvents mapping worked!");
+			Message("LongEvents mapping worked!");
 		}
-		else NERROR("An error occurred while mapping the view for the PLongEvents file mapping!", true);
+		else Error("An error occurred while mapping the view for the PLongEvents file mapping!", true);
 	}
-	else NERROR("An error occurred while creating the PLongEvents file mapping!", true);
+	else Error("An error occurred while creating the PLongEvents file mapping!", true);
 
 	if (!ShortEvents || !LongEvents) {
 		StopSynthModule();

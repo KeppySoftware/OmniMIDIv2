@@ -110,12 +110,12 @@ extern "C" {
 		switch (Message) {
 		case DRV_OPEN:
 			v = DriverComponent->SetDriverHandle(DriverHandle);
-			LOG("->SetDriverHandle(...) returned %d", v);
+			Message("->SetDriverHandle(...) returned %d", v);
 			return v;
 
 		case DRV_CLOSE:
 			v = DriverComponent->UnsetDriverHandle();
-			LOG("->UnsetDriverHandle() returned %d", v);
+			Message("->UnsetDriverHandle() returned %d", v);
 			return v;
 
 		case DRV_LOAD:
@@ -137,7 +137,7 @@ extern "C" {
 		}
 
 		unsigned long r = DefDriverProc(DriverIdentifier, DriverHandle, Message, Param1, Param2);
-		LOG("DefDriverProc returned %d", r);
+		Message("DefDriverProc returned %d", r);
 		return r;
 	}
 
@@ -156,7 +156,7 @@ extern "C" {
 				!mhdr || !mhdr->lpData ||
 				mhdr->dwBufferLength < mhdr->dwBytesRecorded)
 			{
-				LOG("SysEx event 0x%08x is invalid. (lpData: 0x%08x, dwBL: %d, dwBR: %d, dwBR4: %d, cbSize: 0x%08x)",
+				Message("SysEx event 0x%08x is invalid. (lpData: 0x%08x, dwBL: %d, dwBR: %d, dwBR4: %d, cbSize: 0x%08x)",
 					mhdr->lpData, mhdr->dwBufferLength, mhdr->dwBytesRecorded, mhdr->dwBytesRecorded % 4, Param1, Param2);
 				return MMSYSERR_INVALPARAM;
 			}
@@ -164,14 +164,14 @@ extern "C" {
 			if (!(mhdr->dwFlags & MHDR_PREPARED))
 			{
 				fDriverCallback->CallbackFunction(0, 0, 0xFEEDF00D);
-				LOG("Stream data 0x%08x has not been prepared.", Param1, Param2);
+				Message("Stream data 0x%08x has not been prepared.", Param1, Param2);
 				return MIDIERR_UNPREPARED;
 			}
 
 			if (!(mhdr->dwFlags & MHDR_DONE))
 			{
 				if (mhdr->dwFlags & MHDR_INQUEUE) {
-					LOG("SysEx event 0x%08x is still in queue for StreamPlayer.", Param1, Param2);
+					Message("SysEx event 0x%08x is still in queue for StreamPlayer.", Param1, Param2);
 					return MIDIERR_STILLPLAYING;
 				}
 			}
@@ -180,10 +180,10 @@ extern "C" {
 			if (ret) {
 				switch (ret) {
 				case SYNTH_INVALPARAM:
-					LOG("Invalid SysEx event. (Buf = 0x%08x, SynthResult = %d, bufsize = %d)", Param1, ret, mhdr->dwBufferLength);
+					Message("Invalid SysEx event. (Buf = 0x%08x, SynthResult = %d, bufsize = %d)", Param1, ret, mhdr->dwBufferLength);
 					return MMSYSERR_INVALPARAM;
 				default:
-					LOG("No idea! 0x%08x", Param1);
+					Message("No idea! 0x%08x", Param1);
 					return MMSYSERR_ERROR;
 				}
 			}
@@ -307,29 +307,29 @@ extern "C" {
 
 			if (Host->Start(callbackMode & MIDI_IO_COOKED)) {
 				if (fDriverCallback->PrepareCallbackFunction(midiOpenDesc, callbackMode)) {
-					LOG("PrepareCallbackFunction done.");
+					Message("PrepareCallbackFunction done.");
 				}
 
-				LOG("WinMM initialized.");
+				Message("WinMM initialized.");
 				return MMSYSERR_NOERROR;
 			}
 
-			NERROR("Failed to initialize synthesizer.", true);
+			Error("Failed to initialize synthesizer.", true);
 			return MMSYSERR_NOMEM;
 		}
 
 
 		case MODM_CLOSE:
 			if (Host->Stop()) {
-				LOG("WinMM freed.");
+				Message("WinMM freed.");
 				return MMSYSERR_NOERROR;
 			}
 
-			LOG("Failed to free synthesizer.");
+			Message("Failed to free synthesizer.");
 			return MMSYSERR_ERROR;
 
 		case MODM_GETNUMDEVS:
-			LOG("MODM_GETNUMDEVS");
+			Message("MODM_GETNUMDEVS");
 			return Host->IsBlacklistedProcess() ? 0 : 1;
 
 		case MODM_GETDEVCAPS:
@@ -438,21 +438,21 @@ extern "C" {
 
 	EXPORT int APICALL InitializeKDMAPIStream() {
 		if (Host->Start()) {
-			LOG("KDMAPI initialized.");
+			Message("KDMAPI initialized.");
 			return 1;
 		}
 
-		LOG("KDMAPI failed to initialize.");
+		Message("KDMAPI failed to initialize.");
 		return 0;
 	}
 
 	EXPORT int APICALL TerminateKDMAPIStream() {
 		if (Host->Stop()) {
-			LOG("KDMAPI freed.");
+			Message("KDMAPI freed.");
 			return 1;
 		}
 
-		LOG("KDMAPI failed to free its resources.");
+		Message("KDMAPI failed to free its resources.");
 		return 0;
 	}
 

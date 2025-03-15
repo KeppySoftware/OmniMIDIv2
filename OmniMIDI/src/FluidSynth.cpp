@@ -84,7 +84,7 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 		case SystemMessageStart:
 			sysev = tev;
 
-			LOG("SysEx Begin: %x", sysev);
+			Message("SysEx Begin: %x", sysev);
 			fluid_synth_sysex(targetStream, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
 			while (GetStatus(sysev) != SystemMessageEnd) {
@@ -92,12 +92,12 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 
 				if (GetStatus(sysev) != SystemMessageEnd) {
 					sysev = ShortEvents->Read();
-					LOG("SysEx Ev: %x", sysev);
+					Message("SysEx Ev: %x", sysev);
 					fluid_synth_sysex(targetStream, (const char*)&sysev, 3, 0, &len, &handled, 0);
 				}		
 			}
 
-			LOG("SysEx End", sysev);		
+			Message("SysEx End", sysev);		
 			break;
 
 		case SystemReset:
@@ -141,7 +141,7 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 			return false;
 
 		if (!AllocateShortEvBuf(Settings->EvBufSize)) {
-			NERROR("AllocateShortEvBuf failed.", true);
+			Error("AllocateShortEvBuf failed.", true);
 			return false;
 		}
 
@@ -168,14 +168,14 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 
 		if (!FluiLib->UnloadLib())
 		{
-			FNERROR("FluiLib->UnloadLib FAILED!!!");
+			Fatal("FluiLib->UnloadLib FAILED!!!");
 			return false;
 		}
 
 		return true;
 	}
 
-	NERROR("Call StopSynthModule() first!", true);
+	Error("Call StopSynthModule() first!", true);
 	return false;
 }
 
@@ -211,7 +211,7 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 
 	fSet = new_fluid_settings();
 	if (!fSet) {
-		NERROR("new_fluid_settings failed to allocate memory for its settings!", true);
+		Error("new_fluid_settings failed to allocate memory for its settings!", true);
 		return false;
 	}
 
@@ -241,13 +241,13 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 		AudioStreams[i] = new_fluid_synth(fSet);
 
 		if (!AudioStreams[i]) {
-			NERROR("new_fluid_synth failed!", true);
+			Error("new_fluid_synth failed!", true);
 			return false;
 		}
 
 		AudioDrivers[i] = new_fluid_audio_driver(fSet, AudioStreams[i]);
 		if (!AudioDrivers[i]) {
-			NERROR("new_fluid_audio_driver failed!", true);
+			Error("new_fluid_audio_driver failed!", true);
 			return false;
 		}
 	}
@@ -255,7 +255,7 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 	LoadSoundFonts();
 	SFSystem.RegisterCallback(this);
 
-	LOG("fSyn and fDrv are operational. FluidSynth is now working.");
+	Message("fSyn and fDrv are operational. FluidSynth is now working.");
 	return true;
 }
 
@@ -275,7 +275,7 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 		}
 	}
 
-	LOG("fSyn and fDrv have been freed. FluidSynth is now asleep.");
+	Message("fSyn and fDrv have been freed. FluidSynth is now asleep.");
 	return true;
 }
 

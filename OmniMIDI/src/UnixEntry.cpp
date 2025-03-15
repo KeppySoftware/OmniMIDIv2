@@ -55,9 +55,9 @@ int CONSTRUCTOR main(int argc, char *argv[]) {
         standalone();
         stop();
 
-        LOG("stop called. Terminating OmniMIDI...");
+        Message("stop called. Terminating OmniMIDI...");
 #else
-        LOG("main succeeded! OmniMIDI loaded.");
+        Message("main succeeded! OmniMIDI loaded.");
 #endif
       
     }
@@ -103,21 +103,21 @@ extern "C" {
 
     int EXPORT InitializeKDMAPIStream() {
         if (Host->Start()) {
-            LOG("KDMAPI initialized.");
+            Message("KDMAPI initialized.");
             return 1;
         }
 
-        LOG("KDMAPI failed to initialize.");
+        Message("KDMAPI failed to initialize.");
         return 0;
     }
 
     int EXPORT TerminateKDMAPIStream() {
         if (Host->Stop()) {
-            LOG("KDMAPI freed.");
+            Message("KDMAPI freed.");
             return 1;
         }
 
-        LOG("KDMAPI failed to free its resources.");
+        Message("KDMAPI failed to free its resources.");
         return 0;
     }
 
@@ -177,42 +177,42 @@ void standalone() {
     try {
         status = snd_seq_open(&seq_handle, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
         if (status) {
-            NERROR("snd_seq_open failed.", true);
+            Error("snd_seq_open failed.", true);
             return;
         }
-        else LOG("snd_seq_open %x >> GOOD", status);
+        else Message("snd_seq_open %x >> GOOD", status);
 
         status = snd_seq_set_client_name(seq_handle, NAME);
         if (status) {
-            NERROR("snd_seq_set_client_name failed.", true);
+            Error("snd_seq_set_client_name failed.", true);
             return;
         }
-        else LOG("snd_seq_set_client_name %x >> %s", status, NAME);
+        else Message("snd_seq_set_client_name %x >> %s", status, NAME);
 
         in_port = snd_seq_create_simple_port(seq_handle, "virtual",
             SND_SEQ_PORT_CAP_WRITE | SND_SEQ_PORT_CAP_SUBS_WRITE,
             SND_SEQ_PORT_TYPE_APPLICATION | SND_SEQ_PORT_TYPE_SYNTHESIZER | SND_SEQ_PORT_TYPE_SOFTWARE | 
             SND_SEQ_PORT_TYPE_MIDI_GM | SND_SEQ_PORT_TYPE_MIDI_GS | SND_SEQ_PORT_TYPE_MIDI_XG);
         if (in_port < 0) {
-            NERROR("snd_seq_create_simple_port failed.", true);
+            Error("snd_seq_create_simple_port failed.", true);
             return;
         }
-        else LOG("snd_seq_set_client_name %x >> virtual port with caps GM/GS/XG", in_port);
+        else Message("snd_seq_set_client_name %x >> virtual port with caps GM/GS/XG", in_port);
 
         status = snd_seq_set_input_buffer_size(seq_handle, 4194304);
         if (status) {
-            NERROR("snd_seq_set_client_name failed.", true);
+            Error("snd_seq_set_client_name failed.", true);
             return;
         }
-        else LOG("snd_seq_set_input_buffer_size >> %x", 4194304);
+        else Message("snd_seq_set_input_buffer_size >> %x", 4194304);
 
         if (Host->Start()) {
             seq_thread = std::jthread(&evThread);
             if (!seq_thread.joinable()) {
-                NERROR("seq_thread failed. (ID: %x)", true, seq_thread.get_id());
+                Error("seq_thread failed. (ID: %x)", true, seq_thread.get_id());
                 return;
             }
-            else LOG("ALSA MIDI thread allocated.");
+            else Message("ALSA MIDI thread allocated.");
             
             while (seq_thread.joinable()) {
                 MiscFuncs->MicroSleep(1);
@@ -222,7 +222,7 @@ void standalone() {
                     if (!seq_thread.joinable()) {
                         return;
                     }
-                    else LOG("ALSA MIDI thread allocated.");
+                    else Message("ALSA MIDI thread allocated.");
                 }
             }
         }
@@ -341,12 +341,12 @@ void evThread() {
                 case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
                 {
                     auto subData = evData.connect;
-                    LOG("Client %s: %x:%x", ev->type == SND_SEQ_EVENT_PORT_SUBSCRIBED ? "connected" : "disconnected", subData.sender.client, subData.sender.port);
+                    Message("Client %s: %x:%x", ev->type == SND_SEQ_EVENT_PORT_SUBSCRIBED ? "connected" : "disconnected", subData.sender.client, subData.sender.port);
                     break;
                 }
 
                 default:
-                    LOG("Unknown event %x (type %x)", evData.raw32.d[0], ev->type);
+                    Message("Unknown event %x (type %x)", evData.raw32.d[0], ev->type);
                     continue;
             }
 

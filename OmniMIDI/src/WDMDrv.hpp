@@ -17,12 +17,15 @@
 #define MIDI_IO_PACKED	0x00000000L			// Legacy mode, used by most MIDI apps
 #define MIDI_IO_COOKED	0x00000002L			// Stream mode, used by some old MIDI apps (Such as GZDoom)
 
+// Always first
+#include "Common.hpp"
+
+// The rest
 #include <windows.h>
 #include <math.h>
-#include "cmmddk.h"
 #include <mmeapi.h>
 #include <assert.h>
-#include "Common.hpp"
+#include "cmmddk.h"
 #include "ErrSys.hpp"
 
 namespace WinDriver {

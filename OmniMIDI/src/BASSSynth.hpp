@@ -6,14 +6,17 @@
 
 */
 
+#ifdef _NONFREE
+
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
 
-#include "ErrSys.hpp"
-#include "EvBuf_t.hpp"
-#include "SynthMain.hpp"
+// Always first
+#include "Common.hpp"
+
 #include <thread>
 #include <vector>
+#include "SynthMain.hpp"
 
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
@@ -282,7 +285,7 @@ namespace OmniMIDI {
 		void ProcessEvBufChk();
 
 		void AudioThread(unsigned int id);
-		void EventsThread(unsigned int id);
+		void EventsThread();
 		void BASSThread();
 
 		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, BASSSynth*);
@@ -313,5 +316,7 @@ namespace OmniMIDI {
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override;
 	};
 }
+
+#endif
 
 #endif

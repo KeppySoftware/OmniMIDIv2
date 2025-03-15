@@ -31,12 +31,12 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 	// Why would this happen? Stupid MIDI app dev smh
 	if (CapsPointer == nullptr)
 	{
-		NERROR("A null pointer has been passed to the function. The driver can't share its info with the application.", false);
+		Error("A null pointer has been passed to the function. The driver can't share its info with the application.", false);
 		return MMSYSERR_INVALPARAM;
 	}
 
 	if (CapsSize == 0) {
-		NERROR("CapsSize has a value of 0, how is the driver supposed to determine the subtype of the struct?", false);
+		Error("CapsSize has a value of 0, how is the driver supposed to determine the subtype of the struct?", false);
 		return MMSYSERR_INVALPARAM;
 	}
 
@@ -53,7 +53,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		CapsA.wVoices = 65535;
 		CapsA.vDriverVersion = MAKEWORD(6, 2);
 		memcpy((LPMIDIOUTCAPSA)CapsPointer, &CapsA, fmin(CapsSize, sizeof(CapsA)));
-		LOG("MIDIOUTCAPSA given to app.");
+		Message("MIDIOUTCAPSA given to app.");
 		break;
 
 	case (sizeof(MIDIOUTCAPSW)):
@@ -67,7 +67,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		CapsW.wVoices = 65535;
 		CapsW.vDriverVersion = MAKEWORD(6, 2);
 		memcpy((LPMIDIOUTCAPSW)CapsPointer, &CapsW, fmin(CapsSize, sizeof(CapsW)));
-		LOG("MIDIOUTCAPSW given to app.");
+		Message("MIDIOUTCAPSW given to app.");
 		break;
 
 	case (sizeof(MIDIOUTCAPS2A)):
@@ -81,7 +81,7 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		Caps2A.wVoices = 65535;
 		Caps2A.vDriverVersion = MAKEWORD(6, 2);
 		memcpy((LPMIDIOUTCAPS2A)CapsPointer, &Caps2A, fmin(CapsSize, sizeof(Caps2A)));
-		LOG("MIDIOUTCAPS2A given to app.");
+		Message("MIDIOUTCAPS2A given to app.");
 		break;
 
 	case (sizeof(MIDIOUTCAPS2W)):
@@ -95,12 +95,12 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 		Caps2W.wVoices = 65535;
 		Caps2W.vDriverVersion = MAKEWORD(6, 2);
 		memcpy((LPMIDIOUTCAPS2W)CapsPointer, &Caps2W, fmin(CapsSize, sizeof(Caps2W)));
-		LOG("MIDIOUTCAPS2W given to app.");
+		Message("MIDIOUTCAPS2W given to app.");
 		break;
 
 	default:
 		// ???????
-		NERROR("Size passed to CapsSize does not match any valid MIDIOUTCAPS struct.", false);
+		Error("Size passed to CapsSize does not match any valid MIDIOUTCAPS struct.", false);
 		return MMSYSERR_INVALPARAM;
 
 	}
@@ -116,7 +116,7 @@ bool WinDriver::DriverCallback::PrepareCallbackFunction(MIDIOPENDESC* OpInfStruc
 	unsigned int cMode = CallbackMode & CALLBACK_TYPEMASK;
 
 	if (pCallback) {
-		NERROR("A callback has already been allocated!", false);
+		Error("A callback has already been allocated!", false);
 		return false;
 	}
 
@@ -133,7 +133,7 @@ bool WinDriver::DriverCallback::PrepareCallbackFunction(MIDIOPENDESC* OpInfStruc
 		CallbackFunction(MOM_OPEN, 0, 0);
 
 #ifdef _DEBUG
-		LOG(".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, *pCallback->funcPtr, pCallback->Instance);
+		Error(".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, *pCallback->funcPtr, pCallback->Instance);
 #endif
 	}
 
@@ -184,13 +184,13 @@ void WinDriver::DriverCallback::CallbackFunction(DWORD Message, DWORD_PTR Arg1, 
 bool WinDriver::DriverComponent::SetDriverHandle(HDRVR Handle) {
 	// The app tried to initialize the driver with no pointer?
 	if (Handle == nullptr) {
-		NERROR("A null pointer has been passed to the function.", true);
+		Error("A null pointer has been passed to the function.", true);
 		return false;
 	}
 
 	// We already have the same pointer in memory.
 	if (this->DrvHandle) {
-		LOG("We already have the DrvHandle in memory. The app has Alzheimer's I guess?");
+		Message("We already have the DrvHandle in memory. The app has Alzheimer's I guess?");
 		return true;
 	}
 
@@ -202,7 +202,7 @@ bool WinDriver::DriverComponent::SetDriverHandle(HDRVR Handle) {
 bool WinDriver::DriverComponent::UnsetDriverHandle() {
 	// Warn through stdout if the app is trying to free the driver twice
 	if (this->DrvHandle == nullptr)
-		LOG("The application called UnsetDriverHandle even though there's no handle set. Bad design?");
+		Message("The application called UnsetDriverHandle even though there's no handle set. Bad design?");
 
 	// Free the driver by setting the local variable to nullptr, then return true
 	this->DrvHandle = nullptr;
@@ -212,49 +212,49 @@ bool WinDriver::DriverComponent::UnsetDriverHandle() {
 bool WinDriver::DriverComponent::SetLibraryHandle(HMODULE Module) {
 	// The app tried to initialize the driver with no pointer?
 	if (Module == nullptr) {
-		NERROR("A null pointer has been passed to the function.", true);
+		Error("A null pointer has been passed to the function.", true);
 		return false;
 	}
 
 	// A pointer is already stored in the variable, UnSetDriverHandle hasn't been called
 	if (this->LibHandle != nullptr) {
-		NERROR("LibHandle has been set in a previous call and not freed.", false);
+		Error("LibHandle has been set in a previous call and not freed.", false);
 		return false;
 	}
 
 	// We already have the same pointer in memory.
 	if (this->LibHandle == Module) {
-		LOG("We already have LibHandle stored in memory. The app has Alzheimer's I guess?");
+		Message("We already have LibHandle stored in memory. The app has Alzheimer's I guess?");
 		return true;
 	}
 
 	// All good, save the pointer to a local variable and return true
 	this->LibHandle = Module;
-	LOG("LibHandle stored! Addr: 0x%08x", this->LibHandle);
+	Message("LibHandle stored! Addr: 0x%08x", this->LibHandle);
 	return true;
 }
 
 bool WinDriver::DriverComponent::UnsetLibraryHandle() {
 	// Warn through stdout if the app is trying to free the driver twice
 	if (this->LibHandle == nullptr)
-		LOG("The application called UnsetLibraryHandle even though there's no module set. Bad design?");
+		Message("The application called UnsetLibraryHandle even though there's no module set. Bad design?");
 
 	// Free the driver by setting the local variable to nullptr, then return true
 	this->LibHandle = nullptr;
-	LOG("LibHandle emptied.");
+	Message("LibHandle emptied.");
 	return true;
 }
 
 bool WinDriver::DriverComponent::OpenDriver(MIDIOPENDESC* OpInfStruct, DWORD CallbackMode, DWORD_PTR CookedPlayerAddress) {
 	if (OpInfStruct->hMidi == nullptr) {
-		NERROR("No valid HMIDI pointer has been specified.", false);
+		Error("No valid HMIDI pointer has been specified.", false);
 		return false;
 	}
 
 	// Check if the app wants a cooked player
 	if (CallbackMode & 0x00000002L) {
 		if (CookedPlayerAddress == NULL) {
-			NERROR("No memory address has been specified for the MIDI_IO_COOKED player.", false);
+			Error("No memory address has been specified for the MIDI_IO_COOKED player.", false);
 			return false;
 		}
 		// stub

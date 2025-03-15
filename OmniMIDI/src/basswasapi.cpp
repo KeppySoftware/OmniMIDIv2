@@ -12,6 +12,8 @@
 
 */
 
+#ifdef _NONFREE
+
 #ifdef _WIN32
 
 #include "bass/basswasapi.h"
@@ -39,5 +41,7 @@ DWORD(WINAPI* BASS_WASAPI_PutData)(void* buffer, DWORD length) = 0;
 DWORD(WINAPI* BASS_WASAPI_GetData)(void* buffer, DWORD length) = 0;
 DWORD(WINAPI* BASS_WASAPI_GetLevel)() = 0;
 BOOL(WINAPI* BASS_WASAPI_GetLevelEx)(float* levels, float length, DWORD flags) = 0;
+
+#endif
 
 #endif

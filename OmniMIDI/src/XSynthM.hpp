@@ -9,25 +9,21 @@
 #ifndef _XSYNTHM_H
 #define _XSYNTHM_H
 
+// First
+#include "Common.hpp"
+
 // Not supported on ARM Thumb-2!
-#ifndef _M_ARM
+#ifdef _M_ARM
+
+#include "SynthMain.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
-#include "xsynth.h"
-#include <atomic>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include <thread>
 #include <vector>
-#include <codecvt>
-#include <locale>
-#include <future>
-#include "EvBuf_t.hpp"
-#include "SynthMain.hpp"
+#include "xsynth.h"
 
 #define XSYNTH_STR "XSynth"
 
@@ -35,21 +31,19 @@ namespace OmniMIDI {
 	class XSynthSettings : public SettingsModule {
 	public:
 		// Global settings
-		bool ThreadPool = false;
 		bool FadeOutKilling = false;
 		double RenderWindow = 5.0;
 		uint64_t LayerCount = 2;
+		int32_t ThreadsCount = 1;
 
-		XSynthSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {
-			LoadSynthConfig();
-		}
+		XSynthSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {}
 
 		void RewriteSynthConfig() {
 			nlohmann::json DefConfig = {
-					ConfGetVal(ThreadPool),
 					ConfGetVal(FadeOutKilling),
 					ConfGetVal(RenderWindow),
-					ConfGetVal(LayerCount)
+					ConfGetVal(ThreadsCount),
+					ConfGetVal(LayerCount),
 			};
 
 			if (AppendToConfig(DefConfig))
@@ -62,10 +56,17 @@ namespace OmniMIDI {
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
 		void LoadSynthConfig() {
 			if (InitConfig(false, XSYNTH_STR, sizeof(XSYNTH_STR))) {
-				SynthSetVal(bool, ThreadPool);
 				SynthSetVal(bool, FadeOutKilling);
 				SynthSetVal(double, RenderWindow);
+				SynthSetVal(int32_t, ThreadsCount);
 				SynthSetVal(uint64_t, LayerCount);
+			
+				if (!RANGE(ThreadsCount, -1, std::thread::hardware_concurrency()))
+					ThreadsCount = -1;
+
+				if (!RANGE(LayerCount, 1, UINT16_MAX))
+					LayerCount = 4;
+
 				return;
 			}
 
@@ -80,28 +81,26 @@ namespace OmniMIDI {
 		Lib* XLib = nullptr;
 
 		OMShared::Funcs MiscFuncs;
-		std::vector<uint64_t> SoundFonts;
+		std::vector<XSynth_Soundfont> SoundFonts;
+		XSynth_RealtimeSynth realtimeSynth;
 		XSynth_RealtimeConfig realtimeConf;
 		XSynth_RealtimeStats realtimeStats;
 		XSynth_StreamParams realtimeParams;
 		std::jthread _XSyThread;
 
-		LibImport xLibImp[14] = {
-			// BASS
+		LibImport xLibImp[12] = {
 			ImpFunc(XSynth_GenDefault_RealtimeConfig),
 			ImpFunc(XSynth_GenDefault_SoundfontOptions),
 			ImpFunc(XSynth_Realtime_Drop),
 			ImpFunc(XSynth_Realtime_GetStats),
 			ImpFunc(XSynth_Realtime_GetStreamParams),
-			ImpFunc(XSynth_Realtime_Init),
-			ImpFunc(XSynth_Realtime_IsActive),
+			ImpFunc(XSynth_Realtime_Create),
 			ImpFunc(XSynth_Realtime_Reset),
-			ImpFunc(XSynth_Realtime_SendEvent),
-			ImpFunc(XSynth_Realtime_SetLayerCount),
+			ImpFunc(XSynth_Realtime_SendEventU32),
+			ImpFunc(XSynth_Realtime_SendConfigEventAll),
 			ImpFunc(XSynth_Realtime_SetSoundfonts),
-			ImpFunc(XSynth_Soundfont_LoadNew),
-			ImpFunc(XSynth_Soundfont_Remove),
-			ImpFunc(XSynth_Soundfont_RemoveAll)
+			ImpFunc(XSynth_Realtime_ClearSoundfonts),
+			ImpFunc(XSynth_Soundfont_LoadNew)
 		};
 		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
 
@@ -126,8 +125,6 @@ namespace OmniMIDI {
 		// Event handling system
 		void PlayShortEvent(unsigned int ev) override;
 		void UPlayShortEvent(unsigned int ev) override;
-		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) override;
-		void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) override;
 
 		// Not supported in XSynth
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }

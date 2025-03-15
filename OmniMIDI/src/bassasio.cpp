@@ -12,6 +12,8 @@
 
 */
 
+#ifdef _NONFREE
+
 #ifdef _WIN32
 
 #include "bass/bassasio.h"
@@ -56,5 +58,7 @@ double (WINAPI* BASS_ASIO_ChannelGetRate)(int input, unsigned int channel) = 0;
 int (WINAPI* BASS_ASIO_ChannelSetVolume)(int input, int channel, float volume) = 0;
 float (WINAPI* BASS_ASIO_ChannelGetVolume)(int input, int channel) = 0;
 float (WINAPI* BASS_ASIO_ChannelGetLevel)(int input, unsigned int channel) = 0;
+
+#endif
 
 #endif
