@@ -85,7 +85,6 @@ namespace OmniMIDI {
 		XSynth_RealtimeSynth realtimeSynth;
 		XSynth_RealtimeConfig realtimeConf;
 		XSynth_RealtimeStats realtimeStats;
-		XSynth_StreamParams realtimeParams;
 		std::jthread _XSyThread;
 
 		LibImport xLibImp[12] = {

@@ -201,7 +201,7 @@ bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
 
 		_SFThread = std::jthread(&SoundFontSystem::SoundFontThread, this);
 		if (!_SFThread.joinable()) {
-			Error("_XSyThread failed. (ID: %x)", true, _SFThread.get_id());
+			Error("_SFThread failed. (ID: %x)", true, _SFThread.get_id());
 			return false;
 		}
 

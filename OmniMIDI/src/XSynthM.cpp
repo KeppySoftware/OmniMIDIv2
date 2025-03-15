@@ -77,9 +77,10 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 	realtimeSynth = XSynth_Realtime_Create(realtimeConf);
 
 	if (realtimeSynth.synth) {
-		realtimeParams = XSynth_Realtime_GetStreamParams(realtimeSynth);
-
 		XSynth_Realtime_SendConfigEventAll(realtimeSynth, XSYNTH_CONFIG_SETLAYERS, Settings->LayerCount);
+
+		LoadSoundFonts();
+		SFSystem.RegisterCallback(this);
 
 		_XSyThread = std::jthread(&XSynth::XSynthThread, this);
 		if (!_XSyThread.joinable()) {
@@ -96,9 +97,6 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 
 			Settings->OpenConsole();
 		}
-
-		LoadSoundFonts();
-		SFSystem.RegisterCallback(this);
 
 		Running = true;
 	}
@@ -140,7 +138,8 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 		if (SoundFontsVector != nullptr) {
 			auto& dSFv = *SoundFontsVector;
 			auto sf = XSynth_GenDefault_SoundfontOptions();
-
+			auto realtimeParams = XSynth_Realtime_GetStreamParams(realtimeSynth);
+			
 			if (dSFv.size() > 0) {
 				for (int i = 0; i < dSFv.size(); i++) {
 					const char* sfPath = dSFv[i].path.c_str();
@@ -158,7 +157,7 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 					auto sfHandle = XSynth_Soundfont_LoadNew(sfPath, sf);
 
 					if (!sfHandle.soundfont) {
-						Error("An error has occurred while loading the SoundFont %s.", false, sfPath);
+						Error("An error has occurred while loading the SoundFont \"%s\".", false, sfPath);
 						continue;
 					}
 
