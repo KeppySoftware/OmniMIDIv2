@@ -18,7 +18,7 @@ bool OmniMIDI::SynthHost::SpInit(SynthModule* synthModule) {
 		synthModule = Synth;
 
 	StreamPlayer = new OmniMIDI::CookedPlayer(synthModule, DrvCallback, ErrLog);
-	LOG("StreamPlayer allocated.");
+	Message("StreamPlayer allocated.");
 
 	if (!StreamPlayer)
 	{
@@ -26,7 +26,7 @@ bool OmniMIDI::SynthHost::SpInit(SynthModule* synthModule) {
 		return false;
 	}
 
-	LOG("StreamPlayer address: %x", StreamPlayer);
+	Message("StreamPlayer address: %x", StreamPlayer);
 	return true;
 }
 
@@ -53,12 +53,12 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 
 		while (!Synth->IsSynthInitialized());
 
-		LOG("Monitoring config at \"%s\" for changes...", confPath);
+		Message("Monitoring config at \"%s\" for changes...", confPath);
 		while (Synth->IsSynthInitialized()) {
 			curChkTime = std::filesystem::last_write_time(confPath);
 
 			if (lastChkTime != curChkTime) {	
-				LOG("Config changed, applied changes...");
+				Message("Config changed, applied changes...");
 
 				if (Stop(true)) {
 					if (Start()) {
@@ -66,9 +66,9 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 						curChkTime = std::filesystem::last_write_time(confPath);
 						lastChkTime = curChkTime;
 					}
-					else NERROR("Something went terribly wrong while reloading the settings!", true);
+					else Error("Something went terribly wrong while reloading the settings!", true);
 
-					LOG("Config applied!");
+					Message("Config applied!");
 				}
 			}
 
@@ -79,7 +79,7 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 }
 
 void OmniMIDI::SynthHost::RefreshSettings() {
-	LOG("Refreshing synth host settings...");
+	Message("Refreshing synth host settings...");
 
 	auto tSHSettings = new OmniMIDI::HostSettings(ErrLog);
 	auto oSHSettings = _SHSettings;
@@ -88,7 +88,7 @@ void OmniMIDI::SynthHost::RefreshSettings() {
 	delete oSHSettings;
 	oSHSettings = nullptr;
 
-	LOG("Settings refreshed! (renderer %d, kdmapi %d, crender %s)", _SHSettings->GetRenderer(), _SHSettings->IsKDMAPIEnabled(), _SHSettings->GetCustomRenderer());
+	Message("Settings refreshed! (renderer %d, kdmapi %d, crender %s)", _SHSettings->GetRenderer(), _SHSettings->IsKDMAPIEnabled(), _SHSettings->GetCustomRenderer());
 }
 
 bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
@@ -119,18 +119,18 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 					delete oldSynth;
 					return true;
 				}
-				else NERROR("_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
+				else Error("_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
 
 				if (!newSynth->StopSynthModule())
-					FNERROR("StopSynthModule() failed!!!");
+					Fatal("StopSynthModule() failed!!!");
 			}
-			else NERROR("StartSynthModule() failed! The driver will not output audio.", true);
+			else Error("StartSynthModule() failed! The driver will not output audio.", true);
 		}
-		else NERROR("LoadSynthModule() failed! The driver will not output audio.", true);
+		else Error("LoadSynthModule() failed! The driver will not output audio.", true);
 	}
 
 	if (!newSynth->UnloadSynthModule())
-		FNERROR("UnloadSynthModule() failed!!!");
+		Fatal("UnloadSynthModule() failed!!!");
 
 	delete newSynth;
 
@@ -148,24 +148,24 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 #endif
 
 	if (!deadSynth->StopSynthModule()) 
-		FNERROR("StopSynthModule() failed!!!");
+		Fatal("StopSynthModule() failed!!!");
 	else
-		LOG("StopSynthModule() ok.");
+		Message("StopSynthModule() ok.");
 
 	if (!deadSynth->UnloadSynthModule())
-		FNERROR("UnloadSynthModule() failed!!!");
+		Fatal("UnloadSynthModule() failed!!!");
 	else
-		LOG("UnloadSynthModule() ok.");
+		Message("UnloadSynthModule() ok.");
 
 	delete deadSynth;
-	LOG("Deleted synth from memory.");
+	Message("Deleted synth from memory.");
 
 	if (!restart) {
 #ifdef _WIN32 
 		if (DrvCallback->IsCallbackReady()) {
 			DrvCallback->CallbackFunction(MOM_CLOSE, 0, 0);
 			DrvCallback->ClearCallbackFunction();
-			LOG("Callback system has been freed.");
+			Message("Callback system has been freed.");
 		}
 #endif
 
@@ -177,7 +177,7 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 }
 
 OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
-	SynthModule* tSynth;
+	SynthModule* newSynth;
 
 	char r = _SHSettings->GetRenderer();
 	switch (r) {
@@ -188,10 +188,10 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 			auto iM = reinterpret_cast<rInitModule>(getAddr(extModule, "initModule"));
 
 			if (iM) {
-				tSynth = iM();
+				newSynth = iM();
 
-				if (tSynth) {
-					LOG("R%d (EXTERNAL >> %s)",
+				if (newSynth) {
+					Message("R%d (EXTERNAL >> %s)",
 						r,
 						_SHSettings->GetCustomRenderer());
 					break;
@@ -199,43 +199,41 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 			}
 		}
 
-		tSynth = new OmniMIDI::SynthModule(ErrLog);
-		NERROR("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
+		newSynth = new OmniMIDI::SynthModule(ErrLog);
+		Error("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
 		break;
 
 	case Synthesizers::FluidSynth:
-		tSynth = new OmniMIDI::FluidSynth(ErrLog);
-		LOG("R%d (FLUIDSYNTH)", r);
+		newSynth = new OmniMIDI::FluidSynth(ErrLog);
+		Message("R%d (FLUIDSYNTH)", r);
 		break;
 
-#if !defined _M_ARM
+#if defined(_NONFREE)
 	case Synthesizers::BASSMIDI:
-		tSynth = new OmniMIDI::BASSSynth(ErrLog);
-		LOG("R%d (BASSMIDI)", r);
+		newSynth = new OmniMIDI::BASSSynth(ErrLog);
+		Message("R%d (BASSMIDI)", r);
 		break;
 #endif
 
-#if defined _M_AMD64
 	case Synthesizers::XSynth:
-		tSynth = new OmniMIDI::XSynth(ErrLog);
-		LOG("R%d (XSYNTH)", r);
+		newSynth = new OmniMIDI::XSynth(ErrLog);
+		Message("R%d (XSYNTH)", r);
 		break;
-#endif
 
-#if defined WIN32 
+#if defined(WIN32)
 	case Synthesizers::ShakraPipe:
-		tSynth = new OmniMIDI::ShakraPipe(ErrLog);
-		LOG("R%d (SHAKRA)", r);
+		newSynth = new OmniMIDI::ShakraPipe(ErrLog);
+		Message("R%d (SHAKRA)", r);
 		break;
 #endif
 
 	default:
-		tSynth = new OmniMIDI::SynthModule(ErrLog);
-		NERROR("The chosen synthesizer (Syn%d) is not available on this platform, or does not exist.", false, r);
+		newSynth = new OmniMIDI::SynthModule(ErrLog);
+		Error("The chosen synthesizer (Syn%d) is not available on this platform, or does not exist.", false, r);
 		break;
 	}
 
-	return tSynth;
+	return newSynth;
 }
 
 float OmniMIDI::SynthHost::GetRenderingTime() {
@@ -258,7 +256,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 	if (!Synth->IsSynthInitialized())
 		return NotInitialized;
 
-	if (!ev || size < 4 || (unsigned char)ev[size - 1] != 0xF7)
+	if (!ev || size < 4  || size > MAX_MIDIHDR_BUF || (unsigned char)ev[size - 1] != 0xF7)
 		return InvalidBuffer;
 
 	for (int readHead = 0, n = size - 1; readHead < n; ) {
@@ -364,7 +362,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 							if (addr == MIDIReset) {
 								delete[] params;
 
-								LOG("Detected 0x%X! MIDI reset triggered.", MIDIReset);
+								Message("Detected 0x%X! MIDI reset triggered.", MIDIReset);
 								char resetType = ev[readHead + 2];
 								return Synth->Reset(!resetType ? resetType : vendor);
 							}
@@ -575,7 +573,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 												asciiStream[i] = ev[readHead + (11 * i)];
 											}
 
-											LOG("MSG: % s", asciiStream);								
+											Message("MSG: % s", asciiStream);								
 										}
 										else if (dataType == BitmapMode) {
 											for (int i = 0; i < mult; i++) {
@@ -585,7 +583,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 											for (int i = 0; i < mult; i = i * 16) {
 
 											}
-											LOG("BITMAP: % s", asciiStream);
+											Message("BITMAP: % s", asciiStream);
 										}
 
 										delete[] asciiStream;
@@ -608,11 +606,11 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 								calcChecksum = ChecksumDividend - sum;
 
 								if (calcChecksum != checksum) {
-									LOG("Checksum invalid! Expected 0x%X, but got 0x%X.", checksum, calcChecksum);
+									Message("Checksum invalid! Expected 0x%X, but got 0x%X.", checksum, calcChecksum);
 									return InvalidBuffer;
 								}
 
-								LOG("Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X, Checksum 0x%X)", addrBlock, synthPart, commandPart, checksum);
+								Message("Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X, Checksum 0x%X)", addrBlock, synthPart, commandPart, checksum);
 
 								for (unsigned char i = 0; i < pseWriteHead; i++) {
 									Synth->PlayShortEvent(params[i].status, params[i].param1, params[i].param2);
@@ -633,7 +631,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 							else if (noParams) break;
 
 							delete[] params;
-							LOG("Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
+							Message("Received unsupported SysEx. (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X)", addrBlock, synthPart, commandPart);
 							error = true;
 						}
 					

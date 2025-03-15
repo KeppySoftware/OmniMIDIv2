@@ -33,7 +33,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 	bool noMoreDelta = false;
 	unsigned long deltaMicroseconds = 0;
 
-	LOG("PlayerThread is ready.");
+	Message("PlayerThread is ready.");
 	while (!goToBed) {
 		while (paused || !mhdrQueue)
 		{
@@ -46,7 +46,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 		MIDIHDR* hdr = mhdrQueue;
 		if (hdr->dwFlags & MHDR_DONE)
 		{
-			LOG("Moving onto next packet... %x >>> %x", mhdrQueue, hdr->lpNext);
+			Message("Moving onto next packet... %x >>> %x", mhdrQueue, hdr->lpNext);
 			mhdrQueue = hdr->lpNext;
 			continue;
 		}
@@ -74,7 +74,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 			if (event->dwEvent & MEVT_F_CALLBACK) {
 				drvCallback->CallbackFunction(MOM_POSITIONCB, (DWORD_PTR)hdr, 0);
-				LOG("MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
+				Message("MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
 			}
 
 			if (!smpte && !noMoreDelta && event->dwDeltaTime) {
@@ -128,7 +128,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 void OmniMIDI::CookedPlayer::SetTempo(unsigned int ntempo) {
 	tempo = ntempo;
 	bpm = 60000000 / tempo;
-	LOG("Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
+	Message("Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
 void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
@@ -142,13 +142,13 @@ void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
 		smpte = true;
 		smpteFramerate = smptePortion;
 		smpteFrameTicks = qSmpteFrameTicks;
-		LOG("Received new SMPTE setting. (framerate: %dFPS, %d ticks per frame)", smpteFramerate, qSmpteFrameTicks);
+		Message("Received new SMPTE setting. (framerate: %dFPS, %d ticks per frame)", smpteFramerate, qSmpteFrameTicks);
 		return;
 	}
 
 	smpte = false;
 	ticksPerQN = nTicksPerQN;
-	LOG("Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
+	Message("Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
 bool OmniMIDI::CookedPlayer::AddToQueue(MIDIHDR* mhdr) {

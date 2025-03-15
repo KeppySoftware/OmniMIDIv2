@@ -42,7 +42,7 @@ bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
 		if (printStatus == -1)
 			return false;
 		
-		LOG(outPath);
+		Message(outPath);
 		return Utils.DoesFileExist(outPath);
 	}
 
@@ -113,24 +113,24 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 			if (GetLibPath(libPath)) {
 				Library = loadLib(libPath);
 				if (Library == nullptr)
-					NERROR("The required library \"%s\" could not be loaded. This is required for the synthesizer to work.", true, Name);
+					Error("The required library \"%s\" could not be loaded. This is required for the synthesizer to work.", true, Name);
 			}
-			else NERROR("The required library \"%s\" could not be found. This is required for the synthesizer to work.", true, Name);
+			else Error("The required library \"%s\" could not be found. This is required for the synthesizer to work.", true, Name);
 		}
 	}
 
 	finalPath = (libPath == nullptr) ? (char*)Name : libPath;
 
 	if (Library != nullptr) {
-		LOG("%s --> 0x%08x (FROM %s)", Name, Library, finalPath);
+		Message("%s --> 0x%08x (FROM %s)", Name, Library, finalPath);
 
 		for (size_t i = 0; i < FuncsCount; i++)
 		{
 			if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
-				LOG("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+				Message("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
 		}
 	
-		LOG("%s ready!", Name);
+		Message("%s ready!", Name);
 	
 		Initialized = true;
 	}
@@ -160,9 +160,9 @@ bool OMShared::Lib::UnloadLib() {
 
 			assert(r == true);
 			if (!r) {
-				NERROR("A fatal error has occurred while unloading %s!!!", Name);
+				Error("A fatal error has occurred while unloading %s!!!", Name);
 			}
-			else LOG("%s unloaded.", Name);
+			else Message("%s unloaded.", Name);
 		}
 
 		Library = nullptr;
@@ -244,40 +244,15 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	if (path == nullptr)
 		return false;
 		
-#ifdef _WIN32
-#ifndef _WINXP
-	GUID id = GUID_NULL;
-
-	switch (FolderID) {
-	case CurrentDirectory:
-	case System:
-		id = FOLDERID_System;
-		break;
-	case UserFolder:
-		id = FOLDERID_Profile;
-		break;
-	default:
-		break;
-	}
-
-	if (id != GUID_NULL) {
-		PWSTR Dir;
-		HRESULT SGKFP = SHGetKnownFolderPath(id, 0, NULL, &Dir);
-		bool succ = SUCCEEDED(SGKFP);
-
-		if (succ)
-			wcstombs(path, Dir, szPath);
-
-		CoTaskMemFree((LPVOID)Dir);
-
-		return succ;
-	}
-#else
+#if defined(_WIN32)
 	int csidl = 0;
 
 	switch (FolderID) {
 	case CurrentDirectory:
-	case System:
+	case LibGeneric:
+	case Libi386:
+	case LibAMD64:
+	case LibAArch64:
 		csidl = CSIDL_SYSTEM;
 		break;
 	case UserFolder:
@@ -288,7 +263,6 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	}
 
 	return !(bool)SHGetFolderPathA(nullptr, csidl, NULL, SHGFP_TYPE_CURRENT, path);
-#endif
 #else
 	const char* envPath = nullptr;
 

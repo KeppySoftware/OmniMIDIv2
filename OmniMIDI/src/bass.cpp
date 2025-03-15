@@ -12,6 +12,8 @@
 
 */
 
+#ifdef _NONFREE
+
 #include "bass/bass.h"
 
 BOOL(WINAPI* BASS_SetConfig)(DWORD option, DWORD value) = 0;
@@ -131,3 +133,5 @@ BOOL(WINAPI* BASS_FXSetParameters)(HFX handle, const void* params) = 0;
 BOOL(WINAPI* BASS_FXGetParameters)(HFX handle, void* params) = 0;
 BOOL(WINAPI* BASS_FXSetPriority)(HFX handle, int priority) = 0;
 BOOL(WINAPI* BASS_FXReset)(DWORD handle) = 0;
+
+#endif

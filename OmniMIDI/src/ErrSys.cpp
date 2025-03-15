@@ -8,6 +8,8 @@
 
 #include "ErrSys.hpp"
 
+std::mutex ErrorSystem::Logger::logMutex;
+
 void ErrorSystem::Logger::ShowError(const char* Message, const char* Title, bool IsSeriousError) {
 #if defined(_WIN32) && !defined(_M_ARM)
 	MsgBox(NULL, Message, Title, IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
@@ -25,7 +27,10 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 
 	vsnprintf(tBuf, SZBufSize, Message, vl);
 	snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
+
+	logMutex.lock();
 	std::cout << cBuf << std::endl;
+	logMutex.unlock();
 
 	delete[] cBuf;
 	delete[] tBuf;
@@ -75,7 +80,11 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 			Func, File, Line, tBuf);
 
 		snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
+
+		logMutex.lock();
 		std::cout << cBuf << std::endl;
+		logMutex.unlock();
+		
 		delete[] cBuf;
 
 		MsgBox(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
@@ -101,8 +110,8 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 		Func, Error);
 #endif
 
-	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
 	auto _ = std::async([&Buf]() { std::cout << Buf << std::endl; });
+	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
 	delete[] Buf;
 
 #ifdef _DEBUG

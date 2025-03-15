@@ -14,6 +14,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <mutex>
 
 #ifndef _MSC_VER
 #define __func__ __FUNCTION__
@@ -38,20 +39,13 @@
 #define MB_OK						0
 #endif
 
-#define S2(x)						#x
-#define S1(x)						S2(x)
+#define Error(text, fatal, ...)		ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define Fatal(text)					ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
 
-#define NERROR(text, fatal, ...)	ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
-#define NERRORV(text, fatal, ...)	ErrLog->ThrowError(S1(text), fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
-#define FNERROR(text)				ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
-
-#define LOGI(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #if defined(_DEBUG) || defined(VERBOSE_LOG)
-#define LOG(text, ...)				ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
-#define LOGV(text, ...)				ErrLog->Log(S1(text), __FILE__, __func__, __LINE__, ##__VA_ARGS__)
+#define Message(text, ...)			ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #else
-#define LOG(...)
-#define LOGV(...)
+#define Message(...)
 #endif
 
 namespace ErrorSystem {
@@ -59,6 +53,7 @@ namespace ErrorSystem {
 	private:
 		static const int BufSize = 2048;
 		static const int SZBufSize = sizeof(char) * BufSize;
+		static std::mutex logMutex;
 
 	public:
 		void ShowError(const char* Message, const char* Title, bool IsSeriousError);

@@ -200,7 +200,7 @@ namespace OmniMIDI {
 
 	class Synthesizers {
 	public:
-		enum n {
+		enum engineID {
 			External = -1,
 			BASSMIDI,
 			FluidSynth,

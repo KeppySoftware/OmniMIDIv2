@@ -11,6 +11,8 @@
 
 */
 
+#ifdef _NONFREE
+
 #include "bass/bassmidi.h"
 
 DWORD(WINAPI* BASS_MIDI_GetVersion)(void) = 0;
@@ -57,3 +59,5 @@ BOOL(WINAPI* BASS_MIDI_InInit)(DWORD device, MIDIINPROC* proc, void* user) = 0;
 BOOL(WINAPI* BASS_MIDI_InFree)(DWORD device) = 0;
 BOOL(WINAPI* BASS_MIDI_InStart)(DWORD device) = 0;
 BOOL(WINAPI* BASS_MIDI_InStop)(DWORD device) = 0;
+
+#endif
