@@ -1,4 +1,4 @@
-set_xmakever("2.9.8")
+set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
 set_allowedplats("windows", "linux")
@@ -16,6 +16,8 @@ option("nonfree")
 
 -- Self-hosted MIDI out for Linux
 target("OmniMIDI")
+	add_options("nonfree")
+
 	if is_plat("windows") then 	
 		-- Dummy
 		set_enabled(false)	
@@ -39,7 +41,6 @@ target("OmniMIDI")
 
 		add_includedirs("inc")
 		add_files("src/*.cpp")
-		add_files("src/weak_libjack.c")
 
 		set_toolchains("gcc")
 
@@ -61,7 +62,6 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
-	set_options("nonfree")
 
 	if is_mode("debug") then
 		add_defines("DEBUG")
@@ -97,9 +97,9 @@ target("libOmniMIDI")
 
 		remove_files("UnixEntry.cpp")
 	else
-		set_toolchains("gcc")
+		set_toolchains("clang")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wall")
 		add_syslinks("asound")
 
 		remove_files("bassasio.cpp")
