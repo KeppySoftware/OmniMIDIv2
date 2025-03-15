@@ -32,9 +32,10 @@ namespace OmniMIDI {
 	public:
 		// Global settings
 		bool FadeOutKilling = false;
-		double RenderWindow = 5.0;
-		uint64_t LayerCount = 2;
-		int32_t ThreadsCount = 1;
+		double RenderWindow = 10.0;
+		uint64_t LayerCount = 4;
+		int32_t ThreadsCount = 0;
+		uint8_t Interpolation = XSYNTH_INTERPOLATION_NEAREST;
 
 		XSynthSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {}
 
@@ -44,6 +45,7 @@ namespace OmniMIDI {
 					ConfGetVal(RenderWindow),
 					ConfGetVal(ThreadsCount),
 					ConfGetVal(LayerCount),
+					ConfGetVal(Interpolation),
 			};
 
 			if (AppendToConfig(DefConfig))
@@ -60,6 +62,7 @@ namespace OmniMIDI {
 				SynthSetVal(double, RenderWindow);
 				SynthSetVal(int32_t, ThreadsCount);
 				SynthSetVal(uint64_t, LayerCount);
+				SynthSetVal(uint8_t, Interpolation);
 			
 				if (!RANGE(ThreadsCount, -1, std::thread::hardware_concurrency()))
 					ThreadsCount = -1;
@@ -86,7 +89,8 @@ namespace OmniMIDI {
 		XSynth_RealtimeStats realtimeStats;
 		std::jthread _XSyThread;
 
-		LibImport xLibImp[12] = {
+		LibImport xLibImp[14] = {
+			ImpFunc(XSynth_GetVersion),
 			ImpFunc(XSynth_GenDefault_RealtimeConfig),
 			ImpFunc(XSynth_GenDefault_SoundfontOptions),
 			ImpFunc(XSynth_Realtime_Drop),
@@ -98,7 +102,8 @@ namespace OmniMIDI {
 			ImpFunc(XSynth_Realtime_SendConfigEventAll),
 			ImpFunc(XSynth_Realtime_SetSoundfonts),
 			ImpFunc(XSynth_Realtime_ClearSoundfonts),
-			ImpFunc(XSynth_Soundfont_LoadNew)
+			ImpFunc(XSynth_Soundfont_LoadNew),
+			ImpFunc(XSynth_Soundfont_Remove)
 		};
 		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
 
@@ -107,6 +112,7 @@ namespace OmniMIDI {
 		bool Running = false;
 
 		void XSynthThread();
+		void UnloadSoundfonts();
 
 	public:
 		XSynth(ErrorSystem::Logger* PErr) : SynthModule(PErr) {}
