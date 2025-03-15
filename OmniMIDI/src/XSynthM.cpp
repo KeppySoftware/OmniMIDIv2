@@ -111,7 +111,6 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 		Running = false;
 		XSynth_Realtime_ClearSoundfonts(realtimeSynth);
 		XSynth_Realtime_Drop(realtimeSynth);
-		realtimeSynth.synth = nullptr;
 	}
 
 	if (_XSyThread.joinable())
@@ -128,12 +127,10 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 
 void OmniMIDI::XSynth::LoadSoundFonts() {
 	if (SoundFonts.size() > 0)
-		XSynth_Realtime_ClearSoundfonts(realtimeSynth);	
+		SoundFonts.clear();
 
-	SoundFonts.clear();
 	if (SFSystem.ClearList()) {
-		while (SoundFontsVector == nullptr)
-			SoundFontsVector = SFSystem.LoadList();
+		SoundFontsVector = SFSystem.LoadList();
 
 		if (SoundFontsVector != nullptr) {
 			auto& dSFv = *SoundFontsVector;
@@ -165,8 +162,10 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 				}
 			}
 			
-			if (SoundFonts.size() > 0)
+			if (SoundFonts.size() > 0) {
+				XSynth_Realtime_ClearSoundfonts(realtimeSynth);	
 				XSynth_Realtime_SetSoundfonts(realtimeSynth, &SoundFonts[0], SoundFonts.size());
+			}			
 		}
 	}
 
