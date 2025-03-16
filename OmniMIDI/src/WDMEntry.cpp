@@ -24,7 +24,7 @@ static WinDriver::DriverCallback* fDriverCallback = nullptr;
 static WinDriver::DriverComponent* DriverComponent = nullptr;
 static WinDriver::DriverMask* DriverMask = nullptr;
 static OmniMIDI::SynthHost* Host = nullptr;
-static OMShared::Funcs MiscFuncs;
+static OMShared::Funcs Utils;
 static signed long long TickStart = 0;
 
 extern "C" {
@@ -41,7 +41,7 @@ extern "C" {
 
 				if ((ret = DriverComponent->SetLibraryHandle(hModule)) == true) {
 					if (!TickStart) {
-						if (!(MiscFuncs.QuerySystemTime(&TickStart) == 0)) {
+						if (!(Utils.QuerySystemTime(&TickStart) == 0)) {
 							delete DriverComponent;
 							return FALSE;
 						}
@@ -530,7 +530,7 @@ extern "C" {
 
 	EXPORT unsigned long long WINAPI timeGetTime64() {
 		signed long long CurrentTime;
-		MiscFuncs.QuerySystemTime(&CurrentTime);
+		Utils.QuerySystemTime(&CurrentTime);
 		return (unsigned long long)((CurrentTime-TickStart) / 10000.0);
 	}
 

@@ -111,8 +111,6 @@ namespace OmniMIDI {
 
 	class FluidSynth : public SynthModule {
 	private:
-		OMShared::Funcs MiscFuncs;
-
 		Lib* FluiLib = nullptr;
 
 		LibImport fLibImp[25] = {

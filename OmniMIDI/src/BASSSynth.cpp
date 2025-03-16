@@ -321,7 +321,7 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 				ProcessEvBufChk();
 
 			BASS_ChannelUpdate(AudioStreams[id], 1);
-			MiscFuncs.MicroSleep(-1);
+			Utils.MicroSleep(-1);
 		}
 		break;
 
@@ -335,18 +335,13 @@ void OmniMIDI::BASSSynth::EventsThread() {
 
 	// Spin while waiting for the stream to go online
 	while (AudioStreams[0] == 0)
-		MiscFuncs.MicroSleep(-1);
+		Utils.MicroSleep(-1);
 
 	Message("_EvtThread spinned up.");
 
 	while (IsSynthInitialized()) {
-		if (!ProcessEvBuf())
-			count++;
-
-		if (count > 4096) {
-			MiscFuncs.MicroSleep(-1);
-			count = 0;
-		}
+		ProcessEvBufChk();
+		Utils.MicroSleep(-1);
 	}
 }
 
@@ -358,7 +353,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 	float tv = 0.0f;
 
 	while (AudioStreams[0] == 0)
-		MiscFuncs.MicroSleep(-1);
+		Utils.MicroSleep(-1);
 
 	while (IsSynthInitialized()) {
 		for (size_t i = 0; i < AudioStreamSize; i++) {
@@ -378,7 +373,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 		itv = 0;
 		rtr = 0.0f;
 
-		MiscFuncs.MicroSleep(-100000);
+		Utils.MicroSleep(-100000);
 	}
 }
 
@@ -772,7 +767,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	Message("Stream settings loaded.");
 
 	if (!Settings->OneThreadMode || Settings->ExperimentalMultiThreaded) {
-		_EvtThread = std::jthread(&BASSSynth::EventsThread, this, 0);
+		_EvtThread = std::jthread(&BASSSynth::EventsThread, this);
 		if (!_EvtThread.joinable()) {
 			Error("_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
 			return false;
@@ -783,15 +778,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	LoadSoundFonts();
 	SFSystem.RegisterCallback(this);
 
-	if (Settings->IsDebugMode()) {
-		_BASThread = std::jthread(&BASSSynth::BASSThread, this);
-		if (!_BASThread.joinable()) {
-			Error("_BASThread failed. (ID: %x)", true, _BASThread.get_id());
-			return false;
-		}
-		else Message("_BASThread running! (ID: %x)", _BASThread.get_id());
+	_BASThread = std::jthread(&BASSSynth::BASSThread, this);
+	if (!_BASThread.joinable()) {
+		Error("_BASThread failed. (ID: %x)", true, _BASThread.get_id());
+		return false;
+	}
+	else Message("_BASThread running! (ID: %x)", _BASThread.get_id());
 
-		_LogThread = std::jthread(&BASSSynth::LogFunc, this);
+	if (Settings->IsDebugMode()) {
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
 		if (!_LogThread.joinable()) {
 			Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 			return false;
@@ -810,7 +805,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				PlayShortEvent(NoteOn, i, j);
 				PlayShortEvent(NoteOff, i, 0);
 
-				MiscFuncs.MicroSleep(-100000);
+				Utils.MicroSleep(-100000);
 			}
 		}
 
@@ -866,7 +861,7 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 					bmfiflags |= dSFv[i].norampin ? BASS_MIDI_FONT_NORAMPIN : 0;
 
 #ifdef _WIN32
-					wchar_t* szPath = MiscFuncs.GetUTF16((char*)sfPath);
+					wchar_t* szPath = Utils.GetUTF16((char*)sfPath);
 					if (szPath != nullptr) {
 						sf.font = BASS_MIDI_FontInit(szPath, bmfiflags | BASS_UNICODE);
 						delete[] szPath;
@@ -961,7 +956,7 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
 	case ASIO:
 		BASS_ASIO_Stop();
 		BASS_ASIO_Free();
-		MiscFuncs.MicroSleep(-5000000);
+		Utils.MicroSleep(-5000000);
 		Message("BASSASIO freed.");
 		break;
 #endif

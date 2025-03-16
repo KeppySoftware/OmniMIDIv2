@@ -49,7 +49,7 @@ namespace OmniMIDI {
 
 	class CookedPlayer : public StreamPlayer {
 	private:
-		OMShared::Funcs MiscFuncs;
+		OMShared::Funcs Utils;
 		OmniMIDI::SynthModule* synthModule;
 		WinDriver::DriverCallback* drvCallback;
 

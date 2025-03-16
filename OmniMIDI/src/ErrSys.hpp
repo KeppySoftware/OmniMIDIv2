@@ -11,7 +11,6 @@
 
 #include <future>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <mutex>
@@ -39,12 +38,14 @@
 #define MB_OK						0
 #endif
 
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
+#include <stdexcept>
 #define Error(text, fatal, ...)		ErrLog->ThrowError(text, fatal, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #define Fatal(text)					ErrLog->ThrowFatalError(text, __FILE__, __func__, __LINE__)
-
-#if defined(_DEBUG) || defined(VERBOSE_LOG)
 #define Message(text, ...)			ErrLog->Log(text, __FILE__, __func__, __LINE__, ##__VA_ARGS__)
 #else
+#define Error(text, fatal, ...)		ErrLog->ThrowError(text, fatal, "", "", 0, ##__VA_ARGS__)
+#define Fatal(text)					ErrLog->ThrowFatalError(text, "", "", 0)
 #define Message(...)
 #endif
 

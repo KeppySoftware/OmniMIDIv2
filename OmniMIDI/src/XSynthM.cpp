@@ -12,7 +12,7 @@
 
 void OmniMIDI::XSynth::XSynthThread() {
 	while (!IsSynthInitialized())
-		MiscFuncs.MicroSleep(-1);
+		Utils.MicroSleep(-1);
 
 	while (IsSynthInitialized()) {
 		auto data = XSynth_Realtime_GetStats(realtimeSynth);
@@ -20,7 +20,7 @@ void OmniMIDI::XSynth::XSynthThread() {
 		RenderingTime = data.render_time * 100.0f;
 		ActiveVoices = data.voice_count;
 
-		MiscFuncs.MicroSleep(-10000);
+		Utils.MicroSleep(-10000);
 	}
 }
 
@@ -94,6 +94,7 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 				Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
 				return false;
 			}
+			else Message("_LogThread running! (ID: %x)", _LogThread.get_id());
 
 			Settings->OpenConsole();
 		}
@@ -139,17 +140,20 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 			
 			if (dSFv.size() > 0) {
 				for (int i = 0; i < dSFv.size(); i++) {
-					const char* sfPath = dSFv[i].path.c_str();
+					auto item = dSFv[i];
+					auto envOptions = XSynth_EnvelopeOptions { item.linattmod, item.lindecvol, item.lindecvol };
+					auto sfPath = item.path.c_str();
 
-					if (!dSFv[i].enabled)
+					if (!item.enabled)
 						continue;
 
 					sf.stream_params.audio_channels = realtimeParams.audio_channels;
 					sf.stream_params.sample_rate = realtimeParams.sample_rate;
-					sf.preset = dSFv[i].spreset;
-					sf.bank = dSFv[i].sbank;
-					sf.interpolator = XSYNTH_INTERPOLATION_LINEAR;
-					sf.use_effects = dSFv[i].minfx;
+					sf.preset = item.spreset;
+					sf.bank = item.sbank;
+					sf.interpolator = XSYNTH_INTERPOLATION_LINEAR;						// << Always linear, to avoid audio glitches
+					sf.vol_envelope_options = envOptions;
+					sf.use_effects = item.minfx;
 
 					auto sfHandle = XSynth_Soundfont_LoadNew(sfPath, sf);
 

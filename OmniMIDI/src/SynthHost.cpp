@@ -74,6 +74,8 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 
 			if (Synth->SynthID() == EMPTYMODULE)
 				break;
+
+			Utils.MicroSleep(-1);
 		}
 	}
 }
@@ -177,7 +179,7 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 }
 
 OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
-	SynthModule* newSynth;
+	SynthModule* newSynth = nullptr;
 
 	char r = _SHSettings->GetRenderer();
 	switch (r) {
@@ -208,12 +210,15 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 		Message("R%d (FLUIDSYNTH)", r);
 		break;
 
-#if defined(_NONFREE)
+
 	case Synthesizers::BASSMIDI:
+#if defined(_NONFREE)
 		newSynth = new OmniMIDI::BASSSynth(ErrLog);
 		Message("R%d (BASSMIDI)", r);
-		break;
+#else
+		Error("This version of OmniMIDI has been compiled without the _NONFREE preprocessor directive. BASSMIDI will not be available.", true);
 #endif
+		break;
 
 	case Synthesizers::XSynth:
 		newSynth = new OmniMIDI::XSynth(ErrLog);
@@ -228,9 +233,12 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 #endif
 
 	default:
+		break;
+	}
+
+	if (newSynth == nullptr) {
 		newSynth = new OmniMIDI::SynthModule(ErrLog);
 		Error("The chosen synthesizer (Syn%d) is not available on this platform, or does not exist.", false, r);
-		break;
 	}
 
 	return newSynth;

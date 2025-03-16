@@ -13,14 +13,14 @@
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!AudioDrivers[0])
-		MiscFuncs.MicroSleep(-1);
+		Utils.MicroSleep(-1);
 
 	for (int i = 0; i < AudioStreamSize; i++)
 		fluid_synth_system_reset(AudioStreams[i]);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			MiscFuncs.MicroSleep(-1);
+			Utils.MicroSleep(-1);
 	}
 }
 
@@ -250,6 +250,17 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 			Error("new_fluid_audio_driver failed!", true);
 			return false;
 		}
+	}
+
+	if (Settings->IsDebugMode()) {
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
+		if (!_LogThread.joinable()) {
+			Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			return false;
+		}
+		else Message("_LogThread running! (ID: %x)", _LogThread.get_id());
+
+		Settings->OpenConsole();
 	}
 
 	LoadSoundFonts();

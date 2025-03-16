@@ -327,7 +327,7 @@ namespace OmniMIDI {
 	protected:
 		SettingsModule* Settings = nullptr;
 		std::vector<OmniMIDI::SoundFont>* SoundFontsVector = nullptr;
-		OMShared::Funcs MiscFuncs;
+		OMShared::Funcs Utils;
 		ErrorSystem::Logger* ErrLog = nullptr;
 
 		std::jthread* _AudThread = nullptr;
@@ -376,27 +376,17 @@ namespace OmniMIDI {
 			char* Buf = new char[96];
 
 			while (!IsSynthInitialized())
-				MiscFuncs.MicroSleep(-1);
+				Utils.MicroSleep(-1);
 
 			while (IsSynthInitialized()) {
 				sprintf(Buf, Templ, GetRenderingTime(), GetActiveVoices(), ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
-
-#ifdef _WIN32
-				SetConsoleTitleA(Buf);
-#else
-				std::cout << "\033]0;" << Buf << "\007";
-#endif
-
-				MiscFuncs.MicroSleep(-1);
+				SetTerminalTitle(Buf);
+				
+				Utils.MicroSleep(-1);
 			}
 
 			sprintf(Buf, Templ, 0.0f, 0, (size_t)0, (size_t)0);
-
-#ifdef _WIN32
-			SetConsoleTitleA(Buf);
-#else
-			std::cout << "\033]0;" << Buf << "\007";
-#endif
+			SetTerminalTitle(Buf);
 
 			delete[] Buf;
 		}
@@ -442,7 +432,6 @@ namespace OmniMIDI {
 
 		virtual void FreeShortEvBuf() { FreeEvBuf(ShortEvents); }
 		virtual void FreeLongEvBuf() { FreeEvBuf(LongEvents); }
-
 
 		// Event handling system
 		virtual void PlayShortEvent(unsigned int ev) {

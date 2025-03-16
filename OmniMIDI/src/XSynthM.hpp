@@ -80,7 +80,6 @@ namespace OmniMIDI {
 	private:
 		Lib* XLib = nullptr;
 
-		OMShared::Funcs MiscFuncs;
 		std::vector<XSynth_Soundfont> SoundFonts;
 		XSynth_RealtimeSynth realtimeSynth;
 		XSynth_RealtimeConfig realtimeConf;

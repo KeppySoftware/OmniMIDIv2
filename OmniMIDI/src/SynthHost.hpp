@@ -32,6 +32,7 @@ namespace OmniMIDI {
 	{
 	private:
 		// Ours
+		OMShared::Funcs Utils;
 		ErrorSystem::Logger* ErrLog = nullptr;
 		SynthModule* Synth = nullptr;
 		HostSettings* _SHSettings = nullptr;

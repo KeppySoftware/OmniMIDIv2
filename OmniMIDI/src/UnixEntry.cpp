@@ -34,7 +34,7 @@ static int in_port;
 static snd_seq_t *seq_handle = nullptr;
 static std::jthread seq_thread;
 
-static OMShared::Funcs* MiscFuncs = nullptr;
+static OMShared::Funcs* Utils = nullptr;
 
 void standalone();
 snd_seq_event_t* readEvent();
@@ -50,7 +50,7 @@ int CONSTRUCTOR main(int argc, char *argv[]) {
         Host = new OmniMIDI::SynthHost(ErrLog);
 
 #ifdef OM_STANDALONE
-        MiscFuncs = new OMShared::Funcs();
+        Utils = new OMShared::Funcs();
 
         standalone();
         stop();
@@ -89,9 +89,9 @@ void DESTRUCTOR stop() {
         seq_handle = nullptr;
     }
 
-    if (MiscFuncs) {
-        delete MiscFuncs;
-        MiscFuncs = nullptr;
+    if (Utils) {
+        delete Utils;
+        Utils = nullptr;
     }
 #endif
 }
@@ -215,7 +215,7 @@ void standalone() {
             else Message("ALSA MIDI thread allocated.");
             
             while (seq_thread.joinable()) {
-                MiscFuncs->MicroSleep(1);
+                Utils->MicroSleep(1);
                 
                 if (!seq_thread.joinable()) {
                     seq_thread = std::jthread(&evThread);
@@ -352,7 +352,7 @@ void evThread() {
 
             Host->PlayShortEvent(evDword);
         }
-        else MiscFuncs->MicroSleep(1);
+        else Utils->MicroSleep(1);
     }
 }
 #endif

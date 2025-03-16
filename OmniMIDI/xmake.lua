@@ -9,6 +9,11 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
+option("nonfree")
+    set_default(false)
+    set_showmenu(true)
+    add_defines("_NONFREE")
+
 -- Self-hosted MIDI out for Linux
 target("OmniMIDI")
 	if is_plat("windows") then 	
@@ -16,7 +21,8 @@ target("OmniMIDI")
 		set_enabled(false)	
 	else 
 		set_kind("binary")
-
+		set_options("nonfree")
+		
 		if is_mode("debug") then
 			add_defines("DEBUG")
 			add_defines("_DEBUG")
@@ -55,6 +61,7 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
+	set_options("nonfree")
 
 	if is_mode("debug") then
 		add_defines("DEBUG")
@@ -81,8 +88,12 @@ target("libOmniMIDI")
 		set_prefixname("")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("winmm", "uuid", "shlwapi", "ole32", "-l:libwinpthread.a")
+		add_syslinks("winmm", "uuid", "shlwapi", "ole32")
 		add_defines("_WIN32", "_WINXP", "_WIN32_WINNT=0x6000")
+
+		if is_mode("debug") then 
+			add_syslinks("-l:libwinpthread.a")
+		end
 
 		remove_files("UnixEntry.cpp")
 	else

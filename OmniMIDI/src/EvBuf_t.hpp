@@ -244,15 +244,16 @@ namespace OmniMIDI {
 		}
 
 		void Write(unsigned int ev) override {
-			size_t nextWriteHead = (writeHead.load(std::memory_order_acquire) + 1) % size;
+			size_t curReadHead = readHead;
+			size_t nextWriteHead = (writeHead + 1) % size;
 
-			if (nextWriteHead != readHead.load(std::memory_order_relaxed)) {
+			if (nextWriteHead != curReadHead) {
 #ifdef _STATSDEV
 				evSent++;
 #endif				
 
-				writeHead.store(nextWriteHead, std::memory_order_release);
-				buf[writeHead] = ev;
+				buf[nextWriteHead] = ev;
+				writeHead = nextWriteHead;
 
 				return;
 			}
@@ -264,10 +265,10 @@ namespace OmniMIDI {
 		}
 
 		unsigned int* ReadPtr() override {
-			if (readHead.load(std::memory_order_acquire) == writeHead.load(std::memory_order_relaxed)) 
+			if (readHead == writeHead) 
 				return nullptr;
 				
-			readHead.store((readHead.load(std::memory_order_acquire) + 1) % size, std::memory_order_release);
+			readHead = (readHead + 1) % size;
 			return &buf[readHead];
 		}
 
@@ -281,7 +282,7 @@ namespace OmniMIDI {
 		}
 
 		unsigned int* PeekPtr() override {
-			auto tNextHead = (readHead.load(std::memory_order_acquire) + 1) % size;
+			auto tNextHead = (readHead + 1) % size;
 			return &buf[tNextHead];
 		}
 
@@ -295,7 +296,7 @@ namespace OmniMIDI {
 		}
 
 		bool NewEventsAvailable() override {
-			return (readHead.load(std::memory_order_acquire) != writeHead.load(std::memory_order_acquire));
+			return readHead != writeHead;
 		}
 
 		size_t GetReadHeadPos() override { return readHead.load(std::memory_order_relaxed); }

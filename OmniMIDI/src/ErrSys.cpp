@@ -42,10 +42,6 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	va_list vl;
 	va_start(vl, Line);
 
-	char* Buf = nullptr;
-	char* tBuf = nullptr;
-	char* cBuf = nullptr;
-
 	if (!Error) {
 #if defined(_WIN32) && !defined(_M_ARM)
 		int GLE = GetLastError();
@@ -69,14 +65,15 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 #endif
 	}
 	else {
-		tBuf = new char[BufSize];
-		Buf = new char[BufSize];
-		cBuf = new char[BufSize];
+		char* tBuf = new char[BufSize];
 
 		vsnprintf(tBuf, SZBufSize, Error, vl);
 
 #if defined(_DEBUG) || defined(VERBOSE_LOG)
-		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function! File: %s - Line: %lu - Error: %s",
+		char* Buf = new char[BufSize];
+		char* cBuf = new char[BufSize];
+
+		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function!\n\nFile: %s - Line: %lu\n\nError:\n%s",
 			Func, File, Line, tBuf);
 
 		snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
