@@ -9,14 +9,6 @@
 
 #ifdef _WIN32
 
-#ifdef _WIN64
-#define EXPORT	__declspec(dllexport) 
-#define APICALL
-#else
-#define EXPORT
-#define APICALL __stdcall
-#endif
-
 #include "WDMEntry.hpp"
 
 static ErrorSystem::Logger* ErrLog = nullptr;
@@ -83,7 +75,7 @@ extern "C" {
 				delete fDriverCallback;
 				delete DriverMask;
 
-				ret = DriverComponent->UnsetLibraryHandle();
+				ret = DriverComponent->SetLibraryHandle();
 
 				delete DriverComponent;
 				DriverComponent = nullptr;
@@ -114,8 +106,8 @@ extern "C" {
 			return v;
 
 		case DRV_CLOSE:
-			v = DriverComponent->UnsetDriverHandle();
-			Message("->UnsetDriverHandle() returned %d", v);
+			v = DriverComponent->SetDriverHandle();
+			Message("->SetDriverHandle() returned %d", v);
 			return v;
 
 		case DRV_LOAD:
@@ -136,8 +128,8 @@ extern "C" {
 			return DRVCNF_OK;
 		}
 
-		unsigned long r = DefDriverProc(DriverIdentifier, DriverHandle, Message, Param1, Param2);
-		Message("DefDriverProc returned %d", r);
+		unsigned long r = fDriverCallback->ProcessMessage(DriverIdentifier, DriverHandle, Message, Param1, Param2);
+		Message("ProcessMessage returned %d", r);
 		return r;
 	}
 
@@ -534,14 +526,14 @@ extern "C" {
 		return (unsigned long long)((CurrentTime-TickStart) / 10000.0);
 	}
 
-	EXPORT float GetRenderingTime() {
+	EXPORT float WINAPI GetRenderingTime() {
 		if (Host == nullptr)
 			return 0.0f;
 
 		return Host->GetRenderingTime();
 	}
 
-	EXPORT unsigned int GetActiveVoices() {
+	EXPORT unsigned long long WINAPI GetVoiceCount() {
 		if (Host == nullptr)
 			return 0;
 

@@ -339,7 +339,7 @@ namespace OmniMIDI {
 		HMODULE m_hModule = NULL;
 #endif
 
-		unsigned int ActiveVoices = 0;
+		unsigned long long ActiveVoices = 0;
 		float RenderingTime = 0.0f;
 
 		BEvBuf* ShortEvents = new BaseEvBuf_t;
@@ -364,7 +364,7 @@ namespace OmniMIDI {
 		virtual unsigned int GetSampleRate() { return 44100; }
 		virtual bool IsSynthInitialized() { return true; }
 		virtual int SynthID() { return EMPTYMODULE; }
-		virtual unsigned int GetActiveVoices() { return ActiveVoices; }
+		virtual unsigned long long GetActiveVoices() { return ActiveVoices; }
 		virtual float GetRenderingTime() { return RenderingTime; }
 
 #ifdef _WIN32

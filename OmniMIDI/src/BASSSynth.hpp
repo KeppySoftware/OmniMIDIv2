@@ -6,10 +6,10 @@
 
 */
 
-#ifdef _NONFREE
-
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
+
+#ifdef _NONFREE
 
 // Always first
 #include "Common.hpp"

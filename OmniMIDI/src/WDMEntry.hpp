@@ -14,7 +14,8 @@
 
 #pragma once
 
-#include <windows.h>
+#include "Common.hpp"
+
 #include <shlwapi.h>
 #include <devguid.h>
 #include <newdev.h>

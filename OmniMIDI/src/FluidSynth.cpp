@@ -10,6 +10,8 @@
 
 #include "FluidSynth.hpp"
 
+#ifdef _OFLUIDSYNTH_H
+
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!AudioDrivers[0])
@@ -308,3 +310,5 @@ unsigned int OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
 
 	return resp_len;
 }
+
+#endif

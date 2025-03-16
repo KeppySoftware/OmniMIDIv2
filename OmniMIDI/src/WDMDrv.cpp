@@ -108,6 +108,15 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 	return MMSYSERR_NOERROR;
 }
 
+WinDriver::DriverCallback::DriverCallback(ErrorSystem::Logger* PErr) {
+	ErrLog = PErr;
+
+	auto winmmHandle = getLib("winmm");
+	if (winmmHandle) {
+		pDrvProc = (drvDefDriverProc)getAddr(winmmHandle, "DefDriverProc");
+	}
+}
+
 bool WinDriver::DriverCallback::IsCallbackReady() {
 	return (pCallback != nullptr);
 }
@@ -129,12 +138,9 @@ bool WinDriver::DriverCallback::PrepareCallbackFunction(MIDIOPENDESC* OpInfStruc
 			.Instance = (cMode != CALLBACK_WINDOW && cMode != CALLBACK_THREAD) ? OpInfStruct->dwInstance : 0
 		};
 
-
 		CallbackFunction(MOM_OPEN, 0, 0);
 
-#ifdef _DEBUG
-		Error(".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, *pCallback->funcPtr, pCallback->Instance);
-#endif
+		Message(".Handle -> %x - .Mode -> %x - .Ptr -> %x - .Instance -> %x", pCallback->Handle, pCallback->Mode, *pCallback->funcPtr, pCallback->Instance);
 	}
 
 	return true;
@@ -181,67 +187,46 @@ void WinDriver::DriverCallback::CallbackFunction(DWORD Message, DWORD_PTR Arg1, 
 	}
 }
 
-bool WinDriver::DriverComponent::SetDriverHandle(HDRVR Handle) {
-	// The app tried to initialize the driver with no pointer?
-	if (Handle == nullptr) {
-		Error("A null pointer has been passed to the function.", true);
-		return false;
-	}
+LRESULT WinDriver::DriverCallback::ProcessMessage(DWORD_PTR dwDI, HDRVR hdrvr, UINT uMsg, LPARAM lP1, LPARAM lP2) {
+	if (pDrvProc)
+		return pDrvProc(dwDI, hdrvr, uMsg, lP1, lP2);
 
-	// We already have the same pointer in memory.
-	if (this->DrvHandle) {
-		Message("We already have the DrvHandle in memory. The app has Alzheimer's I guess?");
+	return MMSYSERR_NOERROR;
+}
+
+bool WinDriver::DriverComponent::SetDriverHandle(HDRVR handle) {
+	// The app tried to initialize the driver with no pointer?
+	if (handle == nullptr) {
+		Message("DrvHandle emptied.");
+		this->DrvHandle = nullptr;
 		return true;
 	}
 
+	// Check if we have the same pointer in memory
+	if (this->DrvHandle != handle)
+		this->DrvHandle = handle;
+
 	// All good, save the pointer to a local variable and return true
-	this->DrvHandle = Handle;
+	this->DrvHandle = handle;
+	Message("DrvHandle stored! Addr: 0x%08x", this->DrvHandle);
 	return true;
 }
 
-bool WinDriver::DriverComponent::UnsetDriverHandle() {
-	// Warn through stdout if the app is trying to free the driver twice
-	if (this->DrvHandle == nullptr)
-		Message("The application called UnsetDriverHandle even though there's no handle set. Bad design?");
-
-	// Free the driver by setting the local variable to nullptr, then return true
-	this->DrvHandle = nullptr;
-	return true;
-}
-
-bool WinDriver::DriverComponent::SetLibraryHandle(HMODULE Module) {
+bool WinDriver::DriverComponent::SetLibraryHandle(HMODULE mod) {
 	// The app tried to initialize the driver with no pointer?
-	if (Module == nullptr) {
-		Error("A null pointer has been passed to the function.", true);
-		return false;
-	}
-
-	// A pointer is already stored in the variable, UnSetDriverHandle hasn't been called
-	if (this->LibHandle != nullptr) {
-		Error("LibHandle has been set in a previous call and not freed.", false);
-		return false;
-	}
-
-	// We already have the same pointer in memory.
-	if (this->LibHandle == Module) {
-		Message("We already have LibHandle stored in memory. The app has Alzheimer's I guess?");
+	if (mod == nullptr) {
+		Message("LibHandle emptied.");
+		this->LibHandle = nullptr;
 		return true;
 	}
 
+	// We already have the same pointer in memory.
+	if (this->LibHandle != mod)
+		this->LibHandle = mod;
+
 	// All good, save the pointer to a local variable and return true
-	this->LibHandle = Module;
+	this->LibHandle = mod;
 	Message("LibHandle stored! Addr: 0x%08x", this->LibHandle);
-	return true;
-}
-
-bool WinDriver::DriverComponent::UnsetLibraryHandle() {
-	// Warn through stdout if the app is trying to free the driver twice
-	if (this->LibHandle == nullptr)
-		Message("The application called UnsetLibraryHandle even though there's no module set. Bad design?");
-
-	// Free the driver by setting the local variable to nullptr, then return true
-	this->LibHandle = nullptr;
-	Message("LibHandle emptied.");
 	return true;
 }
 

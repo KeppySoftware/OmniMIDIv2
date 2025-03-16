@@ -205,12 +205,14 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 		Error("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
 		break;
 
+#if defined(_OFLUIDSYNTH_H)
 	case Synthesizers::FluidSynth:
 		newSynth = new OmniMIDI::FluidSynth(ErrLog);
 		Message("R%d (FLUIDSYNTH)", r);
 		break;
+#endif
 
-
+#if defined(_BASSSYNTH_H)
 	case Synthesizers::BASSMIDI:
 #if defined(_NONFREE)
 		newSynth = new OmniMIDI::BASSSynth(ErrLog);
@@ -219,11 +221,14 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 		Error("This version of OmniMIDI has been compiled without the _NONFREE preprocessor directive. BASSMIDI will not be available.", true);
 #endif
 		break;
+#endif
 
+#if defined(_XSYNTHM_H)
 	case Synthesizers::XSynth:
 		newSynth = new OmniMIDI::XSynth(ErrLog);
 		Message("R%d (XSYNTH)", r);
 		break;
+#endif
 
 #if defined(WIN32)
 	case Synthesizers::ShakraPipe:
@@ -248,7 +253,7 @@ float OmniMIDI::SynthHost::GetRenderingTime() {
 	return Synth->GetRenderingTime();
 }
 
-unsigned int OmniMIDI::SynthHost::GetActiveVoices() {
+unsigned long long OmniMIDI::SynthHost::GetActiveVoices() {
 	return Synth->GetActiveVoices();
 }
 

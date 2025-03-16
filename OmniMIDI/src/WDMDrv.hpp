@@ -21,15 +21,16 @@
 #include "Common.hpp"
 
 // The rest
-#include <windows.h>
 #include <math.h>
 #include <mmeapi.h>
 #include <assert.h>
 #include "cmmddk.h"
 #include "ErrSys.hpp"
+#include "Utils.hpp"
 
 namespace WinDriver {
 	typedef void(CALLBACK* midiOutProc)(HMIDIOUT hmOut, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR Param1, DWORD_PTR Param2);
+	typedef LRESULT(WINAPI* drvDefDriverProc)(DWORD dwDI, HDRVR hdrvr, UINT uMsg, LPARAM lP1, LPARAM lP2);
 
 	struct Callback {
 		HMIDIOUT Handle = nullptr;
@@ -58,16 +59,17 @@ namespace WinDriver {
 
 	private:
 		Callback* pCallback = nullptr;
+		drvDefDriverProc pDrvProc = nullptr;
 		ErrorSystem::Logger* ErrLog;
 
 	public:
 		// Callbacks
-		DriverCallback(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
+		DriverCallback(ErrorSystem::Logger* PErr);
 		bool IsCallbackReady();
 		bool PrepareCallbackFunction(MIDIOPENDESC*, DWORD);
 		bool ClearCallbackFunction();
 		void CallbackFunction(DWORD, DWORD_PTR, DWORD_PTR);
-
+		LRESULT ProcessMessage(DWORD_PTR, HDRVR, UINT, LPARAM, LPARAM);
 	};
 
 	class DriverComponent {
@@ -82,12 +84,10 @@ namespace WinDriver {
 		DriverComponent(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 
 		// Opening and closing the driver
-		bool SetDriverHandle(HDRVR drv);
-		bool UnsetDriverHandle();
+		bool SetDriverHandle(HDRVR drv = nullptr);
 
 		// Loading and unloading the library
-		bool SetLibraryHandle(HMODULE mod);
-		bool UnsetLibraryHandle();
+		bool SetLibraryHandle(HMODULE mod = nullptr);
 
 		// Setting the driver's pointer for the app
 		bool OpenDriver(MIDIOPENDESC*, DWORD, DWORD_PTR);

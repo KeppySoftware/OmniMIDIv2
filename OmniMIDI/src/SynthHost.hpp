@@ -111,7 +111,7 @@ namespace OmniMIDI {
 		void PlayShortEvent(unsigned int ev);
 		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
 		float GetRenderingTime();
-		unsigned int GetActiveVoices();
+		unsigned long long GetActiveVoices();
 		SynthResult PlayLongEvent(char* ev, unsigned int size);
 		SynthResult Reset() { return Synth->Reset(); }
 		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Synth->TalkToSynthDirectly(evt, chan, param); }
