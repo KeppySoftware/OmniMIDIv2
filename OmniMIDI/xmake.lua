@@ -16,8 +16,6 @@ option("nonfree")
 
 -- Self-hosted MIDI out for Linux
 target("OmniMIDI")
-	add_options("nonfree")
-
 	if is_plat("windows") then 	
 		-- Dummy
 		set_enabled(false)	
@@ -62,6 +60,7 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
+	set_options("nonfree")
 
 	if is_mode("debug") then
 		add_defines("DEBUG")

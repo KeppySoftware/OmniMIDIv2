@@ -10,6 +10,7 @@
 #ifndef _SYNTHMAIN_H
 #define _SYNTHMAIN_H
 
+#include <cstdint>
 #pragma once
 
 // Uncomment this if you want stats to be shown once the synth is closed
@@ -372,7 +373,7 @@ namespace OmniMIDI {
 #endif
 
 		virtual void LogFunc() {
-			const char Templ[] = "R%06.2f%% >> P%d (Ev%08zu/%08zu)";
+			const char Templ[] = "R%06.2f%% >> P%llu (Ev%08zu/%08zu)";
 			char* Buf = new char[96];
 
 			while (!IsSynthInitialized())
@@ -385,7 +386,7 @@ namespace OmniMIDI {
 				Utils.MicroSleep(-1);
 			}
 
-			sprintf(Buf, Templ, 0.0f, 0, (size_t)0, (size_t)0);
+			sprintf(Buf, Templ, 0.0f, (unsigned long long)0, (size_t)0, (size_t)0);
 			SetTerminalTitle(Buf);
 
 			delete[] Buf;
