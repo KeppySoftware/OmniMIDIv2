@@ -162,7 +162,7 @@ extern "C" {
         return Host->GetRenderingTime();
     }
 
-    unsigned int EXPORT GetVoiceCount() {
+    unsigned long long EXPORT GetVoiceCount() {
         if (Host == nullptr)
             return 0;
 
