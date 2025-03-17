@@ -5,4 +5,5 @@ build/
 # MacOS Cache
 .DS_Store
 
-
+# Language Server
+.clangd

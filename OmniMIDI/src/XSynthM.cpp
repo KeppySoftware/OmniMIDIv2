@@ -15,13 +15,21 @@ void OmniMIDI::XSynth::XSynthThread() {
 		Utils.MicroSleep(-1);
 
 	while (IsSynthInitialized()) {
-		auto data = XSynth_Realtime_GetStats(realtimeSynth);
+		realtimeStats = XSynth_Realtime_GetStats(realtimeSynth);
 
-		RenderingTime = data.render_time * 100.0f;
-		ActiveVoices = data.voice_count;
+		RenderingTime = realtimeStats.render_time * 100.0f;
+		ActiveVoices = realtimeStats.voice_count;
 
 		Utils.MicroSleep(-10000);
 	}
+}
+
+void OmniMIDI::XSynth::UnloadSoundfonts() {
+	for (auto sf : SoundFonts) {
+		XSynth_Soundfont_Remove(sf);
+	}
+	XSynth_Realtime_ClearSoundfonts(realtimeSynth);
+	SoundFonts.clear();
 }
 
 bool OmniMIDI::XSynth::IsSynthInitialized() {
@@ -47,6 +55,16 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 
 	if (!XLib->LoadLib())
 		return false;
+
+	// Check if the loaded lib is compatible with the API
+	uint32_t apiVer = XSYNTH_VERSION >> 8;
+	uint32_t libVer = XSynth_GetVersion() >> 8;
+	if (apiVer != libVer) {
+		Error("Loaded incompatible XSynth version (%d.%d.X). Please use version %d.%d.X", true,
+			libVer >> 8, libVer & 15, apiVer >> 8, apiVer & 15);
+		UnloadSynthModule();
+		return false;
+	}
 
 	return true;
 }
@@ -110,7 +128,7 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 
 	if (IsSynthInitialized()) {
 		Running = false;
-		XSynth_Realtime_ClearSoundfonts(realtimeSynth);
+		UnloadSoundfonts();
 		XSynth_Realtime_Drop(realtimeSynth);
 	}
 
@@ -127,49 +145,49 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 }
 
 void OmniMIDI::XSynth::LoadSoundFonts() {
-	if (SoundFonts.size() > 0)
-		SoundFonts.clear();
+	UnloadSoundfonts();
 
 	if (SFSystem.ClearList()) {
 		SoundFontsVector = SFSystem.LoadList();
 
-		if (SoundFontsVector != nullptr) {
-			auto& dSFv = *SoundFontsVector;
-			auto sf = XSynth_GenDefault_SoundfontOptions();
-			auto realtimeParams = XSynth_Realtime_GetStreamParams(realtimeSynth);
-			
-			if (dSFv.size() > 0) {
-				for (int i = 0; i < dSFv.size(); i++) {
-					auto item = dSFv[i];
-					auto envOptions = XSynth_EnvelopeOptions { item.linattmod, item.lindecvol, item.lindecvol };
-					auto sfPath = item.path.c_str();
+		if (SoundFontsVector == nullptr)
+			return;
 
-					if (!item.enabled)
-						continue;
+		auto& dSFv = *SoundFontsVector;
+		auto sf = XSynth_GenDefault_SoundfontOptions();
+		auto realtimeParams = XSynth_Realtime_GetStreamParams(realtimeSynth);
+		
+		if (dSFv.size() < 1)
+			return;
 
-					sf.stream_params.audio_channels = realtimeParams.audio_channels;
-					sf.stream_params.sample_rate = realtimeParams.sample_rate;
-					sf.preset = item.spreset;
-					sf.bank = item.sbank;
-					sf.interpolator = XSYNTH_INTERPOLATION_LINEAR;						// << Always linear, to avoid audio glitches
-					sf.vol_envelope_options = envOptions;
-					sf.use_effects = item.minfx;
+		for (int i = 0; i < dSFv.size(); i++) {
+			auto item = dSFv[i];
+			auto envOptions = XSynth_EnvelopeOptions { item.linattmod, item.lindecvol, item.lindecvol };
+			auto sfPath = item.path.c_str();
 
-					auto sfHandle = XSynth_Soundfont_LoadNew(sfPath, sf);
+			if (!item.enabled)
+				continue;
 
-					if (!sfHandle.soundfont) {
-						Error("An error has occurred while loading the SoundFont \"%s\".", false, sfPath);
-						continue;
-					}
+			sf.stream_params.audio_channels = realtimeParams.audio_channels;
+			sf.stream_params.sample_rate = realtimeParams.sample_rate;
+			sf.preset = item.spreset;
+			sf.bank = item.sbank;
+			sf.interpolator = Settings->Interpolation;
+			sf.vol_envelope_options = envOptions;
+			sf.use_effects = item.minfx;
 
-					SoundFonts.push_back(sfHandle);
-				}
+			auto sfHandle = XSynth_Soundfont_LoadNew(sfPath, sf);
+
+			if (!sfHandle.soundfont) {
+				Error("An error has occurred while loading the SoundFont \"%s\".", false, sfPath);
+				continue;
 			}
-			
-			if (SoundFonts.size() > 0) {
-				XSynth_Realtime_ClearSoundfonts(realtimeSynth);	
-				XSynth_Realtime_SetSoundfonts(realtimeSynth, &SoundFonts[0], SoundFonts.size());
-			}			
+
+			SoundFonts.push_back(sfHandle);
+		}
+		
+		if (SoundFonts.size() > 0) {
+			XSynth_Realtime_SetSoundfonts(realtimeSynth, &SoundFonts[0], SoundFonts.size());
 		}
 	}
 

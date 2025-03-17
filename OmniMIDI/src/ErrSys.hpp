@@ -31,7 +31,7 @@
 #ifdef _WIN32
 #define MsgBox						MessageBoxA
 #else
-#define MsgBox(...)					0
+#define MsgBox(...)
 #define MB_ICONWARNING				0
 #define MB_ICONERROR				0
 #define MB_SYSTEMMODAL				0

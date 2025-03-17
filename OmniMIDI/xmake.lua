@@ -1,4 +1,4 @@
-set_xmakever("2.9.8")
+set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
 set_allowedplats("windows", "linux")
@@ -39,7 +39,6 @@ target("OmniMIDI")
 
 		add_includedirs("inc")
 		add_files("src/*.cpp")
-		add_files("src/weak_libjack.c")
 
 		set_toolchains("gcc")
 
@@ -97,9 +96,9 @@ target("libOmniMIDI")
 
 		remove_files("UnixEntry.cpp")
 	else
-		set_toolchains("gcc")
+		set_toolchains("clang")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wall")
 		add_syslinks("asound")
 
 		remove_files("bassasio.cpp")

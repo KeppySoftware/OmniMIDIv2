@@ -451,12 +451,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	// BASS stream flags
 	bool bInfoGood = false;
-	bool noFreqChange = false;
-	double devFreq = 0.0;
-	unsigned int minBuf = 0;
 	BASS_INFO defInfo = BASS_INFO();
 
 #if defined(_WIN32)
+	bool noFreqChange = false;
+	double devFreq = 0.0;
 	BASS_ASIO_INFO asioInfo = BASS_ASIO_INFO();
 	BASS_ASIO_DEVICEINFO devInfo = BASS_ASIO_DEVICEINFO();
 	BASS_ASIO_CHANNELINFO chInfo = BASS_ASIO_CHANNELINFO();
@@ -517,7 +516,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 		if (BASS_Init(-1, Settings->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
 			if ((bInfoGood = BASS_GetInfo(&defInfo))) {
-				minBuf = defInfo.minbuf;
 				Message("minbuf %d", defInfo.minbuf);
 			}
 

@@ -277,7 +277,6 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 		case SystemMessageStart:
 		{
 			bool notSpecial = false;
-			unsigned char pos = 0;
 			unsigned char vendor = ev[readHead + 1] & 0xFF;
 
 			readHead += 2;

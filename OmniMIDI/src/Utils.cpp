@@ -51,7 +51,6 @@ bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
 
 bool OMShared::Lib::GetLibPath(char* outPath) {
 	bool skip = false;
-	bool gotLib = false;
 
 	if (outPath == nullptr)
 		return false;
@@ -64,7 +63,6 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 		auto _ = loadLib(outPath);
 		if (_ != nullptr) {
 			freeLib(_);
-			gotLib = true;
 		}
 	}
 
