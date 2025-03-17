@@ -90,11 +90,10 @@ namespace OmniMIDI {
 			}
 
 			if (!Blacklist.empty()) {
-
 				GetModuleFileNameA(NULL, szFilePath, MAX_PATH_LONG);
 				strncpy(szFileName, PathFindFileNameA(szFilePath), MAX_PATH_LONG);
 
-				for (int i = 0; i < Blacklist.size(); i++) {
+				for (size_t i = 0; i < Blacklist.size(); i++) {
 					if (!_stricmp(szFilePath, Blacklist[i].c_str())) {
 						flag = true;
 						break;

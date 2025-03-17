@@ -47,38 +47,11 @@ namespace OmniMIDI {
 #endif
 
 	public:
-		SynthHost(ErrorSystem::Logger* PErr) {
-			_SHSettings = new OmniMIDI::HostSettings(ErrLog);
-			Synth = new OmniMIDI::SynthModule(ErrLog);
-			ErrLog = PErr;
-		}
-
+		SynthHost(ErrorSystem::Logger* PErr);
 #ifdef _WIN32
-		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) {
-			DrvCallback = dcasrc;
-			hwndMod = mod;
-			_SHSettings = new OmniMIDI::HostSettings(ErrLog);
-			Synth = new OmniMIDI::SynthModule(ErrLog);
-			StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
-			ErrLog = PErr;
-		}
+		SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr);
 #endif
-
-		~SynthHost() {
-			Synth->StopSynthModule();
-			Synth->UnloadSynthModule();
-
-#ifdef _WIN32
-			if (StreamPlayer != nullptr)
-				delete StreamPlayer;
-#endif
-
-			if (Synth != nullptr)
-				delete Synth;
-
-			if (_SHSettings != nullptr)
-				delete _SHSettings;
-		}
+		~SynthHost();
 
 		void RefreshSettings();
 		bool Start(bool StreamPlayer = false);

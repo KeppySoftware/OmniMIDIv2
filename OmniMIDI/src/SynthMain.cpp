@@ -257,7 +257,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 					if (!(JsonData == nullptr || JsonData.size() < 1)) {
 						SoundFonts.clear();
 
-						for (int i = 0; i < JsonData.size(); i++) {
+						for (size_t i = 0; i < JsonData.size(); i++) {
 							SoundFont SF;
 							nlohmann::json subitem = JsonData[i];
 

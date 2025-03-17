@@ -13,6 +13,12 @@ option("nonfree")
     set_default(false)
     set_showmenu(true)
     add_defines("_NONFREE")
+option_end()
+
+option("useclang")
+    set_default(is_plat("linux"))
+    set_showmenu(true)
+option_end()
 
 -- Self-hosted MIDI out for Linux
 target("OmniMIDI")
@@ -21,8 +27,15 @@ target("OmniMIDI")
 		set_enabled(false)	
 	else 
 		set_kind("binary")
+		set_options("useclang")
 		set_options("nonfree")
 		
+		if has_config("useclang") then
+			set_toolchains("clang")
+		else
+			set_toolchains("gcc")
+		end
+
 		if is_mode("debug") then
 			add_defines("DEBUG")
 			add_defines("_DEBUG")
@@ -40,19 +53,22 @@ target("OmniMIDI")
 		add_includedirs("inc")
 		add_files("src/*.cpp")
 
-		set_toolchains("gcc")
-
 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 		add_syslinks("asound")
 
 		add_shflags("-pie", "-Wl,-E", { force = true })
 
-		remove_files("bassasio.cpp")
-		remove_files("basswasapi.cpp")
-		remove_files("WDMEntry.cpp")
-		remove_files("StreamPlayer.cpp")
-		remove_files("WDMDrv.cpp")
-		remove_files("WDMEntry.cpp")
+		if not has_config("nonfree") then
+			remove_files("src/bass*.c*")
+		end
+
+		-- ASIO and WASAPI not available under Linux/FreeBSD
+		remove_files("src/bassasio.cpp")
+		remove_files("src/basswasapi.cpp")
+
+		-- Windows stuff
+		remove_files("src/WDM*.cpp")
+		remove_files("src/StreamPlayer.cpp")
 	end
 target_end()
 
@@ -60,7 +76,22 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
+	set_options("useclang")
 	set_options("nonfree")
+
+	if has_config("useclang") then
+		if is_plat("windows") then
+			set_toolchains("clang-cl")
+		else 
+			set_toolchains("clang")
+		end
+	else
+		if is_plat("windows") then
+			set_toolchains("mingw")
+		else 
+			set_toolchains("gcc")
+		end
+	end
 
 	if is_mode("debug") then
 		add_defines("DEBUG")
@@ -76,13 +107,16 @@ target("libOmniMIDI")
 	
 	add_defines("OMNIMIDI_EXPORTS")
 	add_ldflags("-j")
+	add_cxflags("-Wall")
 
 	add_includedirs("inc")
 	add_files("src/*.cpp")
 
-	if is_plat("windows") then	
-		set_toolchains("mingw")
+	if not has_config("nonfree") then
+		remove_files("src/bass*.c*")
+	end
 
+	if is_plat("windows") then
 		-- Remove lib prefix
 		set_prefixname("")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
@@ -94,18 +128,16 @@ target("libOmniMIDI")
 			add_syslinks("-l:libwinpthread.a")
 		end
 
-		remove_files("UnixEntry.cpp")
+		remove_files("src/UnixEntry.cpp")
 	else
-		set_toolchains("clang")
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wall")
-		add_syslinks("asound")
+		-- ASIO and WASAPI not available under Linux/FreeBSD
+		remove_files("src/bassasio.cpp")
+		remove_files("src/basswasapi.cpp")
 
-		remove_files("bassasio.cpp")
-		remove_files("basswasapi.cpp")
-		remove_files("WDMEntry.cpp")
-		remove_files("StreamPlayer.cpp")
-		remove_files("WDMDrv.cpp")
-		remove_files("WDMEntry.cpp")	
+		-- Windows stuff
+		remove_files("src/WDM*.cpp")
+		remove_files("src/StreamPlayer.cpp")
 	end
 target_end()

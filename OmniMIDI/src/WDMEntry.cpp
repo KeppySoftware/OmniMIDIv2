@@ -19,84 +19,117 @@ static OmniMIDI::SynthHost* Host = nullptr;
 static OMShared::Funcs Utils;
 static signed long long TickStart = 0;
 
-extern "C" {
-	EXPORT int APICALL DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved) {
-		BOOL ret = FALSE;
+extern "C" {	
+	bool InitializeWDM(HMODULE hModule);
+	bool FreeWDM();
+
+	EXPORT BOOL WINAPI DllMain(HMODULE hModule, DWORD ReasonForCall, LPVOID lpReserved) {
 		switch (ReasonForCall)
 		{
 		case DLL_PROCESS_ATTACH:
-			if (!ErrLog) 
-				ErrLog = new ErrorSystem::Logger;
+			if (!hModule)
+				return FALSE;
 
-			if (!DriverComponent) {
-				DriverComponent = new WinDriver::DriverComponent(ErrLog);
-
-				if ((ret = DriverComponent->SetLibraryHandle(hModule)) == true) {
-					if (!TickStart) {
-						if (!(Utils.QuerySystemTime(&TickStart) == 0)) {
-							delete DriverComponent;
-							return FALSE;
-						}
-					}
-
-#if defined(_DEBUG) || defined(VERBOSE_LOG)
-					if (AllocConsole()) {
-						FILE* dummy;
-						freopen_s(&dummy, "CONOUT$", "w", stdout);
-						freopen_s(&dummy, "CONOUT$", "w", stderr);
-						freopen_s(&dummy, "CONIN$", "r", stdin);
-						std::cout.clear();
-						std::clog.clear();
-						std::cerr.clear();
-						std::cin.clear();
-					}
-#endif
-
-					DriverMask = new WinDriver::DriverMask(ErrLog);
-					fDriverCallback = new WinDriver::DriverCallback(ErrLog);
-
-					// Allocate a generic dummy synth for now
-					Host = new OmniMIDI::SynthHost(fDriverCallback, hModule, ErrLog);
-					OutputDebugStringW(L"Nice.");
-
-					return TRUE;
-				}
-			}
-
-			break;
+			return InitializeWDM(hModule);
 
 		case DLL_PROCESS_DETACH:
-			if (DriverComponent) {
-#if defined(_DEBUG) || defined(VERBOSE_LOG)
-				FreeConsole();
-#endif
-
-				delete Host;
-				delete fDriverCallback;
-				delete DriverMask;
-
-				ret = DriverComponent->SetLibraryHandle();
-
-				delete DriverComponent;
-				DriverComponent = nullptr;
-			}
-
-			if (ErrLog) {
-				delete ErrLog;
-				ErrLog = nullptr;
+			if (lpReserved == nullptr) {
+				return FreeWDM();
 			}
 
 			break;
 
-		case DLL_THREAD_ATTACH:
-		case DLL_THREAD_DETACH:
+		default:
 			break;
 		}
 
-		return ret;
+		return TRUE;
 	}
 
-	EXPORT long APICALL DriverProc(DWORD DriverIdentifier, HDRVR DriverHandle, UINT Message, LONG Param1, LONG Param2) {
+	bool InitializeWDM(HMODULE hModule) {
+		if (!ErrLog) {
+			ErrLog = new ErrorSystem::Logger;
+
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
+			if (AllocConsole()) {
+				FILE* dummy;
+				freopen_s(&dummy, "CONOUT$", "w", stdout);
+				freopen_s(&dummy, "CONOUT$", "w", stderr);
+				freopen_s(&dummy, "CONIN$", "r", stdin);
+				std::cout.clear();
+				std::clog.clear();
+				std::cerr.clear();
+				std::cin.clear();
+			}
+#endif
+		}
+
+		if (!DriverComponent) {
+			DriverComponent = new WinDriver::DriverComponent(ErrLog);
+
+			if ((DriverComponent->SetLibraryHandle(hModule))) {
+				if (!TickStart) {
+					if (!(Utils.QuerySystemTime(&TickStart) == 0)) {
+						Error("Failed to run NtQuerySystemTime.", true);
+						delete DriverComponent;
+						return false;
+					}
+				}
+
+				if (!(DriverMask = new WinDriver::DriverMask(ErrLog))) {
+					Error("Failed to allocate DriverMask.", true);
+					return FALSE;
+				}
+
+				if (!(fDriverCallback = new WinDriver::DriverCallback(ErrLog))) {
+					Error("Failed to allocate DriverCallback.", true);
+					return false;
+				}		
+			}
+
+			if (Host == nullptr) {
+				if (!(Host = new OmniMIDI::SynthHost(fDriverCallback, hModule, ErrLog))) {
+					Error("Failed to allocate SynthHost.", true);
+					return false;
+				}	
+			}
+
+			if (ErrLog && DriverComponent && Host) {
+				Message("DriverComponent >> %08x", DriverComponent);
+				Message("DriverMask >> %08x", DriverMask);
+				Message("DriverCallback >> %08x", fDriverCallback);
+				Message("SynthHost >> %08x", Host);
+			}
+		}
+
+		return true;
+	}
+
+	bool FreeWDM() {
+		if (DriverComponent) {
+			delete Host;
+			delete fDriverCallback;
+			delete DriverMask;
+
+			if (!DriverComponent->SetLibraryHandle())
+				Fatal("What the hoy?");
+
+			delete DriverComponent;
+			DriverComponent = nullptr;
+		}
+
+		if (ErrLog) {
+#if defined(_DEBUG) || defined(VERBOSE_LOG)
+			FreeConsole();
+#endif
+			delete ErrLog;
+			ErrLog = nullptr;
+		}
+
+		return true;
+	}
+
+	EXPORT long WINAPI DriverProc(DWORD DriverIdentifier, HDRVR DriverHandle, UINT Message, LONG Param1, LONG Param2) {
 		bool v = false;
 
 		switch (Message) {
@@ -133,7 +166,7 @@ extern "C" {
 		return r;
 	}
 
-	EXPORT MMRESULT APICALL modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, DWORD_PTR Param1, DWORD_PTR Param2) {
+	EXPORT MMRESULT WINAPI modMessage(UINT DeviceID, UINT Message, DWORD_PTR UserPointer, DWORD_PTR Param1, DWORD_PTR Param2) {
 		switch (Message) {
 		case MODM_DATA:
 			Host->PlayShortEvent(Param1);
@@ -424,11 +457,11 @@ extern "C" {
 		}
 	}
 
-	EXPORT int APICALL IsKDMAPIAvailable() {
+	EXPORT int WINAPI IsKDMAPIAvailable() {
 		return (int)Host->IsKDMAPIAvailable();
 	}
 
-	EXPORT int APICALL InitializeKDMAPIStream() {
+	EXPORT int WINAPI InitializeKDMAPIStream() {
 		if (Host->Start()) {
 			Message("KDMAPI initialized.");
 			return 1;
@@ -438,7 +471,7 @@ extern "C" {
 		return 0;
 	}
 
-	EXPORT int APICALL TerminateKDMAPIStream() {
+	EXPORT int WINAPI TerminateKDMAPIStream() {
 		if (Host->Stop()) {
 			Message("KDMAPI freed.");
 			return 1;
@@ -448,40 +481,40 @@ extern "C" {
 		return 0;
 	}
 
-	EXPORT void APICALL ResetKDMAPIStream() {
+	EXPORT void WINAPI ResetKDMAPIStream() {
 		Host->PlayShortEvent(0xFF, 0x01, 0x01);
 	}
 
-	EXPORT void APICALL SendDirectData(unsigned int ev) {
+	EXPORT void WINAPI SendDirectData(unsigned int ev) {
 		Host->PlayShortEvent(ev);
 	}
 
-	EXPORT void APICALL SendDirectDataNoBuf(unsigned int ev) {
+	EXPORT void WINAPI SendDirectDataNoBuf(unsigned int ev) {
 		// Unsupported, forward to SendDirectData
 		SendDirectData(ev);
 	}
 
-	EXPORT unsigned int APICALL SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT unsigned int WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
 		return Host->PlayLongEvent(IIMidiHdr->lpData, IIMidiHdr->dwBytesRecorded) == SYNTH_OK ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 	}
 
-	EXPORT unsigned int APICALL SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT unsigned int WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// Unsupported, forward to SendDirectLongData
 		return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
 	}
 
-	EXPORT unsigned int APICALL PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT unsigned int WINAPI PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// not needed with KDMAPI
 		return 0;
 	}
 
-	EXPORT unsigned int APICALL UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT unsigned int WINAPI UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// not needed with KDMAPI
 		return 0;
 	}
 
-	EXPORT int APICALL InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {
+	EXPORT int WINAPI InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {
 		MIDIOPENDESC MidiP;
 
 		MidiP.hMidi = OMHM;
@@ -495,15 +528,15 @@ extern "C" {
 		return TRUE;
 	}
 
-	EXPORT void APICALL RunCallbackFunction(DWORD msg, DWORD_PTR p1, DWORD_PTR p2) {
+	EXPORT void WINAPI RunCallbackFunction(DWORD msg, DWORD_PTR p1, DWORD_PTR p2) {
 		fDriverCallback->CallbackFunction(msg, p1, p2);
 	}
 
-	EXPORT int APICALL SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
+	EXPORT int WINAPI SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
 		return Host->TalkToSynthDirectly(evt, chan, param);
 	}
 
-	EXPORT int APICALL DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+	EXPORT int WINAPI DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
 		if (setting == KDMAPI_STREAM) {
 			if (fDriverCallback->IsCallbackReady()) {
 				if (!Host->SpInit()) {
@@ -516,7 +549,7 @@ extern "C" {
 		return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
 	}
 
-	EXPORT int APICALL LoadCustomSoundFontsList(LPWSTR Directory) {
+	EXPORT int WINAPI LoadCustomSoundFontsList(LPWSTR Directory) {
 		return 1;
 	}
 

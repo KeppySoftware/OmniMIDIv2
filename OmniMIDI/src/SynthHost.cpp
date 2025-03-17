@@ -9,7 +9,13 @@
 
 #include "SynthHost.hpp"
 
-#ifdef _WIN32 
+#ifdef _WIN32
+OmniMIDI::SynthHost::SynthHost(WinDriver::DriverCallback* dcasrc, HMODULE mod, ErrorSystem::Logger* PErr) : SynthHost(PErr) {
+	DrvCallback = dcasrc;
+	hwndMod = mod;
+	StreamPlayer = new OmniMIDI::StreamPlayer(nullptr, DrvCallback, ErrLog);
+}
+
 bool OmniMIDI::SynthHost::SpInit(SynthModule* synthModule) {
 	if (StreamPlayer != nullptr)
 		SpFree();
@@ -43,6 +49,32 @@ bool OmniMIDI::SynthHost::SpFree() {
 	return true;
 }
 #endif
+
+OmniMIDI::SynthHost::SynthHost(ErrorSystem::Logger* PErr) {
+	ErrLog = PErr;
+	_SHSettings = new OmniMIDI::HostSettings(ErrLog);
+	Synth = new OmniMIDI::SynthModule(ErrLog);
+
+	Message("SynthHost ready.");
+}
+
+OmniMIDI::SynthHost::~SynthHost() {
+	Synth->StopSynthModule();
+	Synth->UnloadSynthModule();
+
+#ifdef _WIN32
+	if (StreamPlayer != nullptr)
+		delete StreamPlayer;
+#endif
+
+	if (Synth != nullptr)
+		delete Synth;
+
+	if (_SHSettings != nullptr)
+		delete _SHSettings;
+
+	Message("SynthHost deleted.");
+}
 
 void OmniMIDI::SynthHost::HostHealthCheck() {
 	char* confPath = _SHSettings->GetConfigPath();
@@ -205,30 +237,33 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 		Error("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
 		break;
 
-#if defined(_OFLUIDSYNTH_H)
 	case Synthesizers::FluidSynth:
+#if defined(_OFLUIDSYNTH_H)
 		newSynth = new OmniMIDI::FluidSynth(ErrLog);
 		Message("R%d (FLUIDSYNTH)", r);
-		break;
+#else
+		Error("FluidSynth is not available on this platform.");
 #endif
+		break;
 
-#if defined(_BASSSYNTH_H)
 	case Synthesizers::BASSMIDI:
-#if defined(_NONFREE)
+#if defined(_NONFREE) && defined(_BASSSYNTH_H)
 		newSynth = new OmniMIDI::BASSSynth(ErrLog);
 		Message("R%d (BASSMIDI)", r);
-#else
+#else	
 		Error("This version of OmniMIDI has been compiled without the _NONFREE preprocessor directive. BASSMIDI will not be available.", true);
 #endif
 		break;
-#endif
 
-#if defined(_XSYNTHM_H)
 	case Synthesizers::XSynth:
+#if defined(_XSYNTHM_H)
 		newSynth = new OmniMIDI::XSynth(ErrLog);
 		Message("R%d (XSYNTH)", r);
-		break;
+#else
+		Error("XSynth is not available on this platform.");
 #endif
+		break;
+
 
 #if defined(WIN32)
 	case Synthesizers::ShakraPipe:
