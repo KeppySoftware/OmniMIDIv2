@@ -17,7 +17,7 @@ void OmniMIDI::FluidSynth::EventsThread() {
 	while (!AudioDrivers[0])
 		Utils.MicroSleep(-1);
 
-	for (int i = 0; i < AudioStreamSize; i++)
+	for (size_t i = 0; i < AudioStreamSize; i++)
 		fluid_synth_system_reset(AudioStreams[i]);
 
 	while (IsSynthInitialized()) {
@@ -184,7 +184,7 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 void OmniMIDI::FluidSynth::LoadSoundFonts() {
 	// Free old SFs
 	for (int i = 0; i < std::count(SoundFontIDs.begin(), SoundFontIDs.end(), -1); i++) {
-		for (int a = 0; a < AudioStreamSize; a++) {
+		for (size_t a = 0; a < AudioStreamSize; a++) {
 			fluid_synth_sfunload(AudioStreams[a], SoundFontIDs[i], 0);
 			fluid_synth_all_notes_off(AudioStreams[a], i);
 			fluid_synth_all_sounds_off(AudioStreams[a], i);
@@ -198,8 +198,8 @@ void OmniMIDI::FluidSynth::LoadSoundFonts() {
 		std::vector<SoundFont>& dSFv = *SoundFontsVector;
 
 		if (dSFv.size() > 0) {
-			for (int i = 0; i < dSFv.size(); i++) {
-				for (int a = 0; a < AudioStreamSize; a++) {
+			for (size_t i = 0; i < dSFv.size(); i++) {
+				for (size_t a = 0; a < AudioStreamSize; a++) {
 					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], (const char*)dSFv[i].path.c_str(), 1));
 				}
 			}
@@ -239,7 +239,7 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 	if (!Settings->ExperimentalMultiThreaded)
 		AudioStreamSize = 1;
 
-	for (int i = 0; i < AudioStreamSize; i++) {
+	for (size_t i = 0; i < AudioStreamSize; i++) {
 		AudioStreams[i] = new_fluid_synth(fSet);
 
 		if (!AudioStreams[i]) {
@@ -276,7 +276,7 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	SFSystem.RegisterCallback();
 	SFSystem.ClearList();
 
-	for (int i = 0; i < AudioStreamSize; i++) {
+	for (size_t i = 0; i < AudioStreamSize; i++) {
 		if (AudioDrivers[i]) {
 			delete_fluid_audio_driver(AudioDrivers[i]);
 			AudioDrivers[i] = nullptr;

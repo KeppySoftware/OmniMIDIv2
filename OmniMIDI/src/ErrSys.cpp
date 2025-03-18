@@ -26,7 +26,7 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 	char* tBuf = new char[BufSize];
 
 	vsnprintf(tBuf, SZBufSize, Message, vl);
-	snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
+	dbgprintf;
 
 	logMutex.lock();
 	std::cout << cBuf << std::endl;
@@ -76,7 +76,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function!\n\nFile: %s - Line: %lu\n\nError:\n%s",
 			Func, File, Line, tBuf);
 
-		snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
+		dbgprintf;
 
 		logMutex.lock();
 		std::cout << cBuf << std::endl;

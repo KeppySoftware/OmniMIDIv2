@@ -77,7 +77,7 @@ namespace OmniMIDI {
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
 		unsigned int GetSampleRate() override { return 48000; }
 		bool IsSynthInitialized() override { return !PShortEvents && !PLongEvents; }
-		int SynthID() override { return 0x12345678; }
+		unsigned int SynthID() override { return 0x12345678; }
 
 		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
 		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;

@@ -167,7 +167,7 @@ namespace OmniMIDI {
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
 		unsigned int GetSampleRate() override  { return Settings->SampleRate; }
 		bool IsSynthInitialized() override { return (AudioDrivers[0] != nullptr); }
-		int SynthID() override { return 0x6F704EC6; }
+		unsigned int SynthID() override { return 0x6F704EC6; }
 
 		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
 		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;

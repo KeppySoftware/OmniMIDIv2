@@ -64,7 +64,7 @@ namespace OmniMIDI {
 				SynthSetVal(uint64_t, LayerCount);
 				SynthSetVal(uint8_t, Interpolation);
 			
-				if (!RANGE(ThreadsCount, -1, std::thread::hardware_concurrency()))
+				if (!RANGE(ThreadsCount, -1, (int32_t)std::thread::hardware_concurrency()))
 					ThreadsCount = -1;
 
 				if (!RANGE(LayerCount, 1, UINT16_MAX))
@@ -123,7 +123,7 @@ namespace OmniMIDI {
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
 		unsigned int GetSampleRate() override { return 48000; }
 		bool IsSynthInitialized() override;
-		int SynthID() override { return 0x9AF3812A; }
+		unsigned int SynthID() override { return 0x9AF3812A; }
 		void LoadSoundFonts() override;
 
 		// Event handling system

@@ -160,7 +160,7 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 		if (dSFv.size() < 1)
 			return;
 
-		for (int i = 0; i < dSFv.size(); i++) {
+		for (size_t i = 0; i < dSFv.size(); i++) {
 			auto item = dSFv[i];
 			auto envOptions = XSynth_EnvelopeOptions { item.linattmod, item.lindecvol, item.lindecvol };
 			auto sfPath = item.path.c_str();

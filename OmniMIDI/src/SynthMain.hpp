@@ -364,7 +364,7 @@ namespace OmniMIDI {
 		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
 		virtual unsigned int GetSampleRate() { return 44100; }
 		virtual bool IsSynthInitialized() { return true; }
-		virtual int SynthID() { return EMPTYMODULE; }
+		virtual unsigned int SynthID() { return EMPTYMODULE; }
 		virtual unsigned long long GetActiveVoices() { return ActiveVoices; }
 		virtual float GetRenderingTime() { return RenderingTime; }
 

@@ -297,7 +297,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	}
 
 	if (envPath != nullptr) {
-		strncpy(path, envPath, strlen(envPath));
+		strncpy(path, envPath, strlen(envPath) + 1);
 		return true;
 	}
 #endif

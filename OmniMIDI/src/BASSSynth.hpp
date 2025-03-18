@@ -69,6 +69,8 @@ namespace OmniMIDI {
 
 		bool ExperimentalMultiThreaded = false;
 		size_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
+		unsigned int AudioBuf = 10;
+		unsigned int BufPeriod = 480;
 
 #ifdef _WIN32
 		// WASAPI
@@ -100,6 +102,8 @@ namespace OmniMIDI {
 				ConfGetVal(LoudMax),
 				ConfGetVal(RenderTimeLimit),
 				ConfGetVal(VoiceLimit),
+				ConfGetVal(AudioBuf),
+				ConfGetVal(BufPeriod),
 
 #if defined(_WIN32)
 				ConfGetVal(ASIODevice),
@@ -134,6 +138,8 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, RenderTimeLimit);
 				SynthSetVal(unsigned int, VoiceLimit);
+				SynthSetVal(unsigned int, AudioBuf);
+				SynthSetVal(unsigned int, BufPeriod);
 
 #ifdef _WIN32
 				SynthSetVal(std::string, ASIODevice);
@@ -308,7 +314,7 @@ namespace OmniMIDI {
 		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override;
 		unsigned int GetSampleRate() override { return Settings->SampleRate; }
 		bool IsSynthInitialized() override { return (AudioStreams != nullptr && AudioStreams[0] != 0); }
-		int SynthID() override { return 0x1411BA55; }
+		unsigned int SynthID() override { return 0x1411BA55; }
 
 		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
 		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
