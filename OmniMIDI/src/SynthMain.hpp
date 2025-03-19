@@ -7,14 +7,16 @@
 
 */
 
+#include "Common.hpp"
+
 #ifndef _SYNTHMAIN_H
 #define _SYNTHMAIN_H
 
-#include <cstdint>
 #pragma once
 
-// Uncomment this if you want stats to be shown once the synth is closed
-// #define _STATSDEV
+#include <cstdint>
+#include <thread>
+#include <vector>
 
 // ERRORS
 #define SYNTH_OK				0x00

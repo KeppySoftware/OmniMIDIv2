@@ -9,14 +9,12 @@
 // First
 #include "Common.hpp"
 
-#ifndef _XSYNTHM_H
-#define _XSYNTHM_H
-
 // Not supported on ARM Thumb-2!
 #ifndef _M_ARM
 
-#include <thread>
-#include <vector>
+#ifndef _XSYNTHM_H
+#define _XSYNTHM_H
+
 #include "SynthMain.hpp"
 
 #include "xsynth.h"

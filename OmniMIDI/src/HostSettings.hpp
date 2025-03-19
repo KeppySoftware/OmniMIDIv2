@@ -63,7 +63,7 @@ namespace OmniMIDI {
 					}
 					else throw nlohmann::json::type_error::create(667, "json structure is not valid", nullptr);
 				}
-				catch (nlohmann::json::type_error ex) {
+				catch (const nlohmann::json::type_error& ex) {
 					st.close();
 					return;
 				}
@@ -90,18 +90,21 @@ namespace OmniMIDI {
 			}
 
 			if (!Blacklist.empty()) {
-				GetModuleFileNameA(NULL, szFilePath, MAX_PATH_LONG);
-				strncpy(szFileName, PathFindFileNameA(szFilePath), MAX_PATH_LONG);
+				auto len = GetModuleFileNameA(NULL, szFilePath, MAX_PATH_LONG);
 
-				for (size_t i = 0; i < Blacklist.size(); i++) {
-					if (!_stricmp(szFilePath, Blacklist[i].c_str())) {
-						flag = true;
-						break;
-					}
+				if (len) {
+					strncpy(szFileName, PathFindFileNameA(szFilePath), len);
 
-					if (!_stricmp(szFileName, Blacklist[i].c_str())) {
-						flag = true;
-						break;
+					for (size_t i = 0; i < Blacklist.size(); i++) {
+						if (!_stricmp(szFilePath, Blacklist[i].c_str())) {
+							flag = true;
+							break;
+						}
+
+						if (!_stricmp(szFileName, Blacklist[i].c_str())) {
+							flag = true;
+							break;
+						}
 					}
 				}
 

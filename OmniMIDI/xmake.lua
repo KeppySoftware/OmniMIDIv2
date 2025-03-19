@@ -15,6 +15,12 @@ option("nonfree")
     add_defines("_NONFREE")
 option_end()
 
+option("statsdev")
+	set_default(false)
+	set_showmenu(true)
+	add_defines("_STATSDEV")
+option_end()
+
 option("useclang")
     set_default(is_plat("linux"))
     set_showmenu(true)
@@ -27,8 +33,10 @@ target("OmniMIDI")
 		set_enabled(false)	
 	else 
 		set_kind("binary")
-		set_options("useclang")
+		
 		set_options("nonfree")
+		set_options("statsdev")
+		set_options("useclang")
 		
 		if has_config("useclang") then
 			set_toolchains("clang")
@@ -76,8 +84,10 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
-	set_options("useclang")
+
 	set_options("nonfree")
+	set_options("statsdev")
+	set_options("useclang")
 
 	if has_config("useclang") then
 		if is_plat("windows") then

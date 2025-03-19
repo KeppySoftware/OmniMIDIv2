@@ -14,8 +14,6 @@
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
 
-#include <thread>
-#include <vector>
 #include "SynthMain.hpp"
 
 #include "bass/bass.h"
@@ -42,7 +40,6 @@ namespace OmniMIDI {
 		Invalid = -1,
 		Internal,
 		WASAPI,
-		XAudio2,
 		ASIO,
 		BASSENGINE_COUNT = ASIO
 	};
@@ -70,7 +67,10 @@ namespace OmniMIDI {
 		bool ExperimentalMultiThreaded = false;
 		size_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 		unsigned int AudioBuf = 10;
+
+#ifndef _WIN32
 		unsigned int BufPeriod = 480;
+#endif
 
 #ifdef _WIN32
 		// WASAPI
@@ -103,7 +103,10 @@ namespace OmniMIDI {
 				ConfGetVal(RenderTimeLimit),
 				ConfGetVal(VoiceLimit),
 				ConfGetVal(AudioBuf),
+
+#if !defined(_WIN32)
 				ConfGetVal(BufPeriod),
+#endif
 
 #if defined(_WIN32)
 				ConfGetVal(ASIODevice),
@@ -139,9 +142,12 @@ namespace OmniMIDI {
 				SynthSetVal(unsigned int, RenderTimeLimit);
 				SynthSetVal(unsigned int, VoiceLimit);
 				SynthSetVal(unsigned int, AudioBuf);
-				SynthSetVal(unsigned int, BufPeriod);
 
-#ifdef _WIN32
+#if !defined(_WIN32)
+				SynthSetVal(unsigned int, BufPeriod);
+#endif			
+
+#if defined(_WIN32)
 				SynthSetVal(std::string, ASIODevice);
 				SynthSetVal(std::string, ASIOLCh);
 				SynthSetVal(std::string, ASIORCh);

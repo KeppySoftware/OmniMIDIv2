@@ -12,8 +12,6 @@
 #ifndef _OFLUIDSYNTH_H
 #define _OFLUIDSYNTH_H
 
-#include <thread>
-#include <vector>
 #include "SynthMain.hpp"
 
 #include "fluidsynth.h"

@@ -504,7 +504,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	switch (Settings->AudioEngine) {
 	case Internal:
-#ifdef _WIN32
+#if defined(_WIN32)
 		deviceFlags |= BASS_DEVICE_DSOUND;
 #endif
 		
@@ -527,7 +527,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
 		BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 
+#if !defined(_WIN32)
+		// Only Linux and macOS can do this
 		BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, Settings->BufPeriod * -1);
+#else
+		BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, Settings->AudioBuf);
+#endif
 		BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, bInfoGood ? (Settings->AudioBuf * 2) : 0);
 
 		if (!BASS_Init(-1, Settings->SampleRate, deviceFlags, 0, nullptr)) {
@@ -745,7 +750,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	char* tmpUtils = new char[MAX_PATH_LONG] { 0 };
 	if (BFlaLib->GetLibPath(tmpUtils)) {
-#ifdef _WIN32
+#if defined(_WIN32)
 		wchar_t* szPath = Utils.GetUTF16(tmpUtils);
 		if (szPath != nullptr) {
 			BFlaLibHandle = BASS_PluginLoad(szPath, BASS_UNICODE);

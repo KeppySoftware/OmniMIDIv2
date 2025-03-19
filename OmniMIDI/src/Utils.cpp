@@ -310,7 +310,6 @@ wchar_t* OMShared::Funcs::GetUTF16(char* utf8) {
 	wchar_t* buf = nullptr;
 
 	int cc = 0;
-	int count = strlen(utf8);
 	// get length (cc) of the new widechar excluding the \0 terminator first
 	if ((cc = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0)) > 0)
 	{

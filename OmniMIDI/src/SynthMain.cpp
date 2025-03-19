@@ -300,15 +300,15 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 					else Error("\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, listPath);
 				}
 				else Error("Invalid JSON structure!", false);
-			}
-			catch (nlohmann::json::parse_error ex) {
+			}		
+			catch (const nlohmann::json::parse_error& ex) {
 				Error("An error has occurred while parsing the SoundFont JSON. %s.", true, ex.what());
 			}
-			catch (nlohmann::json::type_error ex) {
+			catch (const nlohmann::json::type_error& ex) {
 				// Common error, just return nullptr and we'll retry
 				Message("The SoundFont JSON contains a value whose type does not match the expected semantics. %s.", ex.what());
 			}
-			catch (nlohmann::json::other_error ex) {
+			catch (const nlohmann::json::other_error& ex) {
 				Error("An unknown error has occurred while reading the SoundFont JSON. %s.", true, ex.what());
 			}
 

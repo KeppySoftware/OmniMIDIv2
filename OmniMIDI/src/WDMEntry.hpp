@@ -56,8 +56,6 @@ const wchar_t DRIVER_SUBCLASS_PROP_DESCRIPTION[] = L"Description";
 const wchar_t DRIVER_SUBCLASS_PROP_ALIAS[] = L"Alias";
 const wchar_t SHAKRA_DRIVER_NAME[] = L"OmniMIDI.dll";
 
-static bool DriverBusy = false;
-
 // MIDI REG
 const wchar_t MIDI_REGISTRY_ENTRY_TEMPLATE[] = L"midi%d";
 
