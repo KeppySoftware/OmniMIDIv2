@@ -472,7 +472,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		(Settings->AsyncMode ? BASS_MIDI_ASYNC : 0) |
 		(Settings->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0);
 
-	if ((Settings->AudioEngine < Internal || Settings->AudioEngine > BASSENGINE_COUNT) || Settings->AudioEngine == XAudio2)
+	if (Settings->AudioEngine < Internal || Settings->AudioEngine > BASSENGINE_COUNT)
 		Settings->AudioEngine = Internal;
 
 #ifdef _WIN32

@@ -12,36 +12,45 @@ set_runtimes("stdc++_static")
 option("nonfree")
     set_default(false)
     set_showmenu(true)
-    add_defines("_NONFREE")
-option_end()
+	-- Does not work???
+	-- add_defines("_NONFREE")
 
 option("statsdev")
 	set_default(false)
 	set_showmenu(true)
-	add_defines("_STATSDEV")
-option_end()
+	-- Does not work???
+	-- add_defines("_STATSDEV")
 
 option("useclang")
     set_default(is_plat("linux"))
     set_showmenu(true)
-option_end()
 
 -- Self-hosted MIDI out for Linux
-target("OmniMIDI")
+target("OmniMIDI")		
 	if is_plat("windows") then 	
 		-- Dummy
 		set_enabled(false)	
-	else 
-		set_kind("binary")
-		
+	else 	
 		set_options("nonfree")
 		set_options("statsdev")
 		set_options("useclang")
 		
+		print("Compiling standalone OmniMIDI...")
+
+		set_kind("binary")
+
 		if has_config("useclang") then
 			set_toolchains("clang")
 		else
 			set_toolchains("gcc")
+		end
+
+		if has_config("nonfree") then
+			add_defines("_NONFREE")
+		end
+
+		if has_config("statsdev") then
+			add_defines("_STATSDEV")
 		end
 
 		if is_mode("debug") then
@@ -89,6 +98,8 @@ target("libOmniMIDI")
 	set_options("statsdev")
 	set_options("useclang")
 
+	print("Compiling libOmniMIDI...")
+	
 	if has_config("useclang") then
 		if is_plat("windows") then
 			set_toolchains("clang-cl")
@@ -101,6 +112,14 @@ target("libOmniMIDI")
 		else 
 			set_toolchains("gcc")
 		end
+	end
+
+	if has_config("nonfree") then
+		add_defines("_NONFREE")
+	end
+
+	if has_config("statsdev") then
+		add_defines("_STATSDEV")
 	end
 
 	if is_mode("debug") then
@@ -132,7 +151,7 @@ target("libOmniMIDI")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
 		add_syslinks("uuid", "shlwapi", "ole32")
-		add_defines("_WIN32", "_WINXP", "_WIN32_WINNT=0x6000")
+		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
 
 		if is_mode("debug") then 
 			add_syslinks("-l:libwinpthread.a")
