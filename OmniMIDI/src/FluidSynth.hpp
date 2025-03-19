@@ -6,26 +6,17 @@
 
 */
 
+// Always include first
+#include "Common.hpp"
+
 #ifndef _OFLUIDSYNTH_H
 #define _OFLUIDSYNTH_H
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
+#include <thread>
+#include <vector>
+#include "SynthMain.hpp"
 
 #include "fluidsynth.h"
-#include <thread>
-#include <atomic>
-#include <algorithm>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <codecvt>
-#include <locale>
-#include <future>
-#include "EvBuf_t.hpp"
-#include "SynthMain.hpp"
 
 #define FLUIDSYNTH_STR	"FluidSynth"
 

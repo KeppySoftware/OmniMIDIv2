@@ -6,13 +6,13 @@
 
 */
 
+// Always first
+#include "Common.hpp"
+
 #ifdef _NONFREE
 
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
-
-// Always first
-#include "Common.hpp"
 
 #include <thread>
 #include <vector>

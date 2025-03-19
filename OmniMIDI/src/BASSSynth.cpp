@@ -95,8 +95,7 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			if (Settings->ExperimentalMultiThreaded) {
 				for (size_t i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
 					for (int j = 0; j < Settings->KeyboardChunk; j++) {
-						targetStream = AudioStreams[i + j];
-						BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
+						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, MIDI_EVENT_SYSTEMEX, evt);
 					}
 				}
 			}
@@ -175,9 +174,9 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			unsigned char len = ((evtDword - 0xC0) & 0xE0) ? 3 : 2;
 
 			if (Settings->ExperimentalMultiThreaded) {
+				auto chD = (chan * Settings->ExpMTKeyboardDiv);
 				for (int i = 0; i < Settings->KeyboardChunk; i++) {
-					targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
-					BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &evtDword, len);
+					BASS_MIDI_StreamEvents(AudioStreams[chD + i], BASS_MIDI_EVENTS_RAW, &evtDword, len);
 				}
 			}
 			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &evtDword, len);
@@ -189,13 +188,12 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 
 	if (Settings->ExperimentalMultiThreaded) {
 		if (evt == MIDI_EVENT_NOTE || evt == MIDI_EVENT_KEYPRES) {
-			targetStream = AudioStreams[noteOnTgt];
-			return BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+			return BASS_MIDI_StreamEvent(AudioStreams[noteOnTgt], chan, evt, ev);
 		}
 		else {
+			auto chD = (chan * Settings->ExpMTKeyboardDiv);
 			for (int i = 0; i < Settings->KeyboardChunk; i++) {
-				targetStream = AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i];
-				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+				BASS_MIDI_StreamEvent(AudioStreams[chD + i], chan, evt, ev);
 			}
 		}
 	}
@@ -442,10 +440,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	// If the audio stream is not 0, then stream is allocated already
 	if (AudioStreams != nullptr)
 		return true;
-
-	// SF path
-	OMShared::Funcs Utils;
-	char OMPath[MAX_PATH] = { 0 };
 
 	// BASS stream flags
 	bool bInfoGood = false;
@@ -751,11 +745,20 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	char* tmpUtils = new char[MAX_PATH_LONG] { 0 };
 	if (BFlaLib->GetLibPath(tmpUtils)) {
-		BFlaLibHandle = BASS_PluginLoad(OMPath, BASS_UNICODE);
-		Message("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLibHandle);
+#ifdef _WIN32
+		wchar_t* szPath = Utils.GetUTF16(tmpUtils);
+		if (szPath != nullptr) {
+			BFlaLibHandle = BASS_PluginLoad(szPath, BASS_UNICODE);
+			delete[] szPath;
+		}
+#else
+		BFlaLibHandle = BASS_PluginLoad(tmpUtils, 0);
+#endif
 	}
-	else Message("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLibHandle);
 	delete[] tmpUtils;
+
+	if (BFlaLibHandle) Message("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLibHandle);		
+	else Message("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLibHandle);
 
 	for (size_t i = 0; i < AudioStreamSize; i++) {
 		if (AudioStreams[i] != 0) {

@@ -6,23 +6,19 @@
 
 */
 
-#ifndef _XSYNTHM_H
-#define _XSYNTHM_H
-
 // First
 #include "Common.hpp"
+
+#ifndef _XSYNTHM_H
+#define _XSYNTHM_H
 
 // Not supported on ARM Thumb-2!
 #ifndef _M_ARM
 
-#include "SynthMain.hpp"
-
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #include <thread>
 #include <vector>
+#include "SynthMain.hpp"
+
 #include "xsynth.h"
 
 #define XSYNTH_STR "XSynth"

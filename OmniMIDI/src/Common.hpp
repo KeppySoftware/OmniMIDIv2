@@ -9,6 +9,10 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#ifdef __VSCODE_IDE__
+#define _NONFREE
+#endif
+
 #define MAX_PATH_LONG	            32767
 #define RANGE(value, minv, maxv)    ((value) >= minv && (value) <= maxv)
 

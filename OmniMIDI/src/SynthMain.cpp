@@ -219,8 +219,6 @@ bool OmniMIDI::SoundFontSystem::RegisterCallback(OmniMIDI::SynthModule* ptr) {
 }
 
 std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::string list) {
-	bool succeed = false;
-
 	char tmpUtils[MAX_PATH_LONG] = { 0 };
 	char OMPath[MAX_PATH_LONG] = { 0 };
 
@@ -298,8 +296,6 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 
 						if (ListPath)
 							strncpy(ListPath, listPath, szListPath);
-
-						succeed = true;
 					}
 					else Error("\"%s\" does not contain a valid \"SoundFonts\" JSON structure.", false, listPath);
 				}
@@ -318,7 +314,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 
 			sfs.close();
 			
-			return succeed ? &SoundFonts : nullptr;
+			return (SoundFonts.size() > 0) ? &SoundFonts : nullptr;
 		}
 		else {
 			Error("SoundFonts JSON at path \"%s\" does not exist. The driver will create an example one for you to edit.", false, listPath);
