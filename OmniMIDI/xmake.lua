@@ -34,8 +34,6 @@ target("OmniMIDI")
 		set_options("nonfree")
 		set_options("statsdev")
 		set_options("useclang")
-		
-		print("Compiling standalone OmniMIDI...")
 
 		set_kind("binary")
 
@@ -86,6 +84,8 @@ target("OmniMIDI")
 		-- Windows stuff
 		remove_files("src/WDM*.cpp")
 		remove_files("src/StreamPlayer.cpp")
+			
+		print("Compiling standalone OmniMIDI...")
 	end
 target_end()
 
@@ -98,8 +98,6 @@ target("libOmniMIDI")
 	set_options("statsdev")
 	set_options("useclang")
 
-	print("Compiling libOmniMIDI...")
-	
 	if has_config("useclang") then
 		if is_plat("windows") then
 			set_toolchains("clang-cl")
@@ -169,4 +167,6 @@ target("libOmniMIDI")
 		remove_files("src/WDM*.cpp")
 		remove_files("src/StreamPlayer.cpp")
 	end
+	
+	print("Compiling libOmniMIDI...")
 target_end()

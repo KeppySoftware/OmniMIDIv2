@@ -281,6 +281,7 @@ namespace OmniMIDI {
 
 		HFX audioLimiter = 0;
 		unsigned int* AudioStreams = nullptr;
+		unsigned int ExtraEvtFlags = 0;
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
@@ -293,7 +294,7 @@ namespace OmniMIDI {
 		// BASS system
 		bool LoadFuncs();
 		bool ClearFuncs();
-		bool ProcessEvBuf();
+		void ProcessEvBuf();
 		void ProcessEvBufChk();
 
 		void AudioThread(unsigned int id);

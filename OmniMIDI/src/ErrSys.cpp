@@ -107,8 +107,11 @@ void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, c
 		Func, Error);
 #endif
 
-	auto _ = std::async([&Buf]() { std::cout << Buf << std::endl; });
+	logMutex.lock();
+	std::cout << Buf << std::endl;
 	MsgBox(NULL, Buf, "OmniMIDI - FATAL ERROR", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
+	logMutex.unlock();
+
 	delete[] Buf;
 
 #ifdef _DEBUG

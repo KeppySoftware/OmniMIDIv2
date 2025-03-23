@@ -10,17 +10,18 @@
 
 #ifdef _BASSSYNTH_H
 
-bool OmniMIDI::BASSSynth::ProcessEvBuf() {
+void OmniMIDI::BASSSynth::ProcessEvBuf() {
 	if (!IsSynthInitialized())
-		return false;
+		return;
 
 	auto pEvt = ShortEvents->ReadPtr();
 
 	if (!pEvt)
-		return false;
+		return;
 
 	unsigned int evtDword = *pEvt;
 	unsigned int evt = MIDI_SYSTEM_DEFAULT;
+	unsigned int res = MIDI_SYSTEM_DEFAULT;
 	unsigned int ev = 0;
 	unsigned char status = GetStatus(evtDword);
 	unsigned char command = status & 0xF0;
@@ -30,9 +31,15 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 
 	HSTREAM targetStream = AudioStreams[0];
 
-	size_t tgtChan = chan * Settings->ExpMTKeyboardDiv;
-	size_t tgtChnk = param1 % Settings->ExpMTKeyboardDiv;
-	size_t noteOnTgt = tgtChan + tgtChnk;
+	unsigned char tgtChan = 0;
+	unsigned char tgtChnk = 0;
+	unsigned int noteOnTgt = 0;
+
+	if (Settings->ExperimentalAudioMultiplier) {
+		tgtChan = chan * Settings->ExpMTKeyboardDiv;
+		tgtChnk = param1 % Settings->ExpMTKeyboardDiv;
+		noteOnTgt = tgtChan + tgtChnk;
+	}
 
 	switch (command) {
 	case NoteOn:
@@ -69,39 +76,30 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 		switch (status) {
 		// Let's go!
 		case SystemReset:
+			evt = MIDI_EVENT_SYSTEMEX;
 			// This is 0xFF, which is a system reset.
 			switch (param1) {
 			case 0x01:
-				evt = MIDI_SYSTEM_GS;
+				res = MIDI_SYSTEM_GS;
 				break;
 
 			case 0x02:
-				evt = MIDI_SYSTEM_GM1;
+				res = MIDI_SYSTEM_GM1;
 				break;
 
 			case 0x03:
-				evt = MIDI_SYSTEM_GM2;
+				res = MIDI_SYSTEM_GM2;
 				break;
 
 			case 0x04:
-				evt = MIDI_SYSTEM_XG;
+				res = MIDI_SYSTEM_XG;
 				break;
 
 			default:
-				evt = MIDI_SYSTEM_DEFAULT;
+				res = MIDI_SYSTEM_DEFAULT;
 				break;
 			}
-
-			if (Settings->ExperimentalMultiThreaded) {
-				for (size_t i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
-					for (int j = 0; j < Settings->KeyboardChunk; j++) {
-						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, MIDI_EVENT_SYSTEMEX, evt);
-					}
-				}
-			}
-			else BASS_MIDI_StreamEvent(targetStream, 0, MIDI_EVENT_SYSTEMEX, evt);
-
-			return true;
+			break;
 
 		case MasterVolume:
 			evt = MIDI_EVENT_MASTERVOL;
@@ -174,32 +172,50 @@ bool OmniMIDI::BASSSynth::ProcessEvBuf() {
 			unsigned char len = ((evtDword - 0xC0) & 0xE0) ? 3 : 2;
 
 			if (Settings->ExperimentalMultiThreaded) {
-				auto chD = (chan * Settings->ExpMTKeyboardDiv);
-				for (int i = 0; i < Settings->KeyboardChunk; i++) {
-					BASS_MIDI_StreamEvents(AudioStreams[chD + i], BASS_MIDI_EVENTS_RAW, &evtDword, len);
+				for (auto i = 0; i < Settings->KeyboardChunk; i++) {
+					BASS_MIDI_StreamEvents(AudioStreams[tgtChan + i], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 				}
 			}
-			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW, &evtDword, len);
+			else BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 
-			return true;
+			return;
 		}
 		}
 	}
 
 	if (Settings->ExperimentalMultiThreaded) {
-		if (evt == MIDI_EVENT_NOTE || evt == MIDI_EVENT_KEYPRES) {
-			return BASS_MIDI_StreamEvent(AudioStreams[noteOnTgt], chan, evt, ev);
-		}
-		else {
-			auto chD = (chan * Settings->ExpMTKeyboardDiv);
-			for (int i = 0; i < Settings->KeyboardChunk; i++) {
-				BASS_MIDI_StreamEvent(AudioStreams[chD + i], chan, evt, ev);
-			}
+		switch (evt) {
+			case MIDI_EVENT_NOTE:
+			case MIDI_EVENT_KEYPRES:
+				BASS_MIDI_StreamEvent(AudioStreams[noteOnTgt], chan, evt, ev);
+				break;
+
+			case MIDI_EVENT_SYSTEMEX:
+				for (size_t i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
+					for (int j = 0; j < Settings->KeyboardChunk; j++) {
+						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, evt | ExtraEvtFlags, res);
+					}
+				}
+				break;
+
+			default:
+				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
+					BASS_MIDI_StreamEvent(AudioStreams[tgtChan + i], chan, evt, ev);
+				}
+				break;
 		}
 	}
-	else BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+	else {
+		switch (evt) {
+			case MIDI_EVENT_SYSTEMEX:
+				BASS_MIDI_StreamEvent(targetStream, 0, evt, res);
+				break;
 
-	return true;
+			default:
+				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+				break;
+		}
+	}
 }
 
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {
@@ -499,6 +515,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		EvtThreadsSize = 1;
 	}
 
+	if (Settings->AsyncMode)
+		ExtraEvtFlags |= BASS_MIDI_EVENTS_ASYNC;
+
 	AudioStreams = new unsigned int[AudioStreamSize] { 0 };
 	_AudThread = new std::jthread[AudioStreamSize];
 
@@ -640,31 +659,32 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		for (unsigned long curSrcCh = 0; curSrcCh < asioInfo.outputs; curSrcCh++) {
 			BASS_ASIO_ChannelGetInfo(0, curSrcCh, &chInfo);
 
-			if ((leftChID && rightChID) && (leftChID != -1 && rightChID != -1))
-				break;
-
-			Message("%s", chInfo.name);
+			Message("Checking ASIO dev %s...", chInfo.name);
 
 			// Return the correct ID when found
 			if (strcmp(lCh, chInfo.name) == 0) {
 				leftChID = curSrcCh;
-				Message("^^ This channel matches what the user requested for the left channel! (ID: %d)", leftChID);
+				Message("%s >> This channel matches what the user requested for the left channel! (ID: %d)", chInfo.name, leftChID);
 			}
-			else if (strcmp(rCh, chInfo.name) == 0) {
+
+			if (strcmp(rCh, chInfo.name) == 0) {
 				rightChID = curSrcCh;
-				Message("^^ This channel matches what the user requested for the right channel! (ID: %d)", rightChID);
+				Message("%s >> This channel matches what the user requested for the right channel! (ID: %d)",  chInfo.name, rightChID);
 			}
+
+			if (leftChID != (unsigned int)-1 && rightChID != (unsigned int)-1)
+				break;
 		}
 
-		if (leftChID == -1 && rightChID == -1) {
+		if (leftChID == (unsigned int)-1 && rightChID == (unsigned int)-1) {
 			leftChID = 0;
 			rightChID = 1;
-			Message("No ASIO output channels found, defaulting to CH0 for left and CH1 for right.", leftChID, chInfo.name);
+			Message("No ASIO output channels found, defaulting to CH%d for left and CH%d for right.", leftChID, rightChID);
 		}
 
 		if (noFreqChange) {
 			devFreq = BASS_ASIO_GetRate();
-			Message("BASS_ASIO_GetRate = %dHz", devFreq);
+			Message("BASS_ASIO_GetRate >> %dHz", devFreq);
 			if (devFreq != -1) {
 				asioFreq = devFreq;
 			}
@@ -735,7 +755,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	if (Settings->FloatRendering && Settings->LoudMax) {
 		BASS_BFX_COMPRESSOR2 compressor;
-		Message("Enabling compressor...");
 
 		for (size_t i = 0; i < AudioStreamSize; i++) {
 			if (AudioStreams[i] != 0) {
@@ -745,7 +764,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		BASS_FXGetParameters(audioLimiter, &compressor);
 		BASS_FXSetParameters(audioLimiter, &compressor);
-		Message("Got compressor...");
+		Message("LoudMax enabled.");
 	}
 
 	char* tmpUtils = new char[MAX_PATH_LONG] { 0 };

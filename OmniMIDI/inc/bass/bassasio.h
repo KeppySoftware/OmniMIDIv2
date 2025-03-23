@@ -8,24 +8,11 @@
 #ifndef BASSASIO_H
 #define BASSASIO_H
 
-#include <wtypes.h>
+#ifdef _WIN32
+
+#include "bass.h"
 
 #define BASSASIOVERSION 0x104	// API version
-
-// error codes returned by BASS_ASIO_ErrorGetCode
-#define BASS_OK				0	// all is OK
-#define BASS_ERROR_FILEOPEN	2	// can't open the file
-#define BASS_ERROR_DRIVER	3	// can't find a free/valid driver
-#define BASS_ERROR_HANDLE	5	// invalid handle
-#define BASS_ERROR_FORMAT	6	// unsupported sample format
-#define BASS_ERROR_INIT		8	// BASS_ASIO_Init has not been successfully called
-#define BASS_ERROR_START	9	// BASS_ASIO_Start has/hasn't been called
-#define BASS_ERROR_ALREADY	14	// already initialized/started
-#define BASS_ERROR_NOCHAN	18	// no channels are enabled
-#define BASS_ERROR_ILLPARAM	20	// an illegal parameter was specified
-#define BASS_ERROR_DEVICE	23	// illegal device number
-#define BASS_ERROR_NOTAVAIL	37	// not available
-#define BASS_ERROR_UNKNOWN	-1	// some other mystery error
 
 // BASS_ASIO_Init flags
 #define BASS_ASIO_THREAD	1 // host driver in dedicated thread
@@ -139,5 +126,7 @@ extern double (WINAPI *BASS_ASIO_ChannelGetRate)(int input, unsigned int channel
 extern int (WINAPI *BASS_ASIO_ChannelSetVolume)(int input, int channel, float volume);
 extern float (WINAPI *BASS_ASIO_ChannelGetVolume)(int input, int channel);
 extern float (WINAPI *BASS_ASIO_ChannelGetLevel)(int input, unsigned int channel);
+
+#endif
 
 #endif

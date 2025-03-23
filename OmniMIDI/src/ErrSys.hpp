@@ -15,11 +15,11 @@
 #include <string_view>
 #include <mutex>
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER)
 #define __func__ __FUNCTION__
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <tchar.h>
 #include <windows.h>
 #include <psapi.h>
@@ -27,7 +27,7 @@
 #include <stdarg.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32)
 #define MsgBox								MessageBoxA
 #else
 #define MsgBox(...)
@@ -36,7 +36,6 @@
 #define MB_SYSTEMMODAL						0
 #define MB_OK								0
 #endif
-
 
 #if defined(_DEBUG) || defined(VERBOSE_LOG)
 #include <stdexcept>
