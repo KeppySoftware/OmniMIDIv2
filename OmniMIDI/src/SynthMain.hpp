@@ -379,13 +379,13 @@ namespace OmniMIDI {
 			char* Buf = new char[96];
 
 			while (!IsSynthInitialized())
-				Utils.MicroSleep(-1);
+				Utils.MicroSleep(SLEEPVAL(1));
 
 			while (IsSynthInitialized()) {
 				sprintf(Buf, Templ, GetRenderingTime(), GetActiveVoices(), ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
 				SetTerminalTitle(Buf);
 				
-				Utils.MicroSleep(-1);
+				Utils.MicroSleep(SLEEPVAL(1));
 			}
 
 			sprintf(Buf, Templ, 0.0f, (unsigned long long)0, (size_t)0, (size_t)0);

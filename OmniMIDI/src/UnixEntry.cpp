@@ -215,7 +215,7 @@ void standalone() {
             else Message("ALSA MIDI thread allocated.");
             
             while (seq_thread.joinable()) {
-                Utils->MicroSleep(1);
+                Utils->MicroSleep(SLEEPVAL(1));
                 
                 if (!seq_thread.joinable()) {
                     seq_thread = std::jthread(&evThread);
@@ -352,7 +352,7 @@ void evThread() {
 
             Host->PlayShortEvent(evDword);
         }
-        else Utils->MicroSleep(1);
+        else Utils->MicroSleep(SLEEPVAL(1));
     }
 }
 #endif

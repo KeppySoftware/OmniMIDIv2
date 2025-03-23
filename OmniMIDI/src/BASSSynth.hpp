@@ -167,6 +167,9 @@ namespace OmniMIDI {
 				if (ExpMTKeyboardDiv > 128)
 					ExpMTKeyboardDiv = 128;
 
+				if (BufPeriod < 0)
+					BufPeriod = 1;
+
 				KeyboardChunk = 128 / ExpMTKeyboardDiv;
 				ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 

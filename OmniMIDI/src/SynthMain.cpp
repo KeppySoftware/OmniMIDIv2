@@ -190,7 +190,7 @@ void OmniMIDI::SoundFontSystem::SoundFontThread() {
 			}
 		}
 
-		Utils.MicroSleep(-1000000);
+		Utils.MicroSleep(SLEEPVAL(1000000));
 	}
 }
 

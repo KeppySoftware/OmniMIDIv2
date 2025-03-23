@@ -328,14 +328,16 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 }
 
 void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
+	auto bufSize = (unsigned int)(((double)Settings->BufPeriod / (double)Settings->SampleRate) * 10000000.0);
+
 	switch (Settings->AudioEngine) {
 	case Internal:
 		while (IsSynthInitialized()) {
 			if (Settings->OneThreadMode && !Settings->ExperimentalMultiThreaded)
 				ProcessEvBufChk();
 
-			BASS_ChannelUpdate(AudioStreams[id], 1);
-			Utils.MicroSleep(-1);
+			BASS_ChannelUpdate(AudioStreams[id], 0);
+			Utils.MicroSleep(SLEEPVAL(bufSize));
 		}
 		break;
 
@@ -347,13 +349,13 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 void OmniMIDI::BASSSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (AudioStreams[0] == 0)
-		Utils.MicroSleep(-1);
+		Utils.MicroSleep(SLEEPVAL(1));
 
 	Message("_EvtThread spinned up.");
 
 	while (IsSynthInitialized()) {
 		ProcessEvBufChk();
-		Utils.MicroSleep(-1);
+		Utils.MicroSleep(SLEEPVAL(1));
 	}
 }
 
@@ -365,7 +367,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 	float tv = 0.0f;
 
 	while (AudioStreams[0] == 0)
-		Utils.MicroSleep(-1);
+		Utils.MicroSleep(SLEEPVAL(1));
 
 	while (IsSynthInitialized()) {
 		for (size_t i = 0; i < AudioStreamSize; i++) {
@@ -385,7 +387,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 		itv = 0;
 		rtr = 0.0f;
 
-		Utils.MicroSleep(-100000);
+		Utils.MicroSleep(SLEEPVAL(100000));
 	}
 }
 
@@ -836,7 +838,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				PlayShortEvent(NoteOn, i, j);
 				PlayShortEvent(NoteOff, i, 0);
 
-				Utils.MicroSleep(-100000);
+				Utils.MicroSleep(SLEEPVAL(100000));
 			}
 		}
 

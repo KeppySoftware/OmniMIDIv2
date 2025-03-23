@@ -11,10 +11,11 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include "Common.hpp"
+
 #include <cstring>
 #include <fstream>
 #include <cassert>
-#include "Common.hpp"
 #include "ErrSys.hpp"
 #include <format>
 
@@ -149,7 +150,7 @@ namespace OMShared {
 		Funcs();
 		~Funcs();
 
-		unsigned int MicroSleep(signed long long v);
+		void MicroSleep(signed long long v);
 		unsigned int QuerySystemTime(signed long long* v);
 
 #ifdef _WIN32

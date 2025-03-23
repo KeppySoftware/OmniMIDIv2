@@ -107,7 +107,7 @@ void OmniMIDI::SynthHost::HostHealthCheck() {
 			if (Synth->SynthID() == EMPTYMODULE)
 				break;
 
-			Utils.MicroSleep(-1);
+			Utils.MicroSleep(SLEEPVAL(1));
 		}
 	}
 }

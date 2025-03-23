@@ -28,10 +28,12 @@
     // For malloc and memcpy
     #include <cstring>
     #define MAX_PATH		        4096
+    #define SLEEPVAL(x)             x
     #define Sleep			        sleep
     #define SetTerminalTitle(x)     std::cout << "\033]0;" << x << "\007"
 #else
     #include <windows.h>
+    #define SLEEPVAL(x)             (x) * -1
     #define SetTerminalTitle        SetConsoleTitleA      
 #endif
 

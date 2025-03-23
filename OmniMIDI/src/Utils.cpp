@@ -214,15 +214,14 @@ OMShared::Funcs::~Funcs() {
 #endif
 }
 
-unsigned int OMShared::Funcs::MicroSleep(signed long long v) {
-	if (!v)
-		return 0;
+void OMShared::Funcs::MicroSleep(signed long long v) {
+	if (v == 0)
+		return;
 
 #ifdef _WIN32
-	return pNtDelayExecution(0, &v);
+	pNtDelayExecution(0, &v);
 #else
-	if (v < 0) v *= -1;
-	return usleep((useconds_t)(v / 10));
+	std::this_thread::sleep_for(std::chrono::nanoseconds(v * 100));
 #endif
 }
 

@@ -37,7 +37,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 	while (!goToBed) {
 		while (paused || !mhdrQueue)
 		{
-			Utils.MicroSleep(-1);
+			Utils.MicroSleep(SLEEPVAL(1));
 			if (goToBed) break;
 		}
 
@@ -81,7 +81,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 				deltaMicroseconds = (tempo * deltaTicks / ticksPerQN);
 				timeAcc += deltaMicroseconds;
 
-				Utils.MicroSleep(((signed long)deltaMicroseconds) * -10); // * -10 to convert it to negative nanoseconds
+				Utils.MicroSleep(SLEEPVAL(((signed long)deltaMicroseconds) * 10));
 				noMoreDelta = true;
 				
 				break;
@@ -89,7 +89,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 			else if (smpte) {
 				unsigned long fpsToFrlen = (unsigned long)((1000000 / smpteFramerate) / smpteFrameTicks);
 				timeAcc += fpsToFrlen;
-				Utils.MicroSleep(fpsToFrlen * -1);
+				Utils.MicroSleep(SLEEPVAL(fpsToFrlen));
 			}
 
 			noMoreDelta = false;

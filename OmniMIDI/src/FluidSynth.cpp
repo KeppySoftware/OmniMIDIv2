@@ -15,14 +15,14 @@
 void OmniMIDI::FluidSynth::EventsThread() {
 	// Spin while waiting for the stream to go online
 	while (!AudioDrivers[0])
-		Utils.MicroSleep(-1);
+		Utils.MicroSleep(SLEEPVAL(1));
 
 	for (size_t i = 0; i < AudioStreamSize; i++)
 		fluid_synth_system_reset(AudioStreams[i]);
 
 	while (IsSynthInitialized()) {
 		if (!ProcessEvBuf())
-			Utils.MicroSleep(-1);
+			Utils.MicroSleep(SLEEPVAL(1));
 	}
 }
 

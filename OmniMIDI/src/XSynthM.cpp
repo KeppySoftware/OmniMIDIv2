@@ -12,7 +12,7 @@
 
 void OmniMIDI::XSynth::XSynthThread() {
 	while (!IsSynthInitialized())
-		Utils.MicroSleep(-1);
+		Utils.MicroSleep(SLEEPVAL(1));
 
 	while (IsSynthInitialized()) {
 		realtimeStats = XSynth_Realtime_GetStats(realtimeSynth);
@@ -20,7 +20,7 @@ void OmniMIDI::XSynth::XSynthThread() {
 		RenderingTime = realtimeStats.render_time * 100.0f;
 		ActiveVoices = realtimeStats.voice_count;
 
-		Utils.MicroSleep(-10000);
+		Utils.MicroSleep(SLEEPVAL(10000));
 	}
 }
 
