@@ -84,8 +84,6 @@ target("OmniMIDI")
 		-- Windows stuff
 		remove_files("src/WDM*.cpp")
 		remove_files("src/StreamPlayer.cpp")
-			
-		print("Compiling standalone OmniMIDI...")
 	end
 target_end()
 
@@ -167,6 +165,4 @@ target("libOmniMIDI")
 		remove_files("src/WDM*.cpp")
 		remove_files("src/StreamPlayer.cpp")
 	end
-	
-	print("Compiling libOmniMIDI...")
 target_end()

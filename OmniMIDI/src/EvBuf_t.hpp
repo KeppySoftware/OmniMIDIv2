@@ -299,8 +299,8 @@ namespace OmniMIDI {
 			return readHead != writeHead;
 		}
 
-		size_t GetReadHeadPos() override { return readHead.load(std::memory_order_relaxed); }
-		size_t GetWriteHeadPos() override { return writeHead.load(std::memory_order_relaxed); }
+		size_t GetReadHeadPos() override { return readHead; }
+		size_t GetWriteHeadPos() override { return writeHead; }
 	};
 }
 

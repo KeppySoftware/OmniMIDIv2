@@ -42,7 +42,7 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	va_list vl;
 	va_start(vl, Line);
 
-	if (!Error) {
+	if (Error == nullptr) {
 #if defined(_WIN32) && !defined(_M_ARM)
 		int GLE = GetLastError();
 		LPSTR GLEBuf = nullptr;
@@ -66,29 +66,21 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	}
 	else {
 		char* tBuf = new char[BufSize];
-
+	
 		vsnprintf(tBuf, SZBufSize, Error, vl);
 
-#if defined(_DEBUG) || defined(VERBOSE_LOG)
-		char* Buf = new char[BufSize];
+#if defined(_DEBUG) || defined(VERBOSE_LOG) || !defined(_WIN32)
 		char* cBuf = new char[BufSize];
-
-		snprintf(Buf, BufSize, "An error has occured in the \"%s\" function!\n\nFile: %s - Line: %lu\n\nError:\n%s",
-			Func, File, Line, tBuf);
-
 		dbgprintf;
-
+			
 		logMutex.lock();
 		std::cout << cBuf << std::endl;
 		logMutex.unlock();
-		
-		delete[] cBuf;
 
-		MsgBox(NULL, Buf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
-		delete[] Buf;
-#else
-		MsgBox(NULL, tBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+		delete[] cBuf;
 #endif
+
+		MsgBox(NULL, tBuf, "OmniMIDI - ERROR", IsSeriousError ? MB_ICONERROR : MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
 
 		delete[] tBuf;
 	}

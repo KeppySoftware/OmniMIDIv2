@@ -19,21 +19,26 @@
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
 #include "bass/bass_fx.h"
-#define	BASE_IMPORTS	36
+#define	BASE_IMPORTS				38
 
 #if defined(_WIN32)
 #include "bass/bassasio.h"
 #include "bass/basswasapi.h"
-#define	ADD_IMPORTS		32
-#define DEFAULT_ENGINE	WASAPI
+#define	ADD_IMPORTS					32
+#define DEFAULT_ENGINE				WASAPI
 #else
-#define ADD_IMPORTS		0
-#define DEFAULT_ENGINE	Internal
+#define ADD_IMPORTS					0
+#define DEFAULT_ENGINE				Internal
 #endif
 
-#define FINAL_IMPORTS	BASE_IMPORTS + ADD_IMPORTS
+#define FINAL_IMPORTS				BASE_IMPORTS + ADD_IMPORTS
 
-#define BASSSYNTH_STR	"BASSSynth"
+#define TGT_BASS					2 << 24 | 4 << 16 | 17 << 8 | 0
+#define TGT_BASSMIDI				2 << 24 | 4 << 16 | 15 << 8 | 0
+
+#define MIDI_EVENT_RAW				0xFFFF
+
+#define BASSSYNTH_STR				"BASSSynth"
 
 namespace OmniMIDI {
 	enum BASSEngine {
@@ -162,14 +167,16 @@ namespace OmniMIDI {
 					VoiceLimit = 1024;
 
 				if (AudioEngine < Internal || AudioEngine > BASSENGINE_COUNT)
-					AudioEngine = WASAPI;
+					AudioEngine = DEFAULT_ENGINE;
 
 				if (ExpMTKeyboardDiv > 128)
 					ExpMTKeyboardDiv = 128;
 
-				if (BufPeriod < 0)
-					BufPeriod = 1;
-
+#if !defined(_WIN32)
+				if (BufPeriod < 0 || BufPeriod > 4096)
+					BufPeriod = 480;
+#endif		
+			
 				KeyboardChunk = 128 / ExpMTKeyboardDiv;
 				ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 
@@ -200,6 +207,7 @@ namespace OmniMIDI {
 
 		LibImport LibImports[FINAL_IMPORTS] = {
 			// BASS
+			ImpFunc(BASS_GetVersion),
 			ImpFunc(BASS_ChannelFlags),
 			ImpFunc(BASS_ChannelGetAttribute),
 			ImpFunc(BASS_ChannelGetData),
@@ -237,6 +245,7 @@ namespace OmniMIDI {
 			ImpFunc(BASS_MIDI_StreamGetEvent),
 			ImpFunc(BASS_MIDI_StreamSetFonts),
 			ImpFunc(BASS_MIDI_StreamGetChannel),
+			ImpFunc(BASS_MIDI_GetVersion),
 
 			ImpFunc(BASS_FXGetParameters),
 			ImpFunc(BASS_FXSetParameters),

@@ -62,6 +62,24 @@ namespace OMShared {
 		LibAArch64
 	};
 
+	struct LibVersion {
+		unsigned char Build = 0;
+		unsigned char Major = 0;
+		unsigned char Minor = 0;
+		unsigned char Rev = 0;
+
+		LibVersion(unsigned int raw) {
+			Build = (raw >> 24) & 0xFF;
+			Major = (raw >> 16) & 0xFF;
+			Minor = (raw >> 8) & 0xFF;
+			Rev = raw & 0xFF;
+		}
+
+		unsigned int GetHiWord() { return (Build << 8 | Major) & 0xFFFF; }
+		unsigned int GetLoWord() { return (Minor << 8 | Rev) & 0xFFFF; }
+		unsigned int GetRaw() { return GetHiWord() << 16 | GetLoWord(); }
+	};
+
 	class LibImport
 	{
 	protected:
@@ -135,6 +153,7 @@ namespace OMShared {
 		bool GetLibPath(char* outPath = nullptr);
 		bool LoadLib(char* CustomPath = nullptr);
 		bool UnloadLib();
+		bool IsSupported(unsigned int loaded, unsigned int minimum);
 	};
 
 	class Funcs {

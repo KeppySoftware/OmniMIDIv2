@@ -171,6 +171,24 @@ bool OMShared::Lib::UnloadLib() {
 	return true;
 }
 
+bool OMShared::Lib::IsSupported(unsigned int loaded, unsigned int minimum) {
+	auto libVer = LibVersion(loaded);
+	auto libReqVer = LibVersion(minimum);
+
+	if (libVer.GetHiWord() != libReqVer.GetHiWord()) {
+		Error("OmniMIDI only supports %s %d.%d, but we got %d.%d.", true, Name, 
+			libVer.Build, libVer.Major, libReqVer.Build, libReqVer.Major);
+		return false;
+	}
+	if (libVer.GetLoWord() < libReqVer.GetLoWord()) {
+		Error("OmniMIDI requires %s %d.%d.%d.%d minimum, but we got %2$d.%3$d.%d.%d.", true, Name, 
+			libReqVer.Build, libReqVer.Major, libReqVer.Minor, libReqVer.Rev, libVer.Minor, libVer.Rev);
+		return false;
+	}
+
+	return true;
+}
+
 OMShared::Funcs::Funcs() {
 #ifdef _WIN32
 	// There is no equivalent to this in Linux/macOS
