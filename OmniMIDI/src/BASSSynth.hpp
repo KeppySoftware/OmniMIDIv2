@@ -52,7 +52,7 @@ namespace OmniMIDI {
 	class BASSSettings : public SettingsModule {
 	public:
 		// Global settings
-		unsigned int EvBufSize = 32768;
+		size_t EvBufSize = 32768;
 		unsigned int RenderTimeLimit = 95;
 		int AudioEngine = (int)DEFAULT_ENGINE;
 
@@ -143,10 +143,10 @@ namespace OmniMIDI {
 				SynthSetVal(bool, FollowOverlaps);
 				SynthSetVal(int, AudioEngine);
 				SynthSetVal(unsigned int, SampleRate);
-				SynthSetVal(unsigned int, EvBufSize);
 				SynthSetVal(unsigned int, RenderTimeLimit);
 				SynthSetVal(unsigned int, VoiceLimit);
 				SynthSetVal(unsigned int, AudioBuf);
+				SynthSetVal(size_t, EvBufSize);
 
 #if !defined(_WIN32)
 				SynthSetVal(unsigned int, BufPeriod);

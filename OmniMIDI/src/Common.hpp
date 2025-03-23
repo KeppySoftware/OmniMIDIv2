@@ -33,7 +33,7 @@
     #define SetTerminalTitle(x)     std::cout << "\033]0;" << x << "\007"
 #else
     #include <windows.h>
-    #define SLEEPVAL(x)             x * -1
+    #define SLEEPVAL(x)             -x
     #define SetTerminalTitle        SetConsoleTitleA      
 #endif
 

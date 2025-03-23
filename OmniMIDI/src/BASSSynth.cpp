@@ -328,13 +328,13 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 	return true;
 }
 
-void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
-	int bufSize = -1;
+void OmniMIDI::BASSSynth::AudioThread(unsigned int streamId) {
+	int sleepRate = -1;
 	unsigned int updRate = 1;
 
 #ifndef _WIN32
 	// Linux/macOS don't, so let's do the math ourselves
-	bufSize = (int)(((double)Settings->BufPeriod / (double)Settings->SampleRate) * 10000000.0) * -1;
+	sleepRate = (int)(((double)Settings->BufPeriod / (double)Settings->SampleRate) * 10000000.0);
 	updRate = 0;
 #endif
 
@@ -350,8 +350,8 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int id) {
 		if (Settings->OneThreadMode && !Settings->ExperimentalMultiThreaded)
 			ProcessEvBufChk();
 
-		BASS_ChannelUpdate(AudioStreams[id], updRate);
-		Utils.MicroSleep(bufSize);
+		BASS_ChannelUpdate(AudioStreams[streamId], updRate);
+		Utils.MicroSleep(sleepRate);
 	}
 }
 
@@ -441,7 +441,7 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 		Error("AllocateShortEvBuf failed.", true);
 		return false;
 	}
-	else Message("Buffers allocated. (EVBUF >> %u)", Settings->EvBufSize);
+	else Message("Short events buffer allocated for %llu events.", Settings->EvBufSize);
 
 	return true;
 }
@@ -536,6 +536,10 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	switch (Settings->AudioEngine) {
 	case Internal:	
+#if defined(_WIN32)
+		deviceFlags |= BASS_DEVICE_DSOUND;
+#endif
+
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 		if (BASS_Init(-1, Settings->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
 			if ((bInfoGood = BASS_GetInfo(&defInfo))) {
@@ -594,8 +598,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			}
 		}
 
-		if (AudioStreamSize > 1)
-			Message("_AudThreads count: %d", AudioStreamSize);
+		if (AudioStreamSize > 1) Message("Audio streams ready. _AudThreads count: %d", AudioStreamSize);
+		else Message("Audio stream ready.");
 
 		break;
 
@@ -603,7 +607,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	case WASAPI:
 	{
 		auto proc = Settings->OneThreadMode ? &BASSSynth::WasapiEvProc : &BASSSynth::WasapiProc;
-
 		streamFlags |= BASS_STREAM_DECODE;
 
 		if (!BASS_Init(0, Settings->SampleRate, deviceFlags, 0, nullptr)) {
@@ -806,8 +809,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
 			
 			if (Settings->AsyncMode) {
-				if (!BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, Settings->EvBufSize * 4))
-					Error("Failed to set async buffer size! >> Requested: %d", true, Settings->EvBufSize * 4);	
+				auto fsize = Settings->EvBufSize * 4;
+				if (BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, fsize)) {
+					Message("AudioStream[%d] >> Async buffer enabled for %llu events.", fsize);
+				}
+				else Error("AudioStream[%d] >> Failed to set async buffer size!", true, fsize);
 			}
 		}
 	}
