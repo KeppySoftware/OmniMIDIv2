@@ -73,6 +73,130 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 		ev = param2 << 7 | param1;
 		// Message("PitchBend %u (%X, %X - %X)", ev, ev, param1, param2);
 		break;
+	case CC:
+		switch (param1) {
+			case Bank:
+				CCEvent(MIDI_EVENT_BANK);
+				break;
+
+			case ModulationWheel:
+			case ModulationWheel + LSBExt:
+				CCEvent(MIDI_EVENT_MODULATION);
+				break;
+
+			case PortamentoTime:
+			case PortamentoTime + LSBExt:
+				CCEvent(MIDI_EVENT_PORTATIME);
+				break;
+
+			case MainVolume:
+			case MainVolume + LSBExt:
+				CCEvent(MIDI_EVENT_VOLUME);
+				break;
+
+			case Pan:
+			case Pan + LSBExt:
+				CCEvent(MIDI_EVENT_PAN);
+				break;
+
+			case Expression:
+			case Expression + LSBExt:
+				CCEvent(MIDI_EVENT_EXPRESSION);
+				break;
+
+			case BankLSB:
+				CCEvent(MIDI_EVENT_BANK_LSB);
+				break;
+
+			case SustainPedal:
+			 	CCEvent(MIDI_EVENT_SUSTAIN);
+				break;
+
+			case Portamento:
+				CCEvent(MIDI_EVENT_PORTAMENTO);
+				break;
+
+			case SostenutoPedal:
+				CCEvent(MIDI_EVENT_SOSTENUTO);
+				break;
+
+			case SoftPedal:
+				CCEvent(MIDI_EVENT_SOFT);
+				break;
+
+			case Resonance:
+				CCEvent(MIDI_EVENT_RESONANCE);
+				break;
+
+			case Release:
+				CCEvent(MIDI_EVENT_RELEASE);
+				break;
+
+			case Attack:
+				CCEvent(MIDI_EVENT_ATTACK);
+				break;
+
+			case Cutoff:
+				CCEvent(MIDI_EVENT_CUTOFF);
+				break;
+
+			case Decay:
+				CCEvent(MIDI_EVENT_DECAY);
+				break;
+
+			case VibratoRate:
+				CCEvent(MIDI_EVENT_VIBRATO_RATE);
+				break;
+
+			case VibratoDepth:
+				CCEvent(MIDI_EVENT_VIBRATO_DEPTH);
+				break;
+			
+			case VibratoDelay:
+				CCEvent(MIDI_EVENT_VIBRATO_DELAY);
+				break;
+
+			case PortamentoStartNote:
+				CCEvent(MIDI_EVENT_PORTANOTE);
+				break;
+				
+			case Reverb:
+				CCEvent(MIDI_EVENT_REVERB);
+				break;
+
+			case Chorus:
+				CCEvent(MIDI_EVENT_CHORUS);
+				break;
+
+			case UserFx:
+				CCEvent(MIDI_EVENT_USERFX);
+				break;
+
+			case AllSoundOff:
+				CCEmptyEvent(MIDI_EVENT_SOUNDOFF);
+				break;
+
+			case ResetAll:
+				CCEmptyEvent(MIDI_EVENT_RESET);
+				break;
+
+			case AllNotesOff:
+				CCEmptyEvent(MIDI_EVENT_NOTESOFF);
+				break;
+
+			case ChanModMono:
+			case ChanModPoly:
+				evt = MIDI_EVENT_MODE;
+				ev = param1 == ChanModPoly ? 0 : 1;
+				break;
+
+			default:
+				evt = MIDI_EVENT_RAW;
+				break;
+		}
+
+		break;
+
 	default:
 		switch (status) {
 		// Let's go!
@@ -184,13 +308,13 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 			case MIDI_EVENT_SYSTEMEX:
 				for (size_t i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
 					for (int j = 0; j < Settings->KeyboardChunk; j++) {
-						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, evt | ExtraEvtFlags, res);
+						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, evt, res);
 					}
 				}
 				break;
 
 			case MIDI_EVENT_RAW:
-				for (auto i = 0; i < Settings->KeyboardChunk; i++) {
+				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
 					BASS_MIDI_StreamEvents(AudioStreams[tgtChan + i], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 				}
 				break;
@@ -222,6 +346,16 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 void OmniMIDI::BASSSynth::ProcessEvBufChk() {
 	do ProcessEvBuf();
 	while (ShortEvents->NewEventsAvailable());
+}
+
+const char* OmniMIDI::BASSSynth::GetBASSError() {
+	try {
+		auto v = BASSErrReason.at(BASS_ErrorGetCode());
+		return v.c_str();
+	}
+	catch (std::out_of_range &ex) { }
+
+	return nullptr;
 }
 
 #if defined(_WIN32)
@@ -335,7 +469,6 @@ void OmniMIDI::BASSSynth::AudioThread(unsigned int streamId) {
 #ifndef _WIN32
 	// Linux/macOS don't, so let's do the math ourselves
 	sleepRate = (int)(((double)Settings->BufPeriod / (double)Settings->SampleRate) * 10000000.0);
-	updRate = 0;
 #endif
 
 	switch (Settings->AudioEngine) {
@@ -473,6 +606,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	// BASS stream flags
 	bool bInfoGood = false;
 	unsigned int uMinbuf = 10;
+	size_t fsize = UINT32_MAX;
 	BASS_INFO defInfo = BASS_INFO();
 
 #if defined(_WIN32)
@@ -499,7 +633,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		AudioStreamSize = Settings->ExperimentalAudioMultiplier;
 		Settings->AsyncMode = true;
 		EvtThreadsSize = Settings->ExpMTKeyboardDiv;
-
+		fsize = Settings->EvBufSize * 4;
+		
 		Message("Experimental multi BASS stream mode enabled. (CHA %d, CHK %d >> TOT %d)", Settings->ChannelDiv, Settings->ExpMTKeyboardDiv, Settings->ExperimentalAudioMultiplier);
 	}
 	else
@@ -801,6 +936,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	if (BFlaLibHandle) Message("BASSFLAC loaded. BFlaLib --> 0x%08x", BFlaLibHandle);		
 	else Message("No BASSFLAC, this could affect playback with FLAC based soundbanks.", BFlaLibHandle);
 
+	size_t asyncGood = 0;
 	for (size_t i = 0; i < AudioStreamSize; i++) {
 		if (AudioStreams[i] != 0) {
 			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_SRC, 0);
@@ -809,14 +945,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_CPU, (float)Settings->RenderTimeLimit);
 			
 			if (Settings->AsyncMode) {
-				auto fsize = Settings->EvBufSize * 4;
-				if (BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, fsize)) {
-					Message("AudioStream[%d] >> Async buffer enabled for %llu events.", fsize);
-				}
-				else Error("AudioStream[%d] >> Failed to set async buffer size!", true, fsize);
+				if (BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, (float)fsize)) asyncGood++;
+				else Error("AudioStream[%d] >> Failed to set async buffer size!", true, i);
 			}
 		}
 	}
+
+	if (Settings->AsyncMode)
+		Message("Async buffer of %llu events enabled for %llu out of %llu audio threads.", fsize, asyncGood, AudioStreamSize);
+
 	Message("Stream settings loaded.");
 
 	if (!Settings->OneThreadMode || Settings->ExperimentalMultiThreaded) {
@@ -1109,7 +1246,7 @@ unsigned int OmniMIDI::BASSSynth::UPlayLongEvent(char* ev, unsigned int size) {
 		return size;
 
 	for (size_t si = 0; si < AudioStreamSize; si++) {
-		unsigned int tmp = BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_ASYNC | BASS_MIDI_EVENTS_NORSTATUS, ev, size);
+		unsigned int tmp = BASS_MIDI_StreamEvents(AudioStreams[si], BASS_MIDI_EVENTS_RAW | (Settings->AsyncMode ? BASS_MIDI_EVENTS_ASYNC : 0) | BASS_MIDI_EVENTS_NORSTATUS, ev, size);
 		if (tmp == (unsigned int)-1)
 			break;
 

@@ -462,6 +462,8 @@ extern "C" {
 	}
 
 	EXPORT int WINAPI InitializeKDMAPIStream() {
+		Message("Called init function.");
+
 		if (Host->Start()) {
 			Message("KDMAPI initialized.");
 			return 1;
@@ -472,6 +474,8 @@ extern "C" {
 	}
 
 	EXPORT int WINAPI TerminateKDMAPIStream() {
+		Message("Called free function.");
+
 		if (Host->Stop()) {
 			Message("KDMAPI freed.");
 			return 1;

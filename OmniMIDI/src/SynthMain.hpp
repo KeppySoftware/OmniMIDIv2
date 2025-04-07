@@ -60,6 +60,8 @@ using namespace OMShared;
 
 namespace OmniMIDI {
 	enum MIDIEventType {
+		BankSelect = 0x00,
+		
 		MasterVolume = 0x01,
 		MasterTune = 0x02,
 		MasterKey = 0x03,
@@ -108,6 +110,55 @@ namespace OmniMIDI {
 		Unknown2 = 0xF5,
 		Unknown3 = 0xF9,
 		Unknown4 = 0xFD
+	};
+
+	enum CCMsg {
+		Bank = 0x0,
+		ModulationWheel = 0x1,
+		BreathController = 0x2,
+		FootController = 0x4,
+		PortamentoTime = 0x5,
+		DataEntrySlider = 0x6,
+		MainVolume = 0x7,
+		Pan = 0xA,
+		Expression = 0xB,
+		LSBExt = 0x20,
+
+		BankLSB = LSBExt,
+		SustainPedal = 0x40,
+		Portamento = 0x41,
+		SostenutoPedal = 0x42,
+		SoftPedal = 0x43,
+		Resonance = 0x47,
+		Release = 0x48,
+		Attack = 0x49,
+		Cutoff = 0x4A,
+		Decay = 0x4B,
+		VibratoRate = 0x4C,
+		VibratoDepth = 0x4D,
+		VibratoDelay = 0x4E,
+
+		PortamentoStartNote = 0x54,
+		Reverb = 0x5B,
+		Chorus = 0x5D,
+		UserFx = 0x5E,
+
+		DataIncrement = 0x60,
+		DataIncrement2 = DataIncrement + 0x1,
+		NRPN1 = 0x62,
+		NRPN2 = NRPN1 + 0x1,
+		RPN1 = 0x64,
+		RPN2 = RPN1 + 0x1,
+
+		AllSoundOff = 0x78,
+		ResetAll = 0x79,
+		AllNotesOff = 0x7B,
+
+		ChanModLocal = 0x7A,
+		ChanModOmniOff = 0x7C,
+		ChanModOmniOn = 0x7D,
+		ChanModMono = 0x7E,
+		ChanModPoly = 0x7F
 	};
 
 	enum RolandMsg {

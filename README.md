@@ -20,7 +20,7 @@ Here's what available with OmniMIDI v2 so far.
 - ✔️ Driver (Uh...)
     - ✔️ Support for Windows **and** Linux
     - ✔️ Modular synthesizer system, with built-in support for:
-        - ✔️ [BASSMIDI](https://www.un4seen.com/bass.html) *(With support for WASAPI, ASIO, DirectSound and XAudio2)*
+        - ✔️ [BASSMIDI](https://www.un4seen.com/bass.html) *(With support for WASAPI, ASIO and DirectSound)*
         - ✔️ [FluidSynth](https://github.com/FluidSynth/fluidsynth)
         - ✔️ [XSynth](https://github.com/arduano/xsynth)
     - ❌ Events parser overrides (change note length, ignore events etc...)

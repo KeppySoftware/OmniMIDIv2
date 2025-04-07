@@ -15,6 +15,7 @@
 #define _BASSSYNTH_H
 
 #include "SynthMain.hpp"
+#include <unordered_map>
 
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
@@ -35,6 +36,9 @@
 
 #define TGT_BASS					2 << 24 | 4 << 16 | 17 << 8 | 0
 #define TGT_BASSMIDI				2 << 24 | 4 << 16 | 15 << 8 | 0
+
+#define CCEvent(a)					evt = a; ev = param2;
+#define CCEmptyEvent(a)				evt = a; ev = 0;
 
 #define MIDI_EVENT_RAW				0xFFFF
 
@@ -205,6 +209,29 @@ namespace OmniMIDI {
 		unsigned char ASIOBuf[2048] = { 0 };
 #endif
 
+		std::unordered_map<int, std::string> BASSErrReason {
+			{BASS_ERROR_UNKNOWN, "Unknown"},
+			{BASS_ERROR_MEM, "Memory error"},
+			{BASS_ERROR_FILEOPEN, "Can't open file"},
+			{BASS_ERROR_DRIVER, "Can't find a free/valid output device"},
+			{BASS_ERROR_HANDLE, "Invalid stream handle"},
+			{BASS_ERROR_FORMAT, "Unsupported sample format for output device"},
+			{BASS_ERROR_INIT, "Init has not been successfully called"},
+			{BASS_ERROR_REINIT, "Output device needs to be reinitialized"},
+			{BASS_ERROR_ALREADY, "Output device already initialized/paused"},
+			{BASS_ERROR_ILLTYPE, "Illegal type"},
+			{BASS_ERROR_ILLPARAM, "Illegal parameter"},
+			{BASS_ERROR_DEVICE, "Illegal device"},
+			{BASS_ERROR_FREQ, "Illegal sample rate"},
+			{BASS_ERROR_NOHW, "No hardware voices available"},
+			{BASS_ERROR_NOTAVAIL, "Requested data/action is not available"},
+			{BASS_ERROR_DECODE, "The channel is/isn't a \"decoding channel\""},
+			{BASS_ERROR_FILEFORM, "Unsupported file format"},
+			{BASS_ERROR_VERSION, "Invalid BASS version"},
+			{BASS_ERROR_CODEC, "Requested audio codec is not available"},
+			{BASS_ERROR_BUSY, "Output device is busy"}
+		};
+
 		LibImport LibImports[FINAL_IMPORTS] = {
 			// BASS
 			ImpFunc(BASS_GetVersion),
@@ -306,6 +333,7 @@ namespace OmniMIDI {
 		// BASS system
 		bool LoadFuncs();
 		bool ClearFuncs();
+		const char* GetBASSError();
 		void ProcessEvBuf();
 		void ProcessEvBufChk();
 
