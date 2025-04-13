@@ -12,7 +12,7 @@
 #ifndef _OFLUIDSYNTH_H
 #define _OFLUIDSYNTH_H
 
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 
 #include "fluidsynth.h"
 

@@ -30,18 +30,6 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 	unsigned char param1 = GetFirstParam(evtDword);
 	unsigned char param2 = GetSecondParam(evtDword);
 
-	auto targetStream = AudioStreams[0];
-
-	unsigned char tgtChan = 0;
-	unsigned char tgtChnk = 0;
-	unsigned int noteOnTgt = 0;
-
-	if (Settings->ExperimentalAudioMultiplier) {
-		tgtChan = chan * Settings->ExpMTKeyboardDiv;
-		tgtChnk = param1 % Settings->ExpMTKeyboardDiv;
-		noteOnTgt = tgtChan + tgtChnk;
-	}
-
 	switch (command) {
 	case NoteOn:
 		// param1 is the key, param2 is the velocity
@@ -190,9 +178,32 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 				ev = param1 == ChanModPoly ? 0 : 1;
 				break;
 
-			default:
+			// TODO
+			case Balance:
+			case SoundVariation:
+
+			case DataEntrySlider:
+			case DataEntrySlider + LSBExt:
+	
+			case FootController:
+			case FootController + LSBExt:
+			
+			case BreathController:
+			case BreathController + LSBExt:
+			// TODO
+
+			case DataIncrement:
+			case DataIncrement2:
+			case NRPN1:
+			case NRPN2:
+			case RPN1:
+			case RPN2:
 				evt = MIDI_EVENT_RAW;
 				break;
+
+			default:
+				Message("Unknown CC event!!! TYPE >> 0x%x -- DATA >> 0x%x", param1, param2);
+				return;
 		}
 
 		break;
@@ -302,26 +313,24 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 		switch (evt) {
 			case MIDI_EVENT_NOTE:
 			case MIDI_EVENT_KEYPRES:
-				BASS_MIDI_StreamEvent(AudioStreams[noteOnTgt], chan, evt, ev);
+				BASS_MIDI_StreamEvent(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + (param1 % Settings->ExpMTKeyboardDiv)], chan, evt, ev);
 				break;
 
 			case MIDI_EVENT_SYSTEMEX:
-				for (size_t i = 0; i < Settings->ExperimentalAudioMultiplier; i += Settings->ExpMTKeyboardDiv) {
-					for (int j = 0; j < Settings->KeyboardChunk; j++) {
-						BASS_MIDI_StreamEvent(AudioStreams[i + j], 0, evt, res);
-					}
+				for (unsigned i = 0; i < Settings->ExperimentalAudioMultiplier * Settings->KeyboardChunk; ++i) {			
+					BASS_MIDI_StreamEvent(AudioStreams[(i / Settings->ExperimentalAudioMultiplier) + (i % Settings->ExpMTKeyboardDiv)], 0, evt, res);
 				}
 				break;
 
 			case MIDI_EVENT_RAW:
 				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
-					BASS_MIDI_StreamEvents(AudioStreams[tgtChan + i], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
+					BASS_MIDI_StreamEvents(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 				}
 				break;
 
 			default:
 				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
-					BASS_MIDI_StreamEvent(AudioStreams[tgtChan + i], chan, evt, ev);
+					BASS_MIDI_StreamEvent(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i], chan, evt, ev);
 				}
 				break;
 		}
@@ -329,15 +338,15 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 	else {
 		switch (evt) {
 			case MIDI_EVENT_SYSTEMEX:
-				BASS_MIDI_StreamEvent(targetStream, 0, evt, res);
+				BASS_MIDI_StreamEvent(AudioStreams[0], 0, evt, res);
 				break;
 
 			case MIDI_EVENT_RAW:
-				BASS_MIDI_StreamEvents(targetStream, BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
+				BASS_MIDI_StreamEvents(AudioStreams[0], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 				break;
 			
 			default:
-				BASS_MIDI_StreamEvent(targetStream, chan, evt, ev);
+				BASS_MIDI_StreamEvent(AudioStreams[0], chan, evt, ev);
 				break;
 		}
 	}

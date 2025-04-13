@@ -1,18 +1,17 @@
 /*
 
-	OmniMIDI v15+ (Rewrite) for Windows NT
+	OmniMIDI v15+ (Rewrite) for Win32/Linux
 
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
+	This file contains the required code to run the driver under both Windows and Linux
 
 */
-
-#include "Common.hpp"
 
 #ifndef _SYNTHMAIN_H
 #define _SYNTHMAIN_H
 
 #pragma once
+
+#include "Common.hpp"
 
 #include <cstdint>
 #include <thread>
@@ -113,6 +112,8 @@ namespace OmniMIDI {
 	};
 
 	enum CCMsg {
+		LSBExt = 0x20,
+
 		Bank = 0x0,
 		ModulationWheel = 0x1,
 		BreathController = 0x2,
@@ -120,15 +121,18 @@ namespace OmniMIDI {
 		PortamentoTime = 0x5,
 		DataEntrySlider = 0x6,
 		MainVolume = 0x7,
+		Balance = 0x8,
 		Pan = 0xA,
 		Expression = 0xB,
-		LSBExt = 0x20,
 
 		BankLSB = LSBExt,
 		SustainPedal = 0x40,
 		Portamento = 0x41,
 		SostenutoPedal = 0x42,
 		SoftPedal = 0x43,
+		LegatoFootswitch = 0x44,
+		Hold2 = 0x45,
+		SoundVariation = 0x46,
 		Resonance = 0x47,
 		Release = 0x48,
 		Attack = 0x49,
@@ -137,6 +141,12 @@ namespace OmniMIDI {
 		VibratoRate = 0x4C,
 		VibratoDepth = 0x4D,
 		VibratoDelay = 0x4E,
+		SC10 = 0x4F,
+
+		GPMCCC1 = 0x50,
+		GPMCCC2 = 0x51,
+		GPMCCC3 = 0x52,
+		GPMCCC4 = 0x53,
 
 		PortamentoStartNote = 0x54,
 		Reverb = 0x5B,

@@ -33,7 +33,11 @@ bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
 			case OMShared::FIDs::UserFolder:
 				printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/OmniMIDI/SupportLibraries/" LIBEXP(TYPE) "%s", buf, Name, Suffix);
 				break;
-			
+
+			case OMShared::FIDs::PluginFolder:
+				printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/OmniMIDI/Plugins/" LIBEXP(TYPE) "%s", buf, Name, Suffix);
+				break;
+
 			default:
 				printStatus = snprintf(outPath, MAX_PATH_LONG, "%s/" LIBEXP(TYPE) "%s", buf, Name, Suffix);
 				break;
@@ -66,23 +70,29 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 		}
 	}
 
-	if (IteratePath(outPath, OMShared::FIDs::CurrentDirectory))
-		return true;
+	if (Funcs) {
+		if (IteratePath(outPath, OMShared::FIDs::CurrentDirectory))
+			return true;
 
-	if (IteratePath(outPath, OMShared::FIDs::UserFolder))
-		return true;
+		if (IteratePath(outPath, OMShared::FIDs::UserFolder))
+			return true;
 
-	if (IteratePath(outPath, OMShared::FIDs::LibGeneric))
-		return true;
+		if (IteratePath(outPath, OMShared::FIDs::LibGeneric))
+			return true;
 
-	if (IteratePath(outPath, OMShared::FIDs::Libi386))
-		return true;
+		if (IteratePath(outPath, OMShared::FIDs::Libi386))
+			return true;
 
-	if (IteratePath(outPath, OMShared::FIDs::LibAMD64))
-		return true;
+		if (IteratePath(outPath, OMShared::FIDs::LibAMD64))
+			return true;
 
-	if (IteratePath(outPath, OMShared::FIDs::LibAArch64))
-		return true;
+		if (IteratePath(outPath, OMShared::FIDs::LibAArch64))
+			return true;
+	}
+	else {
+		if (IteratePath(outPath, OMShared::FIDs::PluginFolder))
+			return true;
+	}
 
 	return false;
 }
@@ -90,9 +100,6 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 bool OMShared::Lib::LoadLib(char* CustomPath) {
 	char* libPath = nullptr;
 	char* finalPath= nullptr;
-
-	if (Funcs == nullptr || FuncsCount == 0)
-		return true;
 
 	if (Library == nullptr) {
 		OMShared::Funcs Utils;
@@ -122,12 +129,14 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 	if (Library != nullptr) {
 		Message("%s --> 0x%08x (FROM %s)", Name, Library, finalPath);
 
-		for (size_t i = 0; i < FuncsCount; i++)
-		{
-			if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
-				Message("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+		if (Funcs != nullptr && FuncsCount != 0) {
+			for (size_t i = 0; i < FuncsCount; i++)
+			{
+				if (Funcs[i].SetPtr(Library, Funcs[i].GetName()))
+					Message("%s --> 0x%08x", Funcs[i].GetName(), Funcs[i].GetPtr());
+			}	
 		}
-	
+
 		Message("%s ready!", Name);
 	
 		Initialized = true;
@@ -140,8 +149,10 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 }
 
 bool OMShared::Lib::UnloadLib() {
-	if (Funcs == nullptr || FuncsCount == 0)
-		return true;
+	if (Funcs != nullptr && FuncsCount != 0) {
+		for (size_t i = 0; i < FuncsCount; i++)
+			Funcs[i].SetPtr();
+	}
 
 	if (Library != nullptr) {
 		if (AppSelfHosted)

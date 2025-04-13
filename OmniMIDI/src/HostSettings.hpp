@@ -18,7 +18,7 @@
 #include <fstream>
 #include "Common.hpp"
 #include "ErrSys.hpp"
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 #include "KDMAPI.hpp"
 
 namespace OmniMIDI {

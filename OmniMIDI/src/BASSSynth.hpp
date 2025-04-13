@@ -14,7 +14,7 @@
 #ifndef _BASSSYNTH_H
 #define _BASSSYNTH_H
 
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 #include <unordered_map>
 
 #include "bass/bass.h"

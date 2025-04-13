@@ -14,7 +14,7 @@
 
 #include "ErrSys.hpp"
 #include "EvBuf_t.hpp"
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 #include <fstream>
 #include <string>
 #include <thread>

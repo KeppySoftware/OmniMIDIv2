@@ -216,25 +216,8 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	char r = _SHSettings->GetRenderer();
 	switch (r) {
 	case Synthesizers::External:
-		extModule = loadLib(_SHSettings->GetCustomRenderer());
-
-		if (extModule) {
-			auto iM = reinterpret_cast<rInitModule>(getAddr(extModule, "initModule"));
-
-			if (iM) {
-				newSynth = iM();
-
-				if (newSynth) {
-					Message("R%d (EXTERNAL >> %s)",
-						r,
-						_SHSettings->GetCustomRenderer());
-					break;
-				}
-			}
-		}
-
-		newSynth = new OmniMIDI::SynthModule(ErrLog);
-		Error("The requested external module (%s) could not be loaded.", _SHSettings->GetCustomRenderer());
+		extModule = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), ErrLog);
+		Message("R%d (%s)", r, _SHSettings->GetCustomRenderer());
 		break;
 
 	case Synthesizers::FluidSynth:
@@ -383,7 +366,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 					readHead += 3;
 					if (command == Receive) {
-						PSE params = new SE[256];
+						PASE params = new ASE[256];
 						unsigned char pseWriteHead = -1;
 
 						unsigned int varLen = 1;

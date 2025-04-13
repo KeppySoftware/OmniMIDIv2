@@ -10,7 +10,6 @@
 #define _SYNTHHOST_H
 
 #include "ErrSys.hpp"
-#include "SynthMain.hpp"
 #include "HostSettings.hpp"
 
 #ifdef _WIN32
@@ -23,6 +22,7 @@
 #include "BASSSynth.hpp"
 #include "FluidSynth.hpp"
 #include "ShakraPipe.hpp"
+#include "PluginSynth.hpp"
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();
 typedef void(*rStopModule)();
@@ -62,7 +62,7 @@ namespace OmniMIDI {
 #ifdef _WIN32 
 		bool IsStreamPlayerAvailable() { return !StreamPlayer->IsDummy(); }
 		bool IsBlacklistedProcess() { return _SHSettings->IsBlacklistedProcess(); }
-
+		
 		// Cooked player system
 		bool SpInit(SynthModule* synthModule = nullptr);
 		bool SpFree();

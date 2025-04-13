@@ -33,11 +33,11 @@
 #endif
 
 namespace OmniMIDI {
-	typedef struct ShortEvent {
+	typedef struct AdvShortEvent {
 		unsigned char status = 0;
 		unsigned char param1 = 0;
 		unsigned char param2 = 0;
-	} ShortEv, *PShortEv, SE, *PSE;
+	} AdvShortEv, *PAdvShortEv, ASE, *PASE;
 
 	typedef struct LongEvent {
 		char ev[MAX_MIDIHDR_BUF] = { 0 };

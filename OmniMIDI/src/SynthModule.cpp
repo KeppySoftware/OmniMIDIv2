@@ -6,7 +6,7 @@
 
 */
 
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 
 bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, size_t pSynthName_sz) {
 	char* userProfile = new char[MAX_PATH_LONG] { 0 };

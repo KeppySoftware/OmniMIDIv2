@@ -15,7 +15,7 @@
 #ifndef _XSYNTHM_H
 #define _XSYNTHM_H
 
-#include "SynthMain.hpp"
+#include "SynthModule.hpp"
 
 #include "xsynth.h"
 

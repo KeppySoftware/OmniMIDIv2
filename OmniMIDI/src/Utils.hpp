@@ -56,6 +56,7 @@ namespace OMShared {
 	enum FIDs {
 		CurrentDirectory,
 		UserFolder,
+		PluginFolder,
 		LibGeneric,
 		Libi386,
 		LibAMD64,
