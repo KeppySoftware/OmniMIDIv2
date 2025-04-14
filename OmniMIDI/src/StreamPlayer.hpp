@@ -20,6 +20,7 @@
 #include "WDMDrv.hpp"
 #include "ErrSys.hpp"
 #include "SynthMain.hpp"
+#include "SynthModule.hpp"
 
 namespace OmniMIDI {
 	class StreamPlayer {
