@@ -31,10 +31,11 @@
     #define SLEEPVAL(x)             x
     #define Sleep			        sleep
     #define SetTerminalTitle(x)     std::cout << "\033]0;" << x << "\007"
+    #define WINAPI
 #else
     #include <windows.h>
     #define SLEEPVAL(x)             -x
-    #define SetTerminalTitle        SetConsoleTitleA      
+    #define SetTerminalTitle        SetConsoleTitleA
 #endif
 
 #if !defined(_M_IX86) && defined(__i386__)
