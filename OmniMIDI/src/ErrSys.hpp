@@ -50,9 +50,9 @@
 #define dbgprintf							snprintf(cBuf, SZBufSize, "[] >> %s", tBuf);
 #endif
 
-#define Error(text, fatal, ...)				ErrLog->ThrowError(text, fatal, __SRCFILE, __FUNCNAME, __LINENUMBER, ##__VA_ARGS__)
-#define Fatal(text)							ErrLog->ThrowFatalError(text, __SRCFILE, __FUNCNAME, __LINENUMBER)
-#define Message(text, ...)					ErrLog->Log(text, __SRCFILE, __FUNCNAME, __LINENUMBER, ##__VA_ARGS__)
+#define Error(text, fatal, ...)				if (ErrLog) ErrLog->ThrowError(text, fatal, __SRCFILE, __FUNCNAME, __LINENUMBER, ##__VA_ARGS__)
+#define Fatal(text)							if (ErrLog) ErrLog->ThrowFatalError(text, __SRCFILE, __FUNCNAME, __LINENUMBER)
+#define Message(text, ...)					if (ErrLog) ErrLog->Log(text, __SRCFILE, __FUNCNAME, __LINENUMBER, ##__VA_ARGS__)
 
 namespace ErrorSystem {
 	class Logger {

@@ -25,7 +25,7 @@ namespace OmniMIDI {
 	class HostSettings : public SettingsModule {
 	public:
 		std::vector<std::string> Blacklist;
-		OMShared::Funcs Utils;
+		OMShared::Funcs Utils = OMShared::Funcs(ErrLog); 
 
 		HostSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {
 			// When you initialize Settings(), load OM's own settings by default

@@ -15,7 +15,8 @@ OmniMIDI::CookedPlayer::CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::Dri
 	synthModule = sptr;
 	drvCallback = dptr;
 	ErrLog = perr;
-
+	Utils = OMShared::Funcs(ErrLog); 
+	
 	_CooThread = std::jthread(&CookedPlayer::PlayerThread, this);
 	if (!_CooThread.joinable()) {
 		CookedPlayer::~CookedPlayer();
