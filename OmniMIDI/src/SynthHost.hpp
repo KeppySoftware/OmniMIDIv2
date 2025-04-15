@@ -37,7 +37,6 @@ namespace OmniMIDI {
 		SynthModule* Synth = nullptr;
 		HostSettings* _SHSettings = nullptr;
 		std::jthread _HealthThread;
-		void* extModule = nullptr;
 
 #ifdef _WIN32
 		// From driver lib

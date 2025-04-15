@@ -9,9 +9,9 @@
 #include "Utils.hpp"
 
 OMShared::Lib::Lib(const char* pName, const char* pSuffix, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
+	ErrLog = PErr;
 	Name = pName;
 	Suffix = pSuffix != nullptr ? pSuffix : "";
-	ErrLog = PErr;
 
 	if (pFuncs != nullptr)
 		Funcs = *pFuncs;

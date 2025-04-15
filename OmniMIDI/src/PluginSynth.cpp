@@ -58,6 +58,8 @@ bool OmniMIDI::PluginSynth::UnloadSynthModule() {
     if (Plugin != nullptr && Plugin->IsOnline()) {
         if (!Plugin->UnloadLib())
             throw;
+
+        delete Plugin;
     }
 
     return true;

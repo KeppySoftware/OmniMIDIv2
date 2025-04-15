@@ -72,7 +72,7 @@ namespace OmniMIDI {
 		}
 		virtual unsigned int UPlayLongEvent(char* ev, unsigned int size) { return _PluginFuncs->LongData(ev, size); }
 
-		virtual SynthResult Reset(char type = 0) { PlayShortEvent(0xFF, type, 0); return Ok; }
+		virtual SynthResult Reset(char type = 0) { _PluginFuncs->ShortData(0xFF | (type << 8)); return Ok; }
 	};
 }
 

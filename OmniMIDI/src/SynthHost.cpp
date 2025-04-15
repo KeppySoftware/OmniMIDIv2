@@ -217,7 +217,7 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	char r = _SHSettings->GetRenderer();
 	switch (r) {
 	case Synthesizers::External:
-		extModule = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), ErrLog);
+		newSynth = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), ErrLog);
 		Message("R%d (%s)", r, _SHSettings->GetCustomRenderer());
 		break;
 
