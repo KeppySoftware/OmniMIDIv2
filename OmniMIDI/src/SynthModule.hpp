@@ -417,7 +417,7 @@ namespace OmniMIDI {
 		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
 
 		SynthModule() { ErrLog = nullptr; }
-		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
+		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; Utils = OMShared::Funcs(ErrLog); }
 		virtual ~SynthModule() { }
 		virtual bool LoadSynthModule() { return true; }
 		virtual bool UnloadSynthModule() { return true; }
@@ -535,7 +535,7 @@ namespace OmniMIDI {
 
 	public:
 		SoundFontSystem() { ErrLog = nullptr; }
-		SoundFontSystem(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
+		SoundFontSystem(ErrorSystem::Logger* PErr) { ErrLog = PErr; Utils = OMShared::Funcs(ErrLog); }
 		bool RegisterCallback(OmniMIDI::SynthModule* ptr = nullptr);
 		std::vector<SoundFont>* LoadList(std::string list = "");
 		bool ClearList();

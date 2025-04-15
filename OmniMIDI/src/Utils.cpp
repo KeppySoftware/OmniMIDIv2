@@ -24,7 +24,7 @@ OMShared::Lib::~Lib() {
 }
 
 bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
-	OMShared::Funcs Utils;
+	OMShared::Funcs Utils = OMShared::Funcs(ErrLog);
 	char buf[MAX_PATH_LONG] = { 0 };
 	int printStatus = 0;
 
@@ -92,6 +92,9 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 #endif
 	}
 	else {
+		if (IteratePath(outPath, OMShared::FIDs::CurrentDirectory))
+			return true;
+
 		if (IteratePath(outPath, OMShared::FIDs::PluginFolder))
 			return true;
 		
@@ -107,7 +110,7 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 	char* finalPath= nullptr;
 
 	if (Library == nullptr) {
-		OMShared::Funcs Utils;
+		OMShared::Funcs Utils = OMShared::Funcs(ErrLog);
 		
 		Initialized = false;
 
@@ -235,6 +238,13 @@ OMShared::Funcs::Funcs() {
 
 	pNtQuerySystemTime = v2;
 #endif
+}
+
+OMShared::Funcs::Funcs(ErrorSystem::Logger* PErr) : Funcs() {
+	if (!PErr)
+		throw;
+
+	ErrLog = PErr;
 }
 
 OMShared::Funcs::~Funcs() {
@@ -373,7 +383,7 @@ bool OMShared::Funcs::DoesFileExist(std::string filePath) {
 		if (GetFileAttributesW(fwPath) != INVALID_FILE_ATTRIBUTES)
 			exists = true;
 	}
-	else std::cout << "L!" << std::endl;
+	else Error("Something went wrong while checking if file \"%s\" exists.", true, filePath.c_str());
 
 	if (fwPath != nullptr)
 		delete[] fwPath;

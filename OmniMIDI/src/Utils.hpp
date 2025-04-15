@@ -165,10 +165,12 @@ namespace OMShared {
 		bool LL = false;
 		unsigned int (WINAPI* pNtDelayExecution)(unsigned char, signed long long*) = nullptr;
 		unsigned int (WINAPI* pNtQuerySystemTime)(signed long long*) = nullptr;
+		ErrorSystem::Logger* ErrLog;
 #endif
 
 	public:
 		Funcs();
+		Funcs(ErrorSystem::Logger* PErr);
 		~Funcs();
 
 		void MicroSleep(signed long long v);
