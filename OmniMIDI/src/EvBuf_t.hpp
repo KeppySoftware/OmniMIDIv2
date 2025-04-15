@@ -14,7 +14,7 @@
 #define BEvBuf				BaseEvBuf_t
 #define EvBuf				EvBuf_t
 #define LEvBuf				LEvBuf_t
-#define ShortEvent			unsigned int
+#define ShortEvent			uint32_t
 
 #define DEF_EVBUF_SIZE		4096
 #define MAX_EVBUF_SIZE		UINT_MAX / 8
@@ -36,13 +36,13 @@
 
 namespace OmniMIDI {
 	typedef struct AdvShortEvent {
-		unsigned char status = 0;
-		unsigned char param1 = 0;
-		unsigned char param2 = 0;
+		uint8_t status = 0;
+		uint8_t param1 = 0;
+		uint8_t param2 = 0;
 	} AdvShortEv, *PAdvShortEv, ASE, *PASE;
 
 	typedef struct LongEvent {
-		char ev[MAX_MIDIHDR_BUF] = { 0 };
+		uint8_t ev[MAX_MIDIHDR_BUF] = { 0 };
 		size_t len = 0;
 	} LongEv, *PLongEv, LE, *PLE;
 
@@ -64,8 +64,8 @@ namespace OmniMIDI {
 		virtual bool Free() { return true; }
 
 		// Short messages
-		virtual void Write(unsigned int ev) { }
-		virtual void Write(unsigned char status, unsigned char param1, unsigned char param2) { }
+		virtual void Write(uint32_t ev) { }
+		virtual void Write(uint8_t status, uint8_t param1, uint8_t param2) { }
 
 		virtual ShortEvent Read() { return 0; }
 		virtual ShortEvent Peek() { return 0; }
@@ -73,9 +73,9 @@ namespace OmniMIDI {
 		virtual ShortEvent* PeekPtr() { return nullptr; }
 
 		// Long messages
-		virtual void Write(char* ev, size_t len) { }
-		virtual void ReadLong(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
-		virtual void PeekLong(char* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void Write(uint8_t* ev, size_t len) { }
+		virtual void ReadLong(uint8_t* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
+		virtual void PeekLong(uint8_t* ev, size_t* len) { *ev = longDummy; *len = sizeof(longDummy); }
 
 		virtual bool NewEventsAvailable() { return false; }
 		virtual void ResetHeads() { readHead = 0; writeHead = 0; }
@@ -127,7 +127,7 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Write(char* ev, size_t len) override {
+		void Write(uint8_t* ev, size_t len) override {
 			auto tWriteHead = (writeHead + 1) % size;
 
 			if (tWriteHead != readHead)
@@ -137,7 +137,7 @@ namespace OmniMIDI {
 			buf[writeHead].len = len;
 		}
 
-		void ReadLong(char* ev, size_t* len) override {
+		void ReadLong(uint8_t* ev, size_t* len) override {
 			if (readHead != writeHead)
 			{
 				if (++readHead >= size) readHead = 0;
@@ -146,7 +146,7 @@ namespace OmniMIDI {
 			}
 		}
 
-		void PeekLong(char* ev, size_t* len) override {
+		void PeekLong(uint8_t* ev, size_t* len) override {
 			auto tNextHead = (readHead + 1) % size;
 
 			ev = buf[tNextHead].ev;
@@ -163,7 +163,7 @@ namespace OmniMIDI {
 
 	class EvBuf_t : public BaseEvBuf_t {
 	private:
-		unsigned char midiRS = 0;
+		uint8_t runningStatus = 0;
 
 #ifdef _STATSDEV
 		FILE* dummy;
@@ -174,18 +174,18 @@ namespace OmniMIDI {
 		ShortEvent* buf = nullptr;
 		bool dontMiss = false;
 
-		constexpr bool IsRunningStatus(unsigned int ev) { return ((ev & 0xFF) & 0x80) < 1; }
-		constexpr unsigned int ApplyRunningStatus(unsigned int ev) {
+		constexpr bool IsRunningStatus(uint32_t ev) { return ((ev & 0xFF) & 0x80) < 1; }
+		constexpr uint32_t ApplyRunningStatus(uint32_t ev) {
 			if (ev & 0x80) {
-				midiRS = ev & 0xFF;
+				runningStatus = ev & 0xFF;
 				return ev;
 			}
 
-			return (ev << 8) | midiRS;
+			return (ev << 8) | runningStatus;
 		}
-		constexpr unsigned char GetStatus(unsigned int ev) { return (ev & 0xFF) & 0x80; }
-		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
-		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
+		constexpr uint8_t GetStatus(uint32_t ev) { return (ev & 0xFF) & 0x80; }
+		constexpr uint8_t GetFirstParam(uint32_t ev) { return ((ev >> 8) & 0xFF); }
+		constexpr uint8_t GetSecondParam(uint32_t ev) { return ((ev >> 16) & 0xFF); }
 
 	public:
 		EvBuf_t() { }
@@ -243,11 +243,11 @@ namespace OmniMIDI {
 			return true;
 		}
 
-		void Write(unsigned char status, unsigned char param1, unsigned char param2) override {
+		void Write(uint8_t status, uint8_t param1, uint8_t param2) override {
 			Write(status | (param1 << 8) | (param2 << 16));
 		}
 
-		void Write(unsigned int ev) override {
+		void Write(uint32_t ev) override {
 			size_t curReadHead = readHead;
 			size_t nextWriteHead = (writeHead + 1) % size;
 

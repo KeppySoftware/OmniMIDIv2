@@ -31,7 +31,7 @@ OmniMIDI::CookedPlayer::~CookedPlayer() {
 
 void OmniMIDI::CookedPlayer::PlayerThread() {
 	bool noMoreDelta = false;
-	unsigned long deltaMicroseconds = 0;
+	uint32_t deltaMicroseconds = 0;
 
 	Message("PlayerThread is ready.");
 	while (!goToBed) {
@@ -69,7 +69,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 			MIDIEVENT* event = (MIDIEVENT*)(hdr->lpData + hdr->dwOffset);
 
-			unsigned int deltaTicks = event->dwDeltaTime;
+			uint32_t deltaTicks = event->dwDeltaTime;
 			tickAcc += deltaTicks;
 
 			if (event->dwEvent & MEVT_F_CALLBACK) {
@@ -87,7 +87,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 				break;
 			}
 			else if (smpte) {
-				unsigned long fpsToFrlen = (unsigned long)((1000000 / smpteFramerate) / smpteFrameTicks);
+				uint32_t fpsToFrlen = (uint32_t)((1000000 / smpteFramerate) / smpteFrameTicks);
 				timeAcc += fpsToFrlen;
 				Utils.MicroSleep(SLEEPVAL(fpsToFrlen));
 			}
@@ -99,7 +99,7 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 				synthModule->PlayShortEvent((event->dwEvent >> 16) & 0xFF, (event->dwEvent >> 8) & 0xFF, event->dwEvent & 0xFF);
 				break;
 			case MEVT_LONGMSG:
-				synthModule->PlayLongEvent((char*)event->dwParms, event->dwEvent & 0xFFFFFF);
+				synthModule->PlayLongEvent((uint8_t*)event->dwParms, event->dwEvent & 0xFFFFFF);
 				break;
 			case MEVT_TEMPO:
 				if (!smpte)
@@ -125,13 +125,13 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 	// LOG(StrmErr, "timeAcc: %d - tickAcc: %d - byteAcc %x", timeAcc, tickAcc, byteAcc);
 }
 
-void OmniMIDI::CookedPlayer::SetTempo(unsigned int ntempo) {
+void OmniMIDI::CookedPlayer::SetTempo(uint32_t ntempo) {
 	tempo = ntempo;
 	bpm = 60000000 / tempo;
 	Message("Received new tempo. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
-void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
+void OmniMIDI::CookedPlayer::SetTicksPerQN(uint16_t nTicksPerQN) {
 	char smptePortion = (nTicksPerQN >> 8) & 0xFF;
 
 	bool qSmpte = smptePortion & 0x80;
@@ -211,17 +211,17 @@ bool OmniMIDI::CookedPlayer::EmptyQueue() {
 
 void OmniMIDI::CookedPlayer::GetPosition(MMTIME* mmtime) {
 	signed long totalSeconds = timeAcc / 1000000;
-	unsigned int playedSamples = (unsigned int)(timeAcc / (1000000 / synthModule->GetSampleRate()));
+	uint32_t playedSamples = (uint32_t)(timeAcc / (1000000 / synthModule->GetSampleRate()));
 
 	mmtime->u.cb = byteAcc;
 
 	mmtime->u.ms = timeAcc / 10000;
 
 	mmtime->u.smpte.fps = smpteFramerate;
-	mmtime->u.smpte.frame = (unsigned char)(totalSeconds / smpteFrameTicks) % smpteFramerate;
+	mmtime->u.smpte.frame = (uint8_t)(totalSeconds / smpteFrameTicks) % smpteFramerate;
 	mmtime->u.smpte.sec = totalSeconds % 60;
 	mmtime->u.smpte.min = (totalSeconds / 60) % 60;
-	mmtime->u.smpte.hour = (unsigned char)(totalSeconds / 3600);
+	mmtime->u.smpte.hour = (uint8_t)(totalSeconds / 3600);
 
 	mmtime->u.sample = playedSamples;
 

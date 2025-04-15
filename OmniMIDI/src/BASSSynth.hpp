@@ -56,9 +56,9 @@ namespace OmniMIDI {
 	class BASSSettings : public SettingsModule {
 	public:
 		// Global settings
-		size_t EvBufSize = 32768;
-		unsigned int RenderTimeLimit = 95;
-		int AudioEngine = (int)DEFAULT_ENGINE;
+		uint64_t EvBufSize = 32768;
+		uint32_t RenderTimeLimit = 95;
+		int32_t AudioEngine = (int)DEFAULT_ENGINE;
 
 		bool FollowOverlaps = false;
 		bool LoudMax = false;
@@ -69,16 +69,16 @@ namespace OmniMIDI {
 		bool StreamDirectFeed = false;
 
 		// EXP
-		const unsigned char ChannelDiv = 16;
-		unsigned char ExpMTKeyboardDiv = 4;
-		unsigned char KeyboardChunk = 128 / ExpMTKeyboardDiv;
+		const uint8_t ChannelDiv = 16;
+		uint8_t ExpMTKeyboardDiv = 4;
+		uint8_t KeyboardChunk = 128 / ExpMTKeyboardDiv;
 
 		bool ExperimentalMultiThreaded = false;
-		size_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
-		unsigned int AudioBuf = 10;
+		uint64_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
+		uint32_t AudioBuf = 10;
 
 #ifndef _WIN32
-		unsigned int BufPeriod = 480;
+		uint32_t BufPeriod = 480;
 #endif
 
 #ifdef _WIN32
@@ -86,7 +86,7 @@ namespace OmniMIDI {
 		float WASAPIBuf = 32.0f;
 
 		// ASIO
-		unsigned int ASIOChunksDivision = 4;
+		uint32_t ASIOChunksDivision = 4;
 		std::string ASIODevice = "None";
 		std::string ASIOLCh = "0";
 		std::string ASIORCh = "0";
@@ -145,22 +145,22 @@ namespace OmniMIDI {
 				SynthSetVal(bool, FloatRendering);
 				SynthSetVal(bool, MonoRendering);
 				SynthSetVal(bool, FollowOverlaps);
-				SynthSetVal(int, AudioEngine);
-				SynthSetVal(unsigned int, SampleRate);
-				SynthSetVal(unsigned int, RenderTimeLimit);
-				SynthSetVal(unsigned int, VoiceLimit);
-				SynthSetVal(unsigned int, AudioBuf);
+				SynthSetVal(int32_t, AudioEngine);
+				SynthSetVal(uint32_t, SampleRate);
+				SynthSetVal(uint32_t, RenderTimeLimit);
+				SynthSetVal(uint32_t, VoiceLimit);
+				SynthSetVal(uint32_t, AudioBuf);
 				SynthSetVal(size_t, EvBufSize);
 
 #if !defined(_WIN32)
-				SynthSetVal(unsigned int, BufPeriod);
+				SynthSetVal(uint32_t, BufPeriod);
 #endif			
 
 #if defined(_WIN32)
 				SynthSetVal(std::string, ASIODevice);
 				SynthSetVal(std::string, ASIOLCh);
 				SynthSetVal(std::string, ASIORCh);
-				SynthSetVal(unsigned int, ASIOChunksDivision);
+				SynthSetVal(uint32_t, ASIOChunksDivision);
 				SynthSetVal(float, WASAPIBuf);
 #endif
 
@@ -200,7 +200,7 @@ namespace OmniMIDI {
 		Lib* BEfxLib = nullptr;
 
 		Lib* BFlaLib = nullptr;
-		HPLUGIN BFlaLibHandle = 0;
+		uint32_t BFlaLibHandle = 0;
 
 #ifdef _WIN32
 		Lib* BWasLib = nullptr;
@@ -319,8 +319,8 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		HFX audioLimiter = 0;
-		unsigned int* AudioStreams = nullptr;
-		unsigned int ExtraEvtFlags = 0;
+		uint32_t* AudioStreams = nullptr;
+		uint32_t ExtraEvtFlags = 0;
 		std::jthread _BASThread;
 
 		SoundFontSystem SFSystem;
@@ -337,18 +337,17 @@ namespace OmniMIDI {
 		void ProcessEvBuf();
 		void ProcessEvBufChk();
 
-		void AudioThread(unsigned int id);
+		void AudioThread(uint32_t id);
 		void EventsThread();
 		void BASSThread();
 
-		static unsigned long CALLBACK AudioProcesser(void*, unsigned long, BASSSynth*);
-		static unsigned long CALLBACK AudioEvProcesser(void*, unsigned long, BASSSynth*);
-
 #if defined(_WIN32)
-		static unsigned long CALLBACK WasapiProc(void*, unsigned long, void*);
-		static unsigned long CALLBACK WasapiEvProc(void*, unsigned long, void*);
-		static unsigned long CALLBACK AsioProc(int, unsigned long, void*, unsigned long, void*);
-		static unsigned long CALLBACK AsioEvProc(int, unsigned long, void*, unsigned long, void*);
+		static DWORD CALLBACK AudioProcesser(void*, DWORD, BASSSynth*);
+		static DWORD CALLBACK AudioEvProcesser(void*, DWORD, BASSSynth*);
+		static DWORD CALLBACK WasapiProc(void*, DWORD, void*);
+		static DWORD CALLBACK WasapiEvProc(void*, DWORD, void*);
+		static DWORD CALLBACK AsioProc(int, DWORD, void*, DWORD, void*);
+		static DWORD CALLBACK AsioEvProc(int, DWORD, void*, DWORD, void*);
 #endif
 
 	public:
@@ -358,15 +357,15 @@ namespace OmniMIDI {
 		bool UnloadSynthModule() override;
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override;
-		unsigned int GetSampleRate() override { return Settings->SampleRate; }
+		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override;
+		uint32_t GetSampleRate() override { return Settings->SampleRate; }
 		bool IsSynthInitialized() override { return (AudioStreams != nullptr && AudioStreams[0] != 0); }
-		unsigned int SynthID() override { return 0x1411BA55; }
+		uint32_t SynthID() override { return 0x1411BA55; }
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
-		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
+		uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) override;
+		uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) override;
 
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override;
+		SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) override;
 	};
 }
 

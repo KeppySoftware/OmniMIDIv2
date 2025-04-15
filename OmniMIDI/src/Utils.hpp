@@ -158,7 +158,7 @@ namespace OMShared {
 		bool GetLibPath(char* outPath = nullptr);
 		bool LoadLib(char* CustomPath = nullptr);
 		bool UnloadLib();
-		bool IsSupported(unsigned int loaded, unsigned int minimum);
+		bool IsSupported(uint32_t loaded, uint32_t minimum);
 	};
 
 	class Funcs {
@@ -166,16 +166,16 @@ namespace OMShared {
 	private:
 		void* ntdll = nullptr;
 		bool LL = false;
-		unsigned int (WINAPI* pNtDelayExecution)(unsigned char, signed long long*) = nullptr;
-		unsigned int (WINAPI* pNtQuerySystemTime)(signed long long*) = nullptr;
+		uint32_t (WINAPI* pNtDelayExecution)(unsigned char, signed long long*) = nullptr;
+		uint32_t (WINAPI* pNtQuerySystemTime)(signed long long*) = nullptr;
 #endif
 
 	public:
 		Funcs();
 		~Funcs();
 
-		void MicroSleep(signed long long v);
-		unsigned int QuerySystemTime(signed long long* v);
+		void MicroSleep(int64_t v);
+		uint32_t QuerySystemTime(int64_t* v);
 
 #ifdef _WIN32
 		wchar_t* GetUTF16(char* utf8);

@@ -70,24 +70,24 @@ namespace OmniMIDI {
 		bool SpEmptyQueue() { return StreamPlayer->EmptyQueue(); }
 		bool SpResetQueue() { return StreamPlayer->ResetQueue(); }
 		bool SpAddToQueue(MIDIHDR* mhdr) { return StreamPlayer->AddToQueue(mhdr); }
-		void SpSetTempo(unsigned int ntempo) { StreamPlayer->SetTempo(ntempo); }
-		unsigned int SpGetTempo() { return StreamPlayer->GetTempo(); }
-		void SpSetTicksPerQN(unsigned int nTimeDiv) { StreamPlayer->SetTicksPerQN(nTimeDiv); }
-		unsigned int SpGetTicksPerQN() { return StreamPlayer->GetTicksPerQN(); }
+		void SpSetTempo(uint32_t ntempo) { StreamPlayer->SetTempo(ntempo); }
+		uint32_t SpGetTempo() { return StreamPlayer->GetTempo(); }
+		void SpSetTicksPerQN(uint32_t nTimeDiv) { StreamPlayer->SetTicksPerQN(nTimeDiv); }
+		uint32_t SpGetTicksPerQN() { return StreamPlayer->GetTicksPerQN(); }
 		void SpGetPosition(MMTIME* mmtime) { StreamPlayer->GetPosition(mmtime); }
 #endif
 
 		void HostHealthCheck();
 
 		// Event handling system
-		void PlayShortEvent(unsigned int ev);
-		void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2);
+		void PlayShortEvent(uint32_t ev);
+		void PlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2);
 		float GetRenderingTime();
-		unsigned long long GetActiveVoices();
-		SynthResult PlayLongEvent(char* ev, unsigned int size);
+		uint64_t GetActiveVoices();
+		SynthResult PlayLongEvent(char* ev, uint32_t size);
 		SynthResult Reset() { return Synth->Reset(); }
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Synth->TalkToSynthDirectly(evt, chan, param); }
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return Synth->SettingsManager(setting, get, var, size); }
+		SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) { return Synth->TalkToSynthDirectly(evt, chan, param); }
+		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) { return Synth->SettingsManager(setting, get, var, size); }
 		bool IsSynthInitialized() { return Synth->IsSynthInitialized(); }
 	};
 }

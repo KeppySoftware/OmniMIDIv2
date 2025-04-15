@@ -290,11 +290,11 @@ namespace OmniMIDI {
 		bool nolimits = true;
 		bool norampin = false;
 
-		int sbank = -1;
-		int spreset = -1;
-		int dbank = 0;
-		int dbanklsb = 0;
-		int dpreset = -1;
+		int32_t sbank = -1;
+		int32_t spreset = -1;
+		int32_t dbank = 0;
+		int32_t dbanklsb = 0;
+		int32_t dpreset = -1;
 
 		nlohmann::json GetExampleList() {
 			auto obj = nlohmann::json::object({});
@@ -340,18 +340,18 @@ namespace OmniMIDI {
 		std::string CustomRenderer = "empty";
 
 		bool IgnoreVelocityRange = false;
-		unsigned char VelocityMin = 0;
-		unsigned char VelocityMax = 127;
+		uint8_t VelocityMin = 0;
+		uint8_t VelocityMax = 127;
 
 		bool TransposeNote = false;
-		unsigned char TransposeValue = 60;
+		uint8_t TransposeValue = 60;
 
 		char* SettingsPath = nullptr;
 
 	public:
 		// Basic settings
-		unsigned int SampleRate = 48000;
-		unsigned int VoiceLimit = 1024;
+		uint32_t SampleRate = 48000;
+		uint32_t VoiceLimit = 1024;
 
 		SettingsModule(ErrorSystem::Logger* PErr) {
 			JSONStream = new std::fstream;
@@ -403,18 +403,18 @@ namespace OmniMIDI {
 		HMODULE m_hModule = NULL;
 #endif
 
-		unsigned long long ActiveVoices = 0;
+		uint64_t ActiveVoices = 0;
 		float RenderingTime = 0.0f;
 
 		BEvBuf* ShortEvents = new BaseEvBuf_t;
 		BEvBuf* LongEvents = new BaseEvBuf_t;
 
 	public:
-		constexpr unsigned char GetStatus(unsigned int ev) { return (ev & 0xFF); }
-		constexpr unsigned char GetCommand(unsigned char status) { return (status & 0xF0); }
-		constexpr unsigned char GetChannel(unsigned char status) { return (status & 0xF); }
-		constexpr unsigned char GetFirstParam(unsigned int ev) { return ((ev >> 8) & 0xFF); }
-		constexpr unsigned char GetSecondParam(unsigned int ev) { return ((ev >> 16) & 0xFF); }
+		constexpr uint8_t GetStatus(uint32_t ev) { return (ev & 0xFF); }
+		constexpr uint8_t GetCommand(uint8_t status) { return (status & 0xF0); }
+		constexpr uint8_t GetChannel(uint8_t status) { return (status & 0xF); }
+		constexpr uint8_t GetFirstParam(uint32_t ev) { return ((ev >> 8) & 0xFF); }
+		constexpr uint8_t GetSecondParam(uint32_t ev) { return ((ev >> 16) & 0xFF); }
 
 		SynthModule() { ErrLog = nullptr; }
 		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
@@ -424,11 +424,11 @@ namespace OmniMIDI {
 		virtual bool StartSynthModule() { return true; }
 		virtual bool StopSynthModule() { return true; }
 		virtual void LoadSoundFonts() { return; }
-		virtual bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) { return false; }
-		virtual unsigned int GetSampleRate() { return 44100; }
+		virtual bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) { return false; }
+		virtual uint32_t GetSampleRate() { return 44100; }
 		virtual bool IsSynthInitialized() { return true; }
-		virtual unsigned int SynthID() { return EMPTYMODULE; }
-		virtual unsigned long long GetActiveVoices() { return ActiveVoices; }
+		virtual uint32_t SynthID() { return EMPTYMODULE; }
+		virtual uint64_t GetActiveVoices() { return ActiveVoices; }
 		virtual float GetRenderingTime() { return RenderingTime; }
 
 #ifdef _WIN32
@@ -449,7 +449,7 @@ namespace OmniMIDI {
 				Utils.MicroSleep(SLEEPVAL(1));
 			}
 
-			sprintf(Buf, Templ, 0.0f, (unsigned long long)0, (size_t)0, (size_t)0);
+			sprintf(Buf, Templ, 0.0f, (uint64_t)0, (size_t)0, (size_t)0);
 			SetTerminalTitle(Buf);
 
 			delete[] Buf;
@@ -498,27 +498,27 @@ namespace OmniMIDI {
 		virtual void FreeLongEvBuf() { FreeEvBuf(LongEvents); }
 
 		// Event handling system
-		virtual void PlayShortEvent(unsigned int ev) {
+		virtual void PlayShortEvent(uint32_t ev) {
 			if (!ShortEvents)
 				return;
 
 			UPlayShortEvent(ev);
 		}
-		virtual void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+		virtual void PlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2) {
 			if (!ShortEvents)
 				return;
 
 			UPlayShortEvent(status, param1, param2);
 		}
-		virtual void UPlayShortEvent(unsigned int ev) { ShortEvents->Write(ev); }
-		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { ShortEvents->Write(status, param1, param2); }
+		virtual void UPlayShortEvent(uint32_t ev) { ShortEvents->Write(ev); }
+		virtual void UPlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2) { ShortEvents->Write(status, param1, param2); }
 
-		virtual unsigned int PlayLongEvent(char* ev, unsigned int size) { return 0; }
-		virtual unsigned int UPlayLongEvent(char* ev, unsigned int size) { return 0; }
+		virtual uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) { return 0; }
+		virtual uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) { return 0; }
 
-		virtual SynthResult Reset(char type = 0) { PlayShortEvent(0xFF, type, 0); return Ok; }
+		virtual SynthResult Reset(uint8_t type = 0) { PlayShortEvent(0xFF, type, 0); return Ok; }
 
-		virtual SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) { return Ok; }
+		virtual SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) { return Ok; }
 	};
 
 	class SoundFontSystem {

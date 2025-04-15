@@ -32,11 +32,11 @@ namespace OmniMIDI {
 	class FluidSettings : public SettingsModule {
 	public:
 		// Global settings
-		unsigned int EvBufSize = 32768;
-		unsigned int PeriodSize = 64;
-		unsigned int Periods = 2;
-		unsigned int ThreadsCount = 1;
-		unsigned int MinimumNoteLength = 10;
+		uint64_t EvBufSize = 32768;
+		uint32_t PeriodSize = 64;
+		uint32_t Periods = 2;
+		uint32_t ThreadsCount = 1;
+		uint32_t MinimumNoteLength = 10;
 		bool ExperimentalMultiThreaded = false;
 		double OverflowVolume = 10000.0;
 		double OverflowPercussion = 10000.0;
@@ -75,13 +75,13 @@ namespace OmniMIDI {
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
 		void LoadSynthConfig() {
 			if (InitConfig(false, FLUIDSYNTH_STR)) {
-				SynthSetVal(unsigned int, SampleRate);
-				SynthSetVal(unsigned int, EvBufSize);
-				SynthSetVal(unsigned int, VoiceLimit);
-				SynthSetVal(unsigned int, PeriodSize);
-				SynthSetVal(unsigned int, Periods);
-				SynthSetVal(unsigned int, ThreadsCount);
-				SynthSetVal(unsigned int, MinimumNoteLength);
+				SynthSetVal(uint32_t, SampleRate);
+				SynthSetVal(uint32_t, EvBufSize);
+				SynthSetVal(uint32_t, VoiceLimit);
+				SynthSetVal(uint32_t, PeriodSize);
+				SynthSetVal(uint32_t, Periods);
+				SynthSetVal(uint32_t, ThreadsCount);
+				SynthSetVal(uint32_t, MinimumNoteLength);
 				SynthSetVal(bool, ExperimentalMultiThreaded);
 				SynthSetVal(double, OverflowVolume);
 				SynthSetVal(double, OverflowPercussion);
@@ -153,16 +153,16 @@ namespace OmniMIDI {
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
 		void LoadSoundFonts() override;
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
-		unsigned int GetSampleRate() override  { return Settings->SampleRate; }
+		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override { return false; }
+		uint32_t GetSampleRate() override  { return Settings->SampleRate; }
 		bool IsSynthInitialized() override { return (AudioDrivers[0] != nullptr); }
-		unsigned int SynthID() override { return 0x6F704EC6; }
+		uint32_t SynthID() override { return 0x6F704EC6; }
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
-		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
+		uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) override;
+		uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) override;
 
 		// Not supported in FluidSynth
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }
+		SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) override { return Ok; }
 	};
 }
 

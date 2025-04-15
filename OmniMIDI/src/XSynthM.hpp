@@ -27,7 +27,7 @@ namespace OmniMIDI {
 		// Global settings
 		bool FadeOutKilling = false;
 		double RenderWindow = 10.0;
-		uint64_t LayerCount = 4;
+		uint16_t LayerCount = 4;
 		int32_t ThreadsCount = 0;
 		uint8_t Interpolation = XSYNTH_INTERPOLATION_NEAREST;
 
@@ -55,7 +55,7 @@ namespace OmniMIDI {
 				SynthSetVal(bool, FadeOutKilling);
 				SynthSetVal(double, RenderWindow);
 				SynthSetVal(int32_t, ThreadsCount);
-				SynthSetVal(uint64_t, LayerCount);
+				SynthSetVal(uint16_t, LayerCount);
 				SynthSetVal(uint8_t, Interpolation);
 			
 				if (!RANGE(ThreadsCount, -1, (int32_t)std::thread::hardware_concurrency()))
@@ -114,18 +114,18 @@ namespace OmniMIDI {
 		bool UnloadSynthModule() override;
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
-		unsigned int GetSampleRate() override { return 48000; }
+		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override { return false; }
+		uint32_t GetSampleRate() override { return 48000; }
 		bool IsSynthInitialized() override;
-		unsigned int SynthID() override { return 0x9AF3812A; }
+		uint32_t SynthID() override { return 0x9AF3812A; }
 		void LoadSoundFonts() override;
 
 		// Event handling system
-		void PlayShortEvent(unsigned int ev) override;
-		void UPlayShortEvent(unsigned int ev) override;
+		void PlayShortEvent(uint32_t ev) override;
+		void UPlayShortEvent(uint32_t ev) override;
 
 		// Not supported in XSynth
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return Ok; }
+		SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) override { return Ok; }
 	};
 }
 

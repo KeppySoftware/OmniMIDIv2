@@ -26,7 +26,7 @@ namespace OmniMIDI {
 	class WSPSettings : public SettingsModule {
 	public:
 		// Global settings
-		unsigned int EvBufSize = 32768;
+		uint32_t EvBufSize = 32768;
 
 		WSPSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {}
 
@@ -45,7 +45,7 @@ namespace OmniMIDI {
 		// Here you can load your own JSON, it will be tied to ChangeSetting()
 		void LoadSynthConfig() {
 			if (InitConfig(false, WSP_STR, sizeof(WSP_STR))) {
-				SynthSetVal(unsigned int, EvBufSize);
+				SynthSetVal(uint32_t, EvBufSize);
 				return;
 			}
 
@@ -74,15 +74,15 @@ namespace OmniMIDI {
 		bool UnloadSynthModule() override { return true; }
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
-		bool SettingsManager(unsigned int setting, bool get, void* var, size_t size) override { return false; }
-		unsigned int GetSampleRate() override { return 48000; }
+		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override { return false; }
+		uint32_t GetSampleRate() override { return 48000; }
 		bool IsSynthInitialized() override { return !PShortEvents && !PLongEvents; }
-		unsigned int SynthID() override { return 0x12345678; }
+		uint32_t SynthID() override { return 0x12345678; }
 
-		unsigned int PlayLongEvent(char* ev, unsigned int size) override;
-		unsigned int UPlayLongEvent(char* ev, unsigned int size) override;
+		uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) override;
+		uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) override;
 
-		SynthResult TalkToSynthDirectly(unsigned int evt, unsigned int chan, unsigned int param) override { return NotSupported; }
+		SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) override { return NotSupported; }
 	};
 }
 

@@ -30,7 +30,7 @@ static OmniMIDI::SynthHost* Host = nullptr;
 
 #ifdef OM_STANDALONE
 // Global objects
-static int in_port;
+static int32_t in_port;
 static snd_seq_t *seq_handle = nullptr;
 static std::jthread seq_thread;
 
@@ -43,7 +43,7 @@ void evThread();
 
 void DESTRUCTOR stop();
 
-int CONSTRUCTOR main(int argc, char *argv[]) {
+int CONSTRUCTOR main(int32_t argc, char *argv[]) {
     try {
         // Initialize logger
         ErrLog = new ErrorSystem::Logger();
@@ -97,11 +97,11 @@ void DESTRUCTOR stop() {
 }
 
 extern "C" {  
-    int EXPORT IsKDMAPIAvailable() {
+    int32_t EXPORT IsKDMAPIAvailable() {
         return (int)Host->IsKDMAPIAvailable();
     }
 
-    int EXPORT InitializeKDMAPIStream() {
+    int32_t EXPORT InitializeKDMAPIStream() {
         if (Host->Start()) {
             Message("KDMAPI initialized.");
             return 1;
@@ -111,7 +111,7 @@ extern "C" {
         return 0;
     }
 
-    int EXPORT TerminateKDMAPIStream() {
+    int32_t EXPORT TerminateKDMAPIStream() {
         if (Host->Stop()) {
             Message("KDMAPI freed.");
             return 1;
@@ -125,33 +125,33 @@ extern "C" {
         Host->PlayShortEvent(0xFF, 0x01, 0x01);
     }
 
-    void EXPORT SendDirectData(unsigned int ev) {
+    void EXPORT SendDirectData(uint32_t ev) {
         Host->PlayShortEvent(ev);
     }
 
-    void EXPORT SendDirectDataNoBuf(unsigned int ev) {
+    void EXPORT SendDirectDataNoBuf(uint32_t ev) {
         // Unsupported, forward to SendDirectData
         SendDirectData(ev);
     }
 
-    unsigned int EXPORT SendDirectLongData(char* IIMidiHdr, unsigned int IIMidiHdrSize) {
+    uint32_t EXPORT SendDirectLongData(char* IIMidiHdr, uint32_t IIMidiHdrSize) {
         return Host->PlayLongEvent(IIMidiHdr, IIMidiHdrSize) == SYNTH_OK ? 0 : 11;
     }
 
-    unsigned int EXPORT SendDirectLongDataNoBuf(char* IIMidiHdr, unsigned int IIMidiHdrSize) {
+    uint32_t EXPORT SendDirectLongDataNoBuf(char* IIMidiHdr, uint32_t IIMidiHdrSize) {
         // Unsupported, forward to SendDirectLongData
         return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
     }
 
-    int EXPORT SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
+    int32_t EXPORT SendCustomEvent(uint32_t evt, uint32_t chan, uint32_t param) {
         return Host->TalkToSynthDirectly(evt, chan, param);
     }
 
-    int EXPORT DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+    int32_t EXPORT DriverSettings(uint32_t setting, uint32_t mode, void* value, uint32_t cbValue) {
         return 1;
     }
 
-    int EXPORT LoadCustomSoundFontsList(char* Directory) {
+    int32_t EXPORT LoadCustomSoundFontsList(char* Directory) {
         return DriverSettings(KDMAPI_SOUNDFONT, true, Directory, MAX_PATH_LONG);
     }
 
@@ -162,7 +162,7 @@ extern "C" {
         return Host->GetRenderingTime();
     }
 
-    unsigned long long EXPORT GetVoiceCount() {
+    uint64_t EXPORT GetVoiceCount() {
         if (Host == nullptr)
             return 0;
 
@@ -172,7 +172,7 @@ extern "C" {
 
 #ifdef OM_STANDALONE
 void standalone() {
-    int status = 0;
+    int32_t status = 0;
 
     try {
         status = snd_seq_open(&seq_handle, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
@@ -234,7 +234,7 @@ void standalone() {
 
 snd_seq_event_t* readEvent() {
     snd_seq_event_t *ev = NULL;
-    int ret = snd_seq_event_input(seq_handle, &ev);
+    int32_t ret = snd_seq_event_input(seq_handle, &ev);
     return ret < 0 ? nullptr : ev;
 }
 
@@ -246,7 +246,7 @@ void evThread() {
 
         if (ev != nullptr) {
             snd_seq_event_data_t evData = ev->data;
-            unsigned int evDword = 0;
+            uint32_t evDword = 0;
 
             switch (ev->type) {
                 case SND_SEQ_EVENT_NOTEON:

@@ -104,14 +104,14 @@ bool OmniMIDI::ShakraPipe::StopSynthModule() {
 	return true;
 }
 
-unsigned int OmniMIDI::ShakraPipe::PlayLongEvent(char* ev, unsigned int size) {
+uint32_t OmniMIDI::ShakraPipe::PlayLongEvent(uint8_t* ev, uint32_t size) {
 	if (LongEvents)
 		return UPlayLongEvent(ev, size);
 
 	return 0;
 }
 
-unsigned int OmniMIDI::ShakraPipe::UPlayLongEvent(char* ev, unsigned int size) {
+uint32_t OmniMIDI::ShakraPipe::UPlayLongEvent(uint8_t* ev, uint32_t size) {
 	LongEvents->Write(ev, size);
 	return size;
 }

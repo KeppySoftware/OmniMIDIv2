@@ -18,10 +18,10 @@
 struct PluginFuncs {
 	bool (WINAPI* InitPlugin)() = nullptr;
 	bool (WINAPI* StopPlugin)() = nullptr;
-	void (WINAPI* ShortData)(unsigned int ev) = nullptr;
-	unsigned int (WINAPI* LongData)(char* data, unsigned int len) = nullptr;
+	void (WINAPI* ShortData)(uint32_t ev) = nullptr;
+	uint32_t (WINAPI* LongData)(uint8_t* data, uint32_t len) = nullptr;
 	void (WINAPI* Reset)() = nullptr;
-	unsigned long long (WINAPI* ActiveVoices)() = nullptr;
+	uint64_t (WINAPI* ActiveVoices)() = nullptr;
 	float (WINAPI* RenderingTime)() = nullptr;
 };
 
@@ -30,8 +30,6 @@ typedef PluginFuncs* (*OMv2PEP)();
 namespace OmniMIDI {
 	class PluginSynth : public SynthModule {
 	protected:
-		std::jthread _EvtThread;
-
 		bool Init = false;
 		Lib* Plugin = nullptr;
 		OMv2PEP _PluginEntryPoint = nullptr;
@@ -39,38 +37,38 @@ namespace OmniMIDI {
 
 	public:
 		PluginSynth(const char* pluginName, ErrorSystem::Logger* PErr);
-		virtual bool LoadSynthModule();
-		virtual bool UnloadSynthModule();
-		virtual bool StartSynthModule();
-		virtual bool StopSynthModule();
-		virtual bool IsSynthInitialized() { return Init; }
-		virtual unsigned int SynthID() { return 0x504C474E; }
+		bool LoadSynthModule() override;
+		bool UnloadSynthModule() override;
+		bool StartSynthModule() override;
+		bool StopSynthModule() override;
+		bool IsSynthInitialized() override { return Init; }
+		uint32_t SynthID() override { return 0x504C474E; }
 
 		// Event handling system
-		virtual void PlayShortEvent(unsigned int ev) {
+		void PlayShortEvent(uint32_t ev) override {
 			if (!_PluginFuncs)
 				return;
 
 			UPlayShortEvent(ev);
 		}
-		virtual void PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+		void PlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2) override {
 			if (!_PluginFuncs)
 				return;
 
 			UPlayShortEvent(status, param1, param2);
 		}
-		virtual void UPlayShortEvent(unsigned int ev) { _PluginFuncs->ShortData(ev); }
-		virtual void UPlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) { _PluginFuncs->ShortData(status | (param1 << 8) | (param2 << 16)); }
+		void UPlayShortEvent(uint32_t ev) override { _PluginFuncs->ShortData(ev); }
+		void UPlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2) override { _PluginFuncs->ShortData(status | (param1 << 8) | (param2 << 16)); }
 
-		virtual unsigned int PlayLongEvent(char* ev, unsigned int size) {
+		uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) override {
 			if (!_PluginFuncs)
 				return 0; 
 
 			return UPlayLongEvent(ev, size);
 		}
-		virtual unsigned int UPlayLongEvent(char* ev, unsigned int size) { return _PluginFuncs->LongData(ev, size); }
+		uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) override { return _PluginFuncs->LongData(ev, size); }
 
-		virtual SynthResult Reset(char type = 0) { _PluginFuncs->ShortData(0xFF | (type << 8)); return Ok; }
+		SynthResult Reset(uint8_t type = 0) override { _PluginFuncs->ShortData(0xFF | (type << 8)); return Ok; }
 	};
 }
 

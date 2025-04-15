@@ -37,10 +37,10 @@ namespace OmniMIDI {
 		bool IsQueueEmpty() { return true; }
 
 		bool IsDummy() { return true; }
-		void SetTempo(unsigned int ntempo) { return; }
-		void SetTicksPerQN(unsigned short ntimeDiv) { return; }
-		unsigned int GetTempo() { return 0; }
-		unsigned short GetTicksPerQN() { return 0; }
+		void SetTempo(uint32_t ntempo) { return; }
+		void SetTicksPerQN(uint16_t ntimeDiv) { return; }
+		uint32_t GetTempo() { return 0; }
+		uint16_t GetTicksPerQN() { return 0; }
 		void GetPosition(MMTIME* mmtime) { return; }
 
 		StreamPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr, ErrorSystem::Logger* PErr) { drvCallback = dptr; ErrLog = PErr; }
@@ -60,16 +60,16 @@ namespace OmniMIDI {
 		// tempo is microseconds per quarter note,
 		// while timeDiv is the time division (lower 15 bits)
 		bool smpte = false;
-		unsigned char smpteFramerate = 30;
-		unsigned char smpteFrameTicks = 4;
+		uint8_t smpteFramerate = 30;
+		uint8_t smpteFrameTicks = 4;
 		double smpteFrameLen = 3.33333333333333364E+39;
-		unsigned long timeAcc = 0;
+		uint32_t timeAcc = 0;
 
-		unsigned int tempo = 500000;
-		unsigned short ticksPerQN = 0x18;
-		unsigned int bpm = 60000000 / tempo;
-		unsigned long byteAcc = 0;
-		unsigned long tickAcc = 0;
+		uint32_t tempo = 500000;
+		uint16_t ticksPerQN = 0x18;
+		uint32_t bpm = 60000000 / tempo;
+		uint32_t byteAcc = 0;
+		uint32_t tickAcc = 0;
 
 		std::jthread _CooThread;
 		void PlayerThread();
@@ -84,10 +84,10 @@ namespace OmniMIDI {
 		bool IsQueueEmpty() { return (!mhdrQueue); }
 
 		bool IsDummy() { return false; }
-		void SetTempo(unsigned int ntempo);
-		void SetTicksPerQN(unsigned short ntimeDiv);
-		const unsigned int GetTempo() { return tempo; }
-		const unsigned short GetTicksPerQN() { return ticksPerQN; }
+		void SetTempo(uint32_t ntempo);
+		void SetTicksPerQN(uint16_t nTicksPerQN);
+		const uint32_t GetTempo() { return tempo; }
+		const uint16_t GetTicksPerQN() { return ticksPerQN; }
 		void GetPosition(MMTIME* mmtime);
 
 		CookedPlayer(OmniMIDI::SynthModule* sptr, WinDriver::DriverCallback* dptr, ErrorSystem::Logger* PErr);

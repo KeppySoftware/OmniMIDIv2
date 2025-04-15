@@ -271,31 +271,31 @@ float OmniMIDI::SynthHost::GetRenderingTime() {
 	return Synth->GetRenderingTime();
 }
 
-unsigned long long OmniMIDI::SynthHost::GetActiveVoices() {
+uint64_t OmniMIDI::SynthHost::GetActiveVoices() {
 	return Synth->GetActiveVoices();
 }
 
-void OmniMIDI::SynthHost::PlayShortEvent(unsigned int ev) {
+void OmniMIDI::SynthHost::PlayShortEvent(uint32_t ev) {
 	Synth->PlayShortEvent(ev);
 }
 
-void OmniMIDI::SynthHost::PlayShortEvent(unsigned char status, unsigned char param1, unsigned char param2) {
+void OmniMIDI::SynthHost::PlayShortEvent(uint8_t status, uint8_t param1, uint8_t param2) {
 	Synth->PlayShortEvent(status, param1, param2);
 }
 
-OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int size) {
+OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, uint32_t size) {
 	if (!Synth->IsSynthInitialized())
 		return NotInitialized;
 
-	if (!ev || size < 4  || size > MAX_MIDIHDR_BUF || (unsigned char)ev[size - 1] != 0xF7)
+	if (!ev || size < 4  || size > MAX_MIDIHDR_BUF || (uint8_t)ev[size - 1] != 0xF7)
 		return InvalidBuffer;
 
-	for (int readHead = 0, n = size - 1; readHead < n; ) {
+	for (int32_t readHead = 0, n = size - 1; readHead < n; ) {
 		switch (ev[readHead] & 0xF0) {
 		case SystemMessageStart:
 		{
 			bool notSpecial = false;
-			unsigned char vendor = ev[readHead + 1] & 0xFF;
+			uint8_t vendor = ev[readHead + 1] & 0xFF;
 
 			readHead += 2;
 			if (vendor < 0x80) {
@@ -357,9 +357,9 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 				case 0x41:
 				{
 					// Size of 3
-					unsigned char devid = ev[readHead];
-					unsigned char modid = ev[readHead + 1];
-					unsigned char command = ev[readHead + 2];
+					uint8_t devid = ev[readHead];
+					uint8_t modid = ev[readHead + 1];
+					uint8_t command = ev[readHead + 2];
 
 					if (devid > PartMax)
 						return InvalidBuffer;
@@ -367,22 +367,22 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 					readHead += 3;
 					if (command == Receive) {
 						PASE params = new ASE[256];
-						unsigned char pseWriteHead = -1;
+						uint8_t pseWriteHead = -1;
 
-						unsigned int varLen = 1;
+						uint32_t varLen = 1;
 
-						unsigned char addrBlock = ev[readHead];
-						unsigned char synthPart = ev[readHead + 1];
-						unsigned char commandPart = ev[readHead + 2];
-						unsigned char status = 0;
+						uint8_t addrBlock = ev[readHead];
+						uint8_t synthPart = ev[readHead + 1];
+						uint8_t commandPart = ev[readHead + 2];
+						uint8_t status = 0;
 
-						unsigned int lastPos = 0;
-						unsigned int addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
-						unsigned int modeSet = addr & 0xFFFF;
+						uint32_t lastPos = 0;
+						uint32_t addr = (addrBlock << 16) | (synthPart << 8) | commandPart;
+						uint32_t modeSet = addr & 0xFFFF;
 
-						unsigned char sum = addrBlock + synthPart + commandPart;
-						unsigned char checksum = 0;
-						unsigned char calcChecksum = 0;
+						uint8_t sum = addrBlock + synthPart + commandPart;
+						uint8_t checksum = 0;
+						uint8_t calcChecksum = 0;
 
 						bool error = false;
 						bool noParams = false;
@@ -417,7 +417,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 												lastPos = readHead;
 
 											params[pseWriteHead].status = MasterTune;
-											for (unsigned int i = 0; i < varLen; i++) {
+											for (uint32_t i = 0; i < varLen; i++) {
 												if (i == 1)
 													params[pseWriteHead].param1 = ev[lastPos + i];
 
@@ -470,7 +470,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 										{
 											varLen = 0x0C;
 
-											for (unsigned int i = 0; i < varLen; i++) {
+											for (uint32_t i = 0; i < varLen; i++) {
 												char tmp = ev[readHead + (4 * i)];
 												if ((tmp & 0xF0) != 0x40)
 													break;
@@ -598,22 +598,26 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 									checksum = ev[readHead + (12 * mult)];
 
 									if (char* asciiStream = new char[mult]) {
-										if (dataType == ASCIIMode) {
-											for (int i = 0; i < mult; i++) {
-												asciiStream[i] = ev[readHead + (11 * i)];
-											}
+										for (int32_t i = 0; i < mult; i++) {
+											asciiStream[i] = ev[readHead + (11 * i)];
+										}
 
+										if (dataType == ASCIIMode) {							
 											Message("MSG: % s", asciiStream);								
 										}
 										else if (dataType == BitmapMode) {
-											for (int i = 0; i < mult; i++) {
-												asciiStream[i] = ev[readHead + (11 * i)];
+											if (char* prnt = new char[16] { 0 }) {
+												Message("BITMAP:", asciiStream);
+												for (uint32_t i = 0; i < mult; i = i * 16) {
+													for (uint8_t j = 0; j < 16; j++) {
+														prnt[j] = asciiStream[i + j];
+													}
+													Message("%s", prnt);
+													memset(prnt, 0, sizeof(char) * 16);
+												}
+	
+												delete[] prnt;
 											}
-
-											for (int i = 0; i < mult; i = i * 16) {
-
-											}
-											Message("BITMAP: % s", asciiStream);
 										}
 
 										delete[] asciiStream;
@@ -642,7 +646,7 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, unsigned int 
 
 								Message("Processed SysEx! (Block 0x%X, SynthPart 0x%X, CommandPart 0x%X, Checksum 0x%X)", addrBlock, synthPart, commandPart, checksum);
 
-								for (unsigned char i = 0; i < pseWriteHead; i++) {
+								for (uint8_t i = 0; i < pseWriteHead; i++) {
 									Synth->PlayShortEvent(params[i].status, params[i].param1, params[i].param2);
 								}
 

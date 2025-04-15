@@ -129,7 +129,7 @@ extern "C" {
 		return true;
 	}
 
-	EXPORT long WINAPI DriverProc(DWORD DriverIdentifier, HDRVR DriverHandle, UINT Message, LONG Param1, LONG Param2) {
+	EXPORT LRESULT WINAPI DriverProc(DWORD DriverIdentifier, HDRVR DriverHandle, UINT Message, LONG Param1, LONG Param2) {
 		bool v = false;
 
 		switch (Message) {
@@ -258,7 +258,7 @@ extern "C" {
 		case MODM_PREPARE:
 		{
 			MIDIHDR* mhdr = (MIDIHDR*)Param1;
-			unsigned int mhdrSize = (unsigned int)Param2;
+			uint32_t mhdrSize = (uint32_t)Param2;
 
 			if (!mhdr)
 				return MMSYSERR_INVALPARAM;
@@ -287,7 +287,7 @@ extern "C" {
 		case MODM_UNPREPARE:
 		{
 			MIDIHDR* mhdr = (MIDIHDR*)Param1;
-			unsigned int mhdrSize = (unsigned int)Param2;
+			uint32_t mhdrSize = (uint32_t)Param2;
 
 			if (!mhdr)
 				return MMSYSERR_INVALPARAM;
@@ -305,7 +305,7 @@ extern "C" {
 #ifndef WINXPMODE
 				if (!VirtualUnlock(mhdr->lpData, mhdr->dwBufferLength))
 				{
-					const unsigned int err = GetLastError();
+					const uint32_t err = GetLastError();
 
 					if (err != 0x9E) {
 						exit(-1);
@@ -457,11 +457,11 @@ extern "C" {
 		}
 	}
 
-	EXPORT int WINAPI IsKDMAPIAvailable() {
-		return (int)Host->IsKDMAPIAvailable();
+	EXPORT int32_t WINAPI IsKDMAPIAvailable() {
+		return (int32_t)Host->IsKDMAPIAvailable();
 	}
 
-	EXPORT int WINAPI InitializeKDMAPIStream() {
+	EXPORT int32_t WINAPI InitializeKDMAPIStream() {
 		Message("Called init function.");
 
 		if (Host->Start()) {
@@ -473,7 +473,7 @@ extern "C" {
 		return 0;
 	}
 
-	EXPORT int WINAPI TerminateKDMAPIStream() {
+	EXPORT int32_t WINAPI TerminateKDMAPIStream() {
 		Message("Called free function.");
 
 		if (Host->Stop()) {
@@ -489,36 +489,36 @@ extern "C" {
 		Host->PlayShortEvent(0xFF, 0x01, 0x01);
 	}
 
-	EXPORT void WINAPI SendDirectData(unsigned int ev) {
+	EXPORT void WINAPI SendDirectData(uint32_t ev) {
 		Host->PlayShortEvent(ev);
 	}
 
-	EXPORT void WINAPI SendDirectDataNoBuf(unsigned int ev) {
+	EXPORT void WINAPI SendDirectDataNoBuf(uint32_t ev) {
 		// Unsupported, forward to SendDirectData
 		SendDirectData(ev);
 	}
 
-	EXPORT unsigned int WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT uint32_t WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		fDriverCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)IIMidiHdr, 0);
 		return Host->PlayLongEvent(IIMidiHdr->lpData, IIMidiHdr->dwBytesRecorded) == SYNTH_OK ? MMSYSERR_NOERROR : MMSYSERR_INVALPARAM;
 	}
 
-	EXPORT unsigned int WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT uint32_t WINAPI SendDirectLongDataNoBuf(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// Unsupported, forward to SendDirectLongData
 		return SendDirectLongData(IIMidiHdr, IIMidiHdrSize);
 	}
 
-	EXPORT unsigned int WINAPI PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT uint32_t WINAPI PrepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// not needed with KDMAPI
 		return 0;
 	}
 
-	EXPORT unsigned int WINAPI UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
+	EXPORT uint32_t WINAPI UnprepareLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {
 		// not needed with KDMAPI
 		return 0;
 	}
 
-	EXPORT int WINAPI InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {
+	EXPORT int32_t WINAPI InitializeCallbackFeatures(HMIDI OMHM, DWORD_PTR OMCB, DWORD_PTR OMI, DWORD_PTR OMU, DWORD OMCM) {
 		MIDIOPENDESC MidiP;
 
 		MidiP.hMidi = OMHM;
@@ -536,11 +536,11 @@ extern "C" {
 		fDriverCallback->CallbackFunction(msg, p1, p2);
 	}
 
-	EXPORT int WINAPI SendCustomEvent(unsigned int evt, unsigned int chan, unsigned int param) {
+	EXPORT int32_t WINAPI SendCustomEvent(uint32_t evt, uint32_t chan, uint32_t param) {
 		return Host->TalkToSynthDirectly(evt, chan, param);
 	}
 
-	EXPORT int WINAPI DriverSettings(unsigned int setting, unsigned int mode, void* value, unsigned int cbValue) {
+	EXPORT int32_t WINAPI DriverSettings(uint32_t setting, uint32_t mode, void* value, uint32_t cbValue) {
 		if (setting == KDMAPI_STREAM) {
 			if (fDriverCallback->IsCallbackReady()) {
 				if (!Host->SpInit()) {
@@ -553,14 +553,14 @@ extern "C" {
 		return Host->SettingsManager(setting, (bool)mode, value, (size_t)cbValue);
 	}
 
-	EXPORT int WINAPI LoadCustomSoundFontsList(LPWSTR Directory) {
+	EXPORT int32_t WINAPI LoadCustomSoundFontsList(LPWSTR Directory) {
 		return 1;
 	}
 
-	EXPORT unsigned long long WINAPI timeGetTime64() {
-		signed long long CurrentTime;
+	EXPORT uint64_t WINAPI timeGetTime64() {
+		int64_t CurrentTime;
 		Utils.QuerySystemTime(&CurrentTime);
-		return (unsigned long long)((CurrentTime-TickStart) / 10000.0);
+		return (uint64_t)((CurrentTime-TickStart) / 10000.0);
 	}
 
 	EXPORT float WINAPI GetRenderingTime() {
@@ -570,7 +570,7 @@ extern "C" {
 		return Host->GetRenderingTime();
 	}
 
-	EXPORT unsigned long long WINAPI GetVoiceCount() {
+	EXPORT uint64_t WINAPI GetVoiceCount() {
 		if (Host == nullptr)
 			return 0;
 

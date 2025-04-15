@@ -18,7 +18,7 @@ void ErrorSystem::Logger::ShowError(const char* Message, const char* Title, bool
 #endif
 }
 
-void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...) {
+void ErrorSystem::Logger::Log(const char* Message, const char* File, const char* Func, const uint32_t Line, ...) {
 	va_list vl;
 	va_start(vl, Line);
 
@@ -38,7 +38,7 @@ void ErrorSystem::Logger::Log(const char* Message, const char* File, const char*
 	va_end(vl);
 }
 
-void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...) {
+void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const uint32_t Line, ...) {
 	va_list vl;
 	va_start(vl, Line);
 
@@ -88,11 +88,11 @@ void ErrorSystem::Logger::ThrowError(const char* Error, bool IsSeriousError, con
 	va_end(vl);
 }
 
-void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line) {
+void ErrorSystem::Logger::ThrowFatalError(const char* Error, const char* File, const char* Func, const uint32_t Line) {
 	char* Buf = new char[BufSize];
 
 #if defined(_DEBUG) || defined(VERBOSE_LOG)
-	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %lu - Error:%s",
+	snprintf(Buf, SZBufSize, "A fatal error has occured in the \"%s\" function, from which the driver can NOT recover! File: %s - Line: %u - Error:%s",
 		Func, File, Line, Error);
 #else
 	snprintf(Buf, BufSize, "An fatal error has occured in the \"%s\" function, from which the driver can NOT recover! Error: %s", 

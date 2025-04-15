@@ -26,7 +26,7 @@ OMShared::Lib::~Lib() {
 bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
 	OMShared::Funcs Utils;
 	char buf[MAX_PATH_LONG] = { 0 };
-	int printStatus = 0;
+	int32_t printStatus = 0;
 
 	if (Utils.GetFolderPath(fid, buf, MAX_PATH_LONG)) {
 		switch (fid) {
@@ -59,7 +59,7 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 	if (outPath == nullptr)
 		return false;
 
-	int st = snprintf(outPath, MAX_PATH_LONG, LIBEXP(TYPENO) "%s", Name, Suffix);
+	int32_t st = snprintf(outPath, MAX_PATH_LONG, LIBEXP(TYPENO) "%s", Name, Suffix);
 	if (st == -1)
 		skip = true;
 
@@ -190,7 +190,7 @@ bool OMShared::Lib::UnloadLib() {
 	return true;
 }
 
-bool OMShared::Lib::IsSupported(unsigned int loaded, unsigned int minimum) {
+bool OMShared::Lib::IsSupported(uint32_t loaded, uint32_t minimum) {
 	auto libVer = LibVersion(loaded);
 	auto libReqVer = LibVersion(minimum);
 
@@ -262,7 +262,7 @@ void OMShared::Funcs::MicroSleep(signed long long v) {
 #endif
 }
 
-unsigned int OMShared::Funcs::QuerySystemTime(signed long long* v) {
+uint32_t OMShared::Funcs::QuerySystemTime(signed long long* v) {
 #ifdef _WIN32
 	return pNtQuerySystemTime(v);
 #else
@@ -279,7 +279,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 		return false;
 		
 #if defined(_WIN32)
-	int csidl = 0;
+	int32_t csidl = 0;
 
 	switch (FolderID) {
 	case CurrentDirectory:
@@ -349,7 +349,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 wchar_t* OMShared::Funcs::GetUTF16(char* utf8) {
 	wchar_t* buf = nullptr;
 
-	int cc = 0;
+	int32_t cc = 0;
 	// get length (cc) of the new widechar excluding the \0 terminator first
 	if ((cc = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0)) > 0)
 	{

@@ -28,9 +28,9 @@ void OmniMIDI::FluidSynth::EventsThread() {
 
 bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	// SysEx
-	int len = 0;
-	int handled = 0;
-	unsigned int sysev = 0;
+	int32_t len = 0;
+	int32_t handled = 0;
+	uint32_t sysev = 0;
 
 	if (!AudioDrivers[0])
 		return false;
@@ -40,11 +40,11 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	if (!tev)
 		return false;
 
-	unsigned char status = GetStatus(tev);
-	unsigned char cmd = GetCommand(status);
-	unsigned char ch = GetChannel(status);
-	unsigned char param1 = GetFirstParam(tev);
-	unsigned char param2 = GetSecondParam(tev);
+	uint8_t status = GetStatus(tev);
+	uint8_t cmd = GetCommand(status);
+	uint8_t ch = GetChannel(status);
+	uint8_t param1 = GetFirstParam(tev);
+	uint8_t param2 = GetSecondParam(tev);
 
 	fluid_synth_t* targetStream = Settings->ExperimentalMultiThreaded ? AudioStreams[ch] : AudioStreams[0];
 
@@ -103,7 +103,7 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 			break;
 
 		case SystemReset:
-			for (int i = 0; i < 16; i++)
+			for (auto i = 0; i < 16; i++)
 			{
 				fluid_synth_all_notes_off(targetStream, i);
 				fluid_synth_all_sounds_off(targetStream, i);
@@ -183,7 +183,7 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 
 void OmniMIDI::FluidSynth::LoadSoundFonts() {
 	// Free old SFs
-	for (int i = 0; i < std::count(SoundFontIDs.begin(), SoundFontIDs.end(), -1); i++) {
+	for (auto i = 0; i < std::count(SoundFontIDs.begin(), SoundFontIDs.end(), -1); i++) {
 		for (size_t a = 0; a < AudioStreamSize; a++) {
 			fluid_synth_sfunload(AudioStreams[a], SoundFontIDs[i], 0);
 			fluid_synth_all_notes_off(AudioStreams[a], i);
@@ -292,7 +292,7 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 	return true;
 }
 
-unsigned int OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
+uint32_t OmniMIDI::FluidSynth::PlayLongEvent(uint8_t* ev, uint32_t size) {
 	if (!FluiLib || !FluiLib->IsOnline())
 		return 0;
 
@@ -302,11 +302,11 @@ unsigned int OmniMIDI::FluidSynth::PlayLongEvent(char* ev, unsigned int size) {
 	return UPlayLongEvent(ev, size);
 }
 
-unsigned int OmniMIDI::FluidSynth::UPlayLongEvent(char* ev, unsigned int size) {
+uint32_t OmniMIDI::FluidSynth::UPlayLongEvent(uint8_t* ev, uint32_t size) {
 	int resp_len = 0;
 
 	// Ignore 0xF0 and 0xF7
-	fluid_synth_sysex(AudioStreams[0], ev + 1, size - 2, 0, &resp_len, 0, 0);
+	fluid_synth_sysex(AudioStreams[0], (const char*)(ev + 1), size - 2, 0, &resp_len, 0, 0);
 
 	return resp_len;
 }

@@ -42,7 +42,7 @@
 #define	__SRCFILE							__FILE__
 #define	__FUNCNAME							__func__
 #define	__LINENUMBER						__LINE__
-#define dbgprintf							snprintf(cBuf, SZBufSize, "[%s -> %s, L%lu] >> %s", Func, File, Line, tBuf);
+#define dbgprintf							snprintf(cBuf, SZBufSize, "[%s -> %s, L%u] >> %s", Func, File, Line, tBuf);
 #else
 #define	__SRCFILE							nullptr
 #define	__FUNCNAME							nullptr
@@ -57,15 +57,15 @@
 namespace ErrorSystem {
 	class Logger {
 	private:
-		static const int BufSize = 2048;
-		static const int SZBufSize = sizeof(char) * BufSize;
+		static const int32_t BufSize = 2048;
+		static const int32_t SZBufSize = sizeof(char) * BufSize;
 		static std::mutex logMutex;
 
 	public:
 		void ShowError(const char* Message, const char* Title, bool IsSeriousError);
-		void Log(const char* Message, const char* File, const char* Func, const unsigned long Line, ...);
-		void ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const unsigned long Line, ...);
-		void ThrowFatalError(const char* Error, const char* File, const char* Func, const unsigned long Line);
+		void Log(const char* Message, const char* File, const char* Func, const uint32_t Line, ...);
+		void ThrowError(const char* Error, bool IsSeriousError, const char* File, const char* Func, const uint32_t Line, ...);
+		void ThrowFatalError(const char* Error, const char* File, const char* Func, const uint32_t Line);
 	};
 }
 
