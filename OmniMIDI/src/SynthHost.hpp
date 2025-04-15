@@ -70,11 +70,12 @@ namespace OmniMIDI {
 		void SpStop() { StreamPlayer->Stop(); }
 		bool SpEmptyQueue() { return StreamPlayer->EmptyQueue(); }
 		bool SpResetQueue() { return StreamPlayer->ResetQueue(); }
-		bool SpAddToQueue(MIDIHDR* mhdr) { return StreamPlayer->AddToQueue(mhdr); }
+		bool SpAddToQueue(longMsg* mhdr) { return StreamPlayer->AddToQueue(mhdr); }
 		void SpSetTempo(unsigned int ntempo) { StreamPlayer->SetTempo(ntempo); }
 		unsigned int SpGetTempo() { return StreamPlayer->GetTempo(); }
 		void SpSetTicksPerQN(unsigned int nTimeDiv) { StreamPlayer->SetTicksPerQN(nTimeDiv); }
 		unsigned int SpGetTicksPerQN() { return StreamPlayer->GetTicksPerQN(); }
+
 		void SpGetPosition(MMTIME* mmtime) { StreamPlayer->GetPosition(mmtime); }
 #endif
 

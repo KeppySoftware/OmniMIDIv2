@@ -244,13 +244,23 @@ extern "C" {
 					return MIDIERR_STILLPLAYING;
 			}
 
-			mhdr->dwFlags &= ~MHDR_DONE;
-			mhdr->dwFlags |= MHDR_INQUEUE;
+			mhdr->dwFlags &= ~LONGMSG_DONE;
+			mhdr->dwFlags |= LONGMSG_QUEUE;
 			mhdr->lpNext = 0;
 			mhdr->dwOffset = 0;
+			
+			OmniMIDI::longMsg* msg = new OmniMIDI::longMsg;
 
-			if (!Host->SpAddToQueue(mhdr))
-				return MIDIERR_STILLPLAYING;
+			if (msg) {
+				msg->midiData = mhdr->lpData;
+				msg->bufLen = mhdr->dwBufferLength;
+				msg->flags = LONGMSG_QUEUE;
+				msg->lpFollow = mhdr;
+
+				if (!Host->SpAddToQueue(msg))
+					return MIDIERR_STILLPLAYING;
+			}
+			else return MMSYSERR_NOMEM;
 
 			return MMSYSERR_NOERROR;
 		}

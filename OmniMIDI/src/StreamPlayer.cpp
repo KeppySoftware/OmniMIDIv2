@@ -43,39 +43,44 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 		if (goToBed) break;
 
-		MIDIHDR* hdr = mhdrQueue;
-		if (hdr->dwFlags & MHDR_DONE)
+		longMsg* hdr = mhdrQueue;
+		if (hdr->flags & LONGMSG_DONE)
 		{
-			Message("Moving onto next packet... %x >>> %x", mhdrQueue, hdr->lpNext);
-			mhdrQueue = hdr->lpNext;
+			Message("Moving onto next packet... %x >>> %x", mhdrQueue, hdr->nextLongMsg);
+			mhdrQueue = hdr->nextLongMsg;
 			continue;
 		}
 
 		while (!paused) {
-			if (hdr->dwOffset >= hdr->dwBytesRecorded)
+			if (hdr->dataOffset >= hdr->bufLen)
 			{
-				hdr->dwFlags |= MHDR_DONE;
-				hdr->dwFlags &= ~MHDR_INQUEUE;
-				MIDIHDR* nexthdr = hdr->lpNext;
+				hdr->flags |= LONGMSG_DONE;
+				hdr->flags &= ~LONGMSG_QUEUE;
+				auto nexthdr = hdr->nextLongMsg;
 
 				mhdrQueue = nexthdr;
-				drvCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)hdr, 0);
 
-				hdr->dwOffset = 0;
+#ifdef _WIN32
+				drvCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)hdr->lpFollow, 0);
+#endif
+
+				hdr->dataOffset = 0;
 				hdr = nexthdr;
 				
 				break;
 			}
 
-			MIDIEVENT* event = (MIDIEVENT*)(hdr->lpData + hdr->dwOffset);
+			MIDIEVENT* event = (MIDIEVENT*)(hdr->midiData + hdr->dataOffset);
 
 			unsigned int deltaTicks = event->dwDeltaTime;
 			tickAcc += deltaTicks;
 
-			if (event->dwEvent & MEVT_F_CALLBACK) {
-				drvCallback->CallbackFunction(MOM_POSITIONCB, (DWORD_PTR)hdr, 0);
-				Message("MEVT_F_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
+#ifdef _WIN32
+			if (event->dwEvent & LONGMSG_F_CALLBACK) {
+				drvCallback->CallbackFunction(MOM_POSITIONCB, (DWORD_PTR)hdr->lpFollow, 0);
+				Message("LONGMSG_CALLBACK called! (MOM_POSITIONCB, ready to process addr: %x)", hdr);
 			}
+#endif
 
 			if (!smpte && !noMoreDelta && event->dwDeltaTime) {
 				deltaMicroseconds = (tempo * deltaTicks / ticksPerQN);
@@ -94,14 +99,14 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 
 			noMoreDelta = false;
 
-			switch (MEVT_EVENTTYPE(event->dwEvent)) {
-			case MEVT_SHORTMSG:
+			switch (COOK_EVENTTYPE(event->dwEvent)) {
+			case COOK_SHORTMSG:
 				synthModule->PlayShortEvent((event->dwEvent >> 16) & 0xFF, (event->dwEvent >> 8) & 0xFF, event->dwEvent & 0xFF);
 				break;
-			case MEVT_LONGMSG:
+			case COOK_LONGMSG:
 				synthModule->PlayLongEvent((char*)event->dwParms, event->dwEvent & 0xFFFFFF);
 				break;
-			case MEVT_TEMPO:
+			case COOK_TEMPO:
 				if (!smpte)
 					SetTempo(event->dwEvent & 0xFFFFFF);
 
@@ -110,15 +115,15 @@ void OmniMIDI::CookedPlayer::PlayerThread() {
 				break;
 			}
 
-			if (event->dwEvent & MEVT_F_LONG)
+			if (event->dwEvent & LONGMSG_F_LONG)
 			{
-				DWORD accum = ((event->dwEvent & 0xFFFFFF) + 3) & ~3;
+				auto accum = ((event->dwEvent & 0xFFFFFF) + 3) & ~3;
 				byteAcc += accum;
-				hdr->dwOffset += accum;
+				hdr->dataOffset += accum;
 			}
 
 			byteAcc += 0xC;
-			hdr->dwOffset += 0xC;
+			hdr->dataOffset += 0xC;
 		}
 	}
 
@@ -151,36 +156,44 @@ void OmniMIDI::CookedPlayer::SetTicksPerQN(unsigned short nTicksPerQN) {
 	Message("Received new TPQ. (tempo: %d, ticksPerQN : %d, BPM: %d)", tempo, ticksPerQN, bpm);
 }
 
-bool OmniMIDI::CookedPlayer::AddToQueue(MIDIHDR* mhdr) {
-	MIDIHDR* pmhdrQueue = mhdrQueue;
+bool OmniMIDI::CookedPlayer::AddToQueue(longMsg* mhdr) {
+	auto pmhdrQueue = mhdrQueue;
 
 	if (!mhdrQueue) {
 		mhdrQueue = mhdr;
 	}
 	else {
-		if (pmhdrQueue == mhdr) {
+		if (pmhdrQueue->midiData == mhdr->midiData) {
 			return false;
 		}
 
-		while (pmhdrQueue->lpNext != nullptr)
+		while (pmhdrQueue->nextLongMsg != nullptr)
 		{
-			pmhdrQueue = pmhdrQueue->lpNext;
-			if (pmhdrQueue == mhdr)
+			pmhdrQueue = pmhdrQueue->nextLongMsg;
+
+			if (pmhdrQueue->midiData == mhdr->midiData)
 				return false;
 		}
 
-		pmhdrQueue->lpNext = mhdr;
+		pmhdrQueue->nextLongMsg = mhdr;
+
+#ifdef _WIN32
+		pmhdrQueue->lpFollow->lpNext = mhdr->lpFollow;
+#endif
 	}
 
 	return true;
 }
 
 bool OmniMIDI::CookedPlayer::ResetQueue() {
-	for (MIDIHDR* hdr = mhdrQueue; hdr; hdr = hdr->lpNext)
+	for (auto hdr = mhdrQueue; hdr; hdr = hdr->nextLongMsg)
 	{
-		hdr->dwFlags &= ~MHDR_INQUEUE;
-		hdr->dwFlags |= MHDR_DONE;
-		drvCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)hdr, 0);
+		hdr->flags &= ~LONGMSG_QUEUE;
+		hdr->flags |= LONGMSG_DONE;
+
+#ifdef _WIN32
+		drvCallback->CallbackFunction(MOM_DONE, (DWORD_PTR)hdr->lpFollow, 0);
+#endif
 	}
 
 	return true;
@@ -192,10 +205,10 @@ bool OmniMIDI::CookedPlayer::EmptyQueue() {
 
 	paused = true;
 
-	for (MIDIHDR* hdr = mhdrQueue; hdr; hdr = hdr->lpNext)
+	for (auto hdr = mhdrQueue; hdr; hdr = hdr->nextLongMsg)
 	{
-		hdr->dwFlags &= ~MHDR_INQUEUE;
-		hdr->dwFlags |= MHDR_DONE;
+		hdr->flags &= ~LONGMSG_QUEUE;
+		hdr->flags |= LONGMSG_DONE;
 	}
 
 	tickAcc = 0;

@@ -313,24 +313,24 @@ void OmniMIDI::BASSSynth::ProcessEvBuf() {
 		switch (evt) {
 			case MIDI_EVENT_NOTE:
 			case MIDI_EVENT_KEYPRES:
-				BASS_MIDI_StreamEvent(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + (param1 % Settings->ExpMTKeyboardDiv)], chan, evt, ev);
+				BASS_MIDI_StreamEvent(AudioStreams[((chan * Settings->ExpMTKeyboardDiv) + (param1 % Settings->ExpMTKeyboardDiv)) % AudioStreamSize], chan, evt, ev);
 				break;
 
 			case MIDI_EVENT_SYSTEMEX:
 				for (unsigned i = 0; i < Settings->ExperimentalAudioMultiplier * Settings->KeyboardChunk; ++i) {			
-					BASS_MIDI_StreamEvent(AudioStreams[(i / Settings->ExperimentalAudioMultiplier) + (i % Settings->ExpMTKeyboardDiv)], 0, evt, res);
+					BASS_MIDI_StreamEvent(AudioStreams[((i / Settings->ExperimentalAudioMultiplier) + (i % Settings->ExpMTKeyboardDiv)) % AudioStreamSize], 0, evt, res);
 				}
 				break;
 
 			case MIDI_EVENT_RAW:
 				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
-					BASS_MIDI_StreamEvents(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
+					BASS_MIDI_StreamEvents(AudioStreams[((chan * Settings->ExpMTKeyboardDiv) + i) % AudioStreamSize], BASS_MIDI_EVENTS_RAW | ExtraEvtFlags, &evtDword, len);
 				}
 				break;
 
 			default:
 				for (unsigned char i = 0; i < Settings->KeyboardChunk; i++) {
-					BASS_MIDI_StreamEvent(AudioStreams[(chan * Settings->ExpMTKeyboardDiv) + i], chan, evt, ev);
+					BASS_MIDI_StreamEvent(AudioStreams[((chan * Settings->ExpMTKeyboardDiv) + i) % AudioStreamSize], chan, evt, ev);
 				}
 				break;
 		}
@@ -641,16 +641,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 		AudioStreamSize = Settings->ExperimentalAudioMultiplier;
 		Settings->AsyncMode = true;
-		EvtThreadsSize = Settings->ExpMTKeyboardDiv;
 		fsize = Settings->EvBufSize * 4;
 		
 		Message("Experimental multi BASS stream mode enabled. (CHA %d, CHK %d >> TOT %d)", Settings->ChannelDiv, Settings->ExpMTKeyboardDiv, Settings->ExperimentalAudioMultiplier);
 	}
-	else
-	{
-		AudioStreamSize = 1;
-		EvtThreadsSize = 1;
-	}
+	else AudioStreamSize = 1;
 
 	unsigned int deviceFlags = 
 		(Settings->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);

@@ -328,7 +328,6 @@ namespace OmniMIDI {
 		BASSSettings* Settings = nullptr;
 
 		size_t AudioStreamSize = 1;
-		size_t EvtThreadsSize = 1;
 
 		// BASS system
 		bool LoadFuncs();

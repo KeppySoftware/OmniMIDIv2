@@ -15,6 +15,24 @@
 #pragma once
 #define MAX_WAIT 10000
 
+#define LONGMSG_DONE 		0x00000001       /* done bit */
+#define LONGMSG_QUEUE		0x00000004       /* reserved for driver */
+#define LONGMSG_ISSTRM		0x00000008       /* Buffer is stream buffer */
+
+#define LONGMSG_F_SHORT		0x00000000L
+#define LONGMSG_F_LONG		0x80000000L
+#define LONGMSG_F_CALLBACK 	0x40000000L
+
+#define COOK_EVENTTYPE(x)   ((BYTE)(((x)>>24)&0xFF))
+#define COOK_EVENTPARM(x)   ((DWORD)((x)&0x00FFFFFFL))
+
+#define COOK_SHORTMSG       ((BYTE)0x00)    /* parm = shortmsg for midiOutShortMsg */
+#define COOK_TEMPO          ((BYTE)0x01)    /* parm = new tempo in microsec/qn     */
+#define COOK_NOP            ((BYTE)0x02)    /* parm = unused; does nothing         */
+#define COOK_LONGMSG        ((BYTE)0x80)    /* parm = bytes to send verbatim       */
+#define COOK_COMMENT        ((BYTE)0x82)    /* parm = comment data                 */
+#define COOK_VERSION        ((BYTE)0x84)    /* parm = MIDISTRMBUFFVER struct       */
+
 #include <windows.h>
 #include <mmeapi.h>
 #include "WDMDrv.hpp"
@@ -22,6 +40,19 @@
 #include "SynthModule.hpp"
 
 namespace OmniMIDI {
+	typedef struct longMsg {
+		char*       		midiData = nullptr;			/* Pointer to data block */
+		size_t      		bufLen = 0;					/* Length of data block */
+		size_t				dataOffset = 0;				/* Offset into buffer */
+		unsigned int		flags = 0;					/* assorted flags (see defines) */
+		struct longMsg far	*nextLongMsg = nullptr;		/* reserved for driver */
+
+	#ifdef _WIN32
+		void*   			appData = nullptr;			/* for client's use */
+		MIDIHDR*			lpFollow = nullptr;			/* follow MIDIHDR for callbacks */
+	#endif
+	} longMsg, *pLongMsg, NEAR *npLongMsg, FAR *lpLongMsg;
+
 	class StreamPlayer {
 	protected:
 		ErrorSystem::Logger* ErrLog;
@@ -31,7 +62,7 @@ namespace OmniMIDI {
 		void Start() { return; }
 		void Stop() { return; }
 
-		bool AddToQueue(MIDIHDR*) { return true; }
+		bool AddToQueue(longMsg*) { return true; }
 		bool ResetQueue() { return true; }
 		bool EmptyQueue() { return true; }
 		bool IsQueueEmpty() { return true; }
@@ -53,7 +84,7 @@ namespace OmniMIDI {
 		OmniMIDI::SynthModule* synthModule;
 		WinDriver::DriverCallback* drvCallback;
 
-		MIDIHDR* mhdrQueue = 0;
+		longMsg* mhdrQueue = 0;
 		bool paused = true;
 		bool goToBed = false;
 
@@ -78,7 +109,7 @@ namespace OmniMIDI {
 		void Start() { paused = false; }
 		void Stop() { paused = true; }
 
-		bool AddToQueue(MIDIHDR* hdr);
+		bool AddToQueue(longMsg* hdr);
 		bool ResetQueue();
 		bool EmptyQueue();
 		bool IsQueueEmpty() { return (!mhdrQueue); }
