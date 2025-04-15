@@ -74,10 +74,11 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 		if (IteratePath(outPath, OMShared::FIDs::CurrentDirectory))
 			return true;
 
-		if (IteratePath(outPath, OMShared::FIDs::UserFolder))
+		if (IteratePath(outPath, OMShared::FIDs::LibGeneric))
 			return true;
 
-		if (IteratePath(outPath, OMShared::FIDs::LibGeneric))
+#ifndef _WIN32
+		if (IteratePath(outPath, OMShared::FIDs::LibLocal))
 			return true;
 
 		if (IteratePath(outPath, OMShared::FIDs::Libi386))
@@ -88,9 +89,13 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 
 		if (IteratePath(outPath, OMShared::FIDs::LibAArch64))
 			return true;
+#endif
 	}
 	else {
 		if (IteratePath(outPath, OMShared::FIDs::PluginFolder))
+			return true;
+		
+		if (IteratePath(outPath, OMShared::FIDs::UserFolder))
 			return true;
 	}
 
@@ -275,15 +280,17 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 
 	switch (FolderID) {
 	case CurrentDirectory:
+		return GetModuleFileNameA( NULL, path, MAX_PATH ) > 0;
+		break;
+	
 	case LibGeneric:
-	case Libi386:
-	case LibAMD64:
-	case LibAArch64:
 		csidl = CSIDL_SYSTEM;
 		break;
+
 	case UserFolder:
 		csidl = CSIDL_PROFILE;
 		break;
+
 	default:
 		break;
 	}

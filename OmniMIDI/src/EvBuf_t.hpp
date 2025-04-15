@@ -14,9 +14,10 @@
 #define BEvBuf				BaseEvBuf_t
 #define EvBuf				EvBuf_t
 #define LEvBuf				LEvBuf_t
+#define ShortEvent			unsigned int
 
 #define DEF_EVBUF_SIZE		4096
-#define MAX_EVBUF_SIZE		UINT_MAX / 4
+#define MAX_EVBUF_SIZE		UINT_MAX / 8
 #define MAX_LEVBUF_SIZE		64
 
 #if !defined(_WIN64) && !defined(__x86_64__)
@@ -27,6 +28,7 @@
 
 #include "Common.hpp"
 
+#include <atomic>
 #ifdef _STATSDEV
 #include <iostream>
 #include <future>
@@ -46,8 +48,8 @@ namespace OmniMIDI {
 
 	class BaseEvBuf_t {
 	protected:
-		std::atomic<size_t> readHead = 0;
-		std::atomic<size_t> writeHead = 0;
+		size_t readHead = 0;
+		size_t writeHead = 0;
 		size_t size = 0;
 
 	private:
@@ -65,10 +67,10 @@ namespace OmniMIDI {
 		virtual void Write(unsigned int ev) { }
 		virtual void Write(unsigned char status, unsigned char param1, unsigned char param2) { }
 
-		virtual unsigned int Read() { return 0; }
-		virtual unsigned int Peek() { return 0; }
-		virtual unsigned int* ReadPtr() { return nullptr; }
-		virtual unsigned int* PeekPtr() { return nullptr; }
+		virtual ShortEvent Read() { return 0; }
+		virtual ShortEvent Peek() { return 0; }
+		virtual ShortEvent* ReadPtr() { return nullptr; }
+		virtual ShortEvent* PeekPtr() { return nullptr; }
 
 		// Long messages
 		virtual void Write(char* ev, size_t len) { }
@@ -169,7 +171,7 @@ namespace OmniMIDI {
 		size_t evSkipped = 0;
 #endif
 
-		unsigned int* buf = nullptr;
+		ShortEvent* buf = nullptr;
 		bool dontMiss = false;
 
 		constexpr bool IsRunningStatus(unsigned int ev) { return ((ev & 0xFF) & 0x80) < 1; }
@@ -214,8 +216,10 @@ namespace OmniMIDI {
 				size = MAX_EVBUF_SIZE;
 #endif
 
-			buf = new unsigned int[size]();
-			memset(buf, 0, size * sizeof(unsigned int));
+			buf = new ShortEvent[size]{};
+
+			if (!buf)
+				return false;
 
 			return true;
 		}
@@ -264,7 +268,7 @@ namespace OmniMIDI {
 #endif
 		}
 
-		unsigned int* ReadPtr() override {
+		ShortEvent* ReadPtr() override {
 			if (readHead == writeHead) 
 				return nullptr;
 				
@@ -272,7 +276,7 @@ namespace OmniMIDI {
 			return &buf[readHead];
 		}
 
-		unsigned int Read() override {
+		ShortEvent Read() override {
 			auto val = ReadPtr();
 
 			if (val == nullptr)
@@ -281,12 +285,12 @@ namespace OmniMIDI {
 			return *val;
 		}
 
-		unsigned int* PeekPtr() override {
+		ShortEvent* PeekPtr() override {
 			auto tNextHead = (readHead + 1) % size;
 			return &buf[tNextHead];
 		}
 
-		unsigned int Peek() override {
+		ShortEvent Peek() override {
 			auto val = PeekPtr();
 
 			if (val == nullptr)

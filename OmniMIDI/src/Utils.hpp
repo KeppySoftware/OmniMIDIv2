@@ -58,6 +58,7 @@ namespace OMShared {
 		UserFolder,
 		PluginFolder,
 		LibGeneric,
+		LibLocal,
 		Libi386,
 		LibAMD64,
 		LibAArch64
