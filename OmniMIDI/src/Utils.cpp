@@ -24,7 +24,7 @@ OMShared::Lib::~Lib() {
 }
 
 bool OMShared::Lib::IteratePath(char* outPath, OMShared::FIDs fid) {
-	OMShared::Funcs Utils = OMShared::Funcs(ErrLog);
+	OMShared::Funcs Utils;
 	char buf[MAX_PATH_LONG] = { 0 };
 	int printStatus = 0;
 
@@ -110,7 +110,7 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 	char* finalPath= nullptr;
 
 	if (Library == nullptr) {
-		OMShared::Funcs Utils = OMShared::Funcs(ErrLog);
+		OMShared::Funcs Utils;
 		
 		Initialized = false;
 
@@ -240,13 +240,6 @@ OMShared::Funcs::Funcs() {
 #endif
 }
 
-OMShared::Funcs::Funcs(ErrorSystem::Logger* PErr) : Funcs() {
-	if (!PErr)
-		throw;
-
-	ErrLog = PErr;
-}
-
 OMShared::Funcs::~Funcs() {
 #ifdef _WIN32
 	if (LL) {
@@ -298,6 +291,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 		break;
 
 	case UserFolder:
+	case PluginFolder:
 		csidl = CSIDL_PROFILE;
 		break;
 
@@ -325,6 +319,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 		envPath = "/usr/lib/aarch64-linux-gnu";
 		break;
 	case UserFolder:
+	case PluginFolder:
 		if (std::getenv("XDG_CONFIG_HOME") != nullptr) {
 			envPath = std::getenv("XDG_CONFIG_HOME");
 		}
@@ -383,7 +378,6 @@ bool OMShared::Funcs::DoesFileExist(std::string filePath) {
 		if (GetFileAttributesW(fwPath) != INVALID_FILE_ATTRIBUTES)
 			exists = true;
 	}
-	else Error("Something went wrong while checking if file \"%s\" exists.", true, filePath.c_str());
 
 	if (fwPath != nullptr)
 		delete[] fwPath;

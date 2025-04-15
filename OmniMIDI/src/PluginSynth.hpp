@@ -30,8 +30,6 @@ typedef PluginFuncs* (*OMv2PEP)();
 namespace OmniMIDI {
 	class PluginSynth : public SynthModule {
 	protected:
-		ErrorSystem::Logger* ErrLog = nullptr;
-
 		std::jthread _EvtThread;
 
 		bool Init = false;

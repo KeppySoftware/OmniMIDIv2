@@ -34,6 +34,7 @@
 #define getAddr(x, y)		GetProcAddress((HMODULE)x, y)
 #define TYPE				%s
 #define TYPENO				TYPE
+#define LIBSUFF				".dll"
 #else
 #include <dlfcn.h>
 #include <unistd.h>
@@ -47,6 +48,7 @@
 #define getAddr				dlsym
 #define TYPE				lib%s.so
 #define TYPENO				lib%s
+#define LIBSUFF				".so"
 #endif
 
 #define STREXP(X)			#X
@@ -131,14 +133,14 @@ namespace OMShared {
 	};
 
 	class Lib {
-	protected:
-		const char* Name;
-		const char* Suffix;
+	private:
+		const char* Name = nullptr;
+		const char* Suffix = nullptr;
 		void* Library = nullptr;
 		bool Initialized = false;
 		bool LoadFailed = false;
 		bool AppSelfHosted = false;
-		ErrorSystem::Logger* ErrLog;
+		ErrorSystem::Logger* ErrLog = nullptr;
 
 		LibImport* Funcs = nullptr;
 		size_t FuncsCount = 0;
@@ -146,7 +148,8 @@ namespace OMShared {
 		bool IteratePath(char* outPath, OMShared::FIDs fid);
 
 	public:
-		void* Ptr() { return Library; }
+		const char* GetName() { return Name; }
+		void* GetPtr() { return Library; }
 		bool IsOnline() { return (Library != nullptr && Initialized && !LoadFailed); }
 
 		Lib(const char* pName, const char* Suffix, ErrorSystem::Logger* PErr, LibImport** pFuncs = nullptr, size_t pFuncsCount = 0);
@@ -165,12 +168,10 @@ namespace OMShared {
 		bool LL = false;
 		unsigned int (WINAPI* pNtDelayExecution)(unsigned char, signed long long*) = nullptr;
 		unsigned int (WINAPI* pNtQuerySystemTime)(signed long long*) = nullptr;
-		ErrorSystem::Logger* ErrLog;
 #endif
 
 	public:
 		Funcs();
-		Funcs(ErrorSystem::Logger* PErr);
 		~Funcs();
 
 		void MicroSleep(signed long long v);

@@ -52,7 +52,6 @@ bool OmniMIDI::SynthHost::SpFree() {
 
 OmniMIDI::SynthHost::SynthHost(ErrorSystem::Logger* PErr) {
 	ErrLog = PErr;
-	Utils = OMShared::Funcs(ErrLog); 
 	_SHSettings = new OmniMIDI::HostSettings(ErrLog);
 	Synth = new OmniMIDI::SynthModule(ErrLog);
 
