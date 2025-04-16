@@ -11,11 +11,19 @@
 
 #pragma once
 
-#define OMV2_ENTRY		"OMv2_PluginEntryPoint"
-
 #include "SynthModule.hpp"
 
+#define OMV2_ENTRY		"OMv2_PluginEntryPoint"
+
+#define PLGMAJ			1
+#define PLGMIN			0
+#define PLGBLD			0
+#define PLGREV			0
+
+#define OMV2_PLGVER		MAKEVER(PLGMAJ, PLGMIN, PLGBLD, PLGREV)
+
 struct PluginFuncs {
+	uint32_t (WINAPI* SupportedAPIVer)() = nullptr;
 	bool (WINAPI* InitPlugin)() = nullptr;
 	bool (WINAPI* StopPlugin)() = nullptr;
 	void (WINAPI* ShortData)(uint32_t ev) = nullptr;
@@ -44,6 +52,8 @@ namespace OmniMIDI {
 		bool IsSynthInitialized() override { return Init; }
 		uint32_t SynthID() override { return 0x504C474E; }
 
+		bool IsPluginSupported();
+
 		// Event handling system
 		void PlayShortEvent(uint32_t ev) override {
 			if (!_PluginFuncs)
@@ -68,7 +78,7 @@ namespace OmniMIDI {
 		}
 		uint32_t UPlayLongEvent(uint8_t* ev, uint32_t size) override { return _PluginFuncs->LongData(ev, size); }
 
-		SynthResult Reset(uint8_t type = 0) override { _PluginFuncs->ShortData(0xFF | (type << 8)); return Ok; }
+		SynthResult Reset(uint8_t type = 0) override { _PluginFuncs->Reset(); return Ok; }
 	};
 }
 

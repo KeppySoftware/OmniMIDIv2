@@ -195,13 +195,14 @@ bool OMShared::Lib::IsSupported(uint32_t loaded, uint32_t minimum) {
 	auto libReqVer = LibVersion(minimum);
 
 	if (libVer.GetHiWord() != libReqVer.GetHiWord()) {
-		Error("OmniMIDI only supports %s %d.%d, but we got %d.%d.", true, Name, 
-			libVer.Build, libVer.Major, libReqVer.Build, libReqVer.Major);
+		Error("OmniMIDI uses %s %d.%d bindings that are not compatible with the older %d.%d. Please update the library and try again.", true, Name, 
+			libReqVer.Build, libReqVer.Major, libVer.Build, libVer.Major);
 		return false;
 	}
 	if (libVer.GetLoWord() < libReqVer.GetLoWord()) {
-		Error("OmniMIDI requires %s %d.%d.%d.%d minimum, but we got %2$d.%3$d.%d.%d.", true, Name, 
-			libReqVer.Build, libReqVer.Major, libReqVer.Minor, libReqVer.Rev, libVer.Minor, libVer.Rev);
+		Error("OmniMIDI requires %s %d.%d.%d.%d minimum, but the loaded library reported %d.%d.%d.%d. Please update the library and try again.", true, Name, 
+			libReqVer.Build, libReqVer.Major, libReqVer.Minor, libReqVer.Rev, 
+			libVer.Build, libVer.Major, libVer.Minor, libVer.Rev);
 		return false;
 	}
 

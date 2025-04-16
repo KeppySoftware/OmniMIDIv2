@@ -559,9 +559,6 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	if (!BMidLib)
 		BMidLib = new Lib("bassmidi", nullptr, ErrLog, &ptr, LibImportsSize);
 
-	if (!BFlaLib)
-		BFlaLib = new Lib("bassflac", nullptr, ErrLog);
-		
 	if (!BEfxLib)
 		BEfxLib = new Lib("bass_fx", nullptr, ErrLog, &ptr, LibImportsSize);
 
@@ -572,6 +569,10 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 	if (!BAsiLib)
 		BAsiLib = new Lib("bassasio", nullptr, ErrLog, &ptr, LibImportsSize);
 #endif
+
+	// Plugins	
+	if (!BFlaLib)
+		BFlaLib = new Lib("bassflac", nullptr, ErrLog);
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
 	if (!LoadFuncs()) {
@@ -590,7 +591,6 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
 }
 
 bool OmniMIDI::BASSSynth::UnloadSynthModule() {
-	// LOG(SynErr, L"UnloadBASSSynth called.");
 	if (ClearFuncs()) {
 		FreeShortEvBuf();
 

@@ -217,13 +217,13 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	switch (r) {
 	case Synthesizers::External:
 		newSynth = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), ErrLog);
-		Message("R%d (%s)", r, _SHSettings->GetCustomRenderer());
+		Message("Plgn (%s)", _SHSettings->GetCustomRenderer());
 		break;
 
 	case Synthesizers::FluidSynth:
 #if defined(_OFLUIDSYNTH_H)
 		newSynth = new OmniMIDI::FluidSynth(ErrLog);
-		Message("R%d (FLUIDSYNTH)", r);
+		Message("Syn%d (FLUIDSYNTH)", r);
 #else
 		Error("FluidSynth is not available on this platform.");
 #endif
@@ -232,7 +232,7 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	case Synthesizers::BASSMIDI:
 #if defined(_NONFREE) && defined(_BASSSYNTH_H)
 		newSynth = new OmniMIDI::BASSSynth(ErrLog);
-		Message("R%d (BASSMIDI)", r);
+		Message("Syn%d (BASSMIDI)", r);
 #else	
 		Error("This version of OmniMIDI has been compiled without the _NONFREE preprocessor directive. BASSMIDI will not be available.", true);
 #endif
@@ -241,7 +241,7 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	case Synthesizers::XSynth:
 #if defined(_XSYNTHM_H)
 		newSynth = new OmniMIDI::XSynth(ErrLog);
-		Message("R%d (XSYNTH)", r);
+		Message("Syn%d (XSYNTH)", r);
 #else
 		Error("XSynth is not available on this platform.");
 #endif
@@ -251,7 +251,7 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 #if defined(WIN32)
 	case Synthesizers::ShakraPipe:
 		newSynth = new OmniMIDI::ShakraPipe(ErrLog);
-		Message("R%d (SHAKRA)", r);
+		Message("Syn%d (SHAKRA)", r);
 		break;
 #endif
 

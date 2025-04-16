@@ -15,6 +15,7 @@
 
 #define MAX_PATH_LONG	            32767
 #define RANGE(value, minv, maxv)    ((value) >= minv && (value) <= maxv)
+#define MAKEVER(mj, mn, bd, rv)     (mj << 24) | (mn << 16) | (bd << 8) | rv
 
 #ifdef _DEBUG
 #define NAME                        "OmniMIDI (Debug)"
@@ -23,6 +24,8 @@
 #define NAME                        "OmniMIDI"
 #define WNAME                       L"OmniMIDI\0"
 #endif
+
+#include <stdint.h>
 
 #if !defined(_WIN32)
     // For malloc and memcpy
@@ -53,18 +56,18 @@
 
 #if defined(_WIN32)
     //  Microsoft 
-    #define EXPORT			    __declspec(dllexport)
-    #define IMPORT			    __declspec(dllimport)
+    #define EXPORT			        __declspec(dllexport)
+    #define IMPORT			        __declspec(dllimport)
 #elif defined(__gnu_linux__) || (defined(__FreeBSD_kernel__ ) && defined(__GLIBC__))
     //  GCC
-    #define EXPORT			    __attribute__((visibility("default")))
+    #define EXPORT			        __attribute__((visibility("default")))
     #define IMPORT
-	#define CONSTRUCTOR		    __attribute__((constructor))
-	#define DESTRUCTOR		    __attribute__((destructor))
+	#define CONSTRUCTOR		        __attribute__((constructor))
+	#define DESTRUCTOR		        __attribute__((destructor))
 #else
     #define EXPORT
     #define IMPORT
-    #pragma warning			    Unknown compiler
+    #pragma warning			        Unknown compiler
 #endif
 
 #endif

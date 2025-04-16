@@ -68,7 +68,7 @@ target("OmniMIDI")
 		add_includedirs("inc")
 		add_files("src/*.cpp")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
 		add_syslinks("asound")
 
 		add_shflags("-pie", "-Wl,-E", { force = true })
@@ -132,7 +132,7 @@ target("libOmniMIDI")
 	
 	add_defines("OMNIMIDI_EXPORTS")
 	add_ldflags("-j")
-	add_cxflags("-Wall")
+	add_cxflags("-Wall", "-Wdangling-else")
 
 	add_includedirs("inc")
 	add_files("src/*.cpp")

@@ -43,7 +43,7 @@ void evThread();
 
 void DESTRUCTOR stop();
 
-int CONSTRUCTOR main(int32_t argc, char *argv[]) {
+int CONSTRUCTOR main(int argc, char *argv[]) {
     try {
         // Initialize logger
         ErrLog = new ErrorSystem::Logger();
