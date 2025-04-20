@@ -59,9 +59,9 @@ namespace OmniMIDI {
 	private:
 		// Pipe names
 		const wchar_t* FileMappingTemplate = L"Local\\Shakra%sBuf%s";
+		WSPSettings* _wspConfig = nullptr;
 
 		// R/W heads
-		WSPSettings* Settings = nullptr;
 		EvBuf* ShortEvents = nullptr;
 		LEvBuf* LongEvents = nullptr;
 		HANDLE PShortEvents = nullptr, PLongEvents = nullptr;

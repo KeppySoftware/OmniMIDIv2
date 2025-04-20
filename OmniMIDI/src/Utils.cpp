@@ -125,16 +125,12 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 
 			if (GetLibPath(libPath)) {
 				Library = loadLib(libPath);
-				if (Library == nullptr)
-					Error("The required library \"%s\" could not be loaded. This is required for the synthesizer to work.", true, Name);
 			}
-			else Error("The required library \"%s\" could not be found. This is required for the synthesizer to work.", true, Name);
 		}
 	}
 
-	finalPath = (libPath == nullptr) ? (char*)Name : libPath;
-
-	if (Library != nullptr) {
+	if (Library != nullptr) {		
+		finalPath = (libPath == nullptr) ? (char*)Name : libPath;
 		Message("%s --> 0x%08x (FROM %s)", Name, Library, finalPath);
 
 		if (Funcs != nullptr && FuncsCount != 0) {
@@ -149,6 +145,7 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 	
 		Initialized = true;
 	}
+	else Error("The required library \"%s\" could not be found. This is required for the synthesizer to work.", true, Name);
 
 	if (libPath != nullptr)
 		delete[] libPath;

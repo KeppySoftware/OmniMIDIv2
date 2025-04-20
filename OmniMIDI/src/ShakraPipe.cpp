@@ -27,10 +27,7 @@ std::wstring OmniMIDI::ShakraPipe::GenerateID() {
 }
 
 bool OmniMIDI::ShakraPipe::StartSynthModule() {
-	if (!Settings) {
-		Settings = new WSPSettings(ErrLog);
-		Settings->LoadSynthConfig();
-	}
+	_wspConfig= LoadSynthConfig<WSPSettings>();
 
 	void* temp = nullptr;
 	std::wstring TempID = GenerateID();
@@ -44,7 +41,7 @@ bool OmniMIDI::ShakraPipe::StartSynthModule() {
 
 		if (temp) {
 			ShortEvents = (EvBuf*)temp;
-			ShortEvents->Allocate(Settings->EvBufSize);
+			ShortEvents->Allocate(_wspConfig->EvBufSize);
 			Message("ShortEvents mapping worked!");
 		}
 		else Error("An error occurred while mapping the view for the PShortEvents file mapping!", true);
@@ -95,11 +92,7 @@ bool OmniMIDI::ShakraPipe::StopSynthModule() {
 		PLongEvents = nullptr;
 	}
 
-	if (Settings)
-	{
-		delete Settings;
-		Settings = nullptr;
-	}
+	FreeSynthConfig(_wspConfig);	
 
 	return true;
 }

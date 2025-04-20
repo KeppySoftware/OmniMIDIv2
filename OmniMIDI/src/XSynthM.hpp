@@ -101,8 +101,8 @@ namespace OmniMIDI {
 		};
 		size_t xLibImpLen = sizeof(xLibImp) / sizeof(xLibImp[0]);
 
-		XSynthSettings* Settings = nullptr;
-		SoundFontSystem SFSystem;
+		XSynthSettings* _XSyConfig = nullptr;
+		SoundFontSystem _sfSystem;
 		bool Running = false;
 
 		void XSynthThread();

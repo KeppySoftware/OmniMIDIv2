@@ -8,6 +8,88 @@
 
 #include "SynthModule.hpp"
 
+void OmniMIDI::SynthModule::StartDebugOutput() {
+	if (_synthConfig->IsDebugMode()) {
+		_LogThread = std::jthread(&SynthModule::LogFunc, this);
+		if (!_LogThread.joinable()) {
+			Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
+			return;
+		}
+		else Message("_LogThread running! (ID: %x)", _LogThread.get_id());
+
+		_synthConfig->OpenConsole();
+	}
+}
+
+void OmniMIDI::SynthModule::StopDebugOutput() {
+	if (_synthConfig->IsDebugMode() && _synthConfig->IsOwnConsole())
+		_synthConfig->CloseConsole();
+
+	if (_LogThread.joinable()) {
+		_LogThread.join();
+		Message("_LogThread freed.");
+	}	
+}
+
+void OmniMIDI::SynthModule::LogFunc() {
+	const char Templ[] = "R%06.2f%% >> P%llu (Ev%08zu/%08zu)";
+	char* Buf = new char[96];
+
+	while (!IsSynthInitialized())
+		Utils.MicroSleep(SLEEPVAL(1));
+
+	while (IsSynthInitialized()) {
+		sprintf(Buf, Templ, GetRenderingTime(), GetActiveVoices(), ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
+		SetTerminalTitle(Buf);
+		
+		Utils.MicroSleep(SLEEPVAL(1000));
+	}
+
+	sprintf(Buf, Templ, 0.0f, (uint64_t)0, (size_t)0, (size_t)0);
+	SetTerminalTitle(Buf);
+
+	delete[] Buf;
+}
+
+void OmniMIDI::SynthModule::FreeEvBuf(BEvBuf* target) {
+	if (target) {
+		auto tEvents = new BEvBuf;
+		auto oEvents = target;
+
+		target = tEvents;
+
+		delete oEvents;
+	}
+}
+
+OmniMIDI::BEvBuf* OmniMIDI::SynthModule::AllocateShortEvBuf(size_t size) {
+	if (ShortEvents) {
+		auto tEvents = new EvBuf(size);
+		auto oEvents = ShortEvents;
+
+		ShortEvents = tEvents;
+
+		delete oEvents;
+	}
+
+	// Double check
+	return ShortEvents;
+}
+
+OmniMIDI::BEvBuf* OmniMIDI::SynthModule::AllocateLongEvBuf(size_t size) {
+	if (LongEvents) {
+		auto tEvents = new LEvBuf(size);
+		auto oEvents = LongEvents;
+
+		LongEvents = tEvents;
+
+		delete oEvents;
+	}
+
+	// Double check
+	return LongEvents;
+}
+
 bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, size_t pSynthName_sz) {
 	char* userProfile = new char[MAX_PATH_LONG] { 0 };
 	SettingsPath = new char[MAX_PATH_LONG] { 0 };

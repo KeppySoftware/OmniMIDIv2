@@ -41,11 +41,10 @@ bool OmniMIDI::XSynth::IsSynthInitialized() {
 
 bool OmniMIDI::XSynth::LoadSynthModule() {
 	auto ptr = (LibImport*)xLibImp;
+	_XSyConfig = LoadSynthConfig<XSynthSettings>();
 
-	if (!Settings) {
-		Settings = new XSynthSettings(ErrLog);
-		Settings->LoadSynthConfig();
-	}
+	if (_XSyConfig == nullptr)
+		return false;
 
 	if (!XLib)
 		XLib = new Lib("xsynth", nullptr, ErrLog, &ptr, xLibImpLen);
@@ -70,6 +69,8 @@ bool OmniMIDI::XSynth::LoadSynthModule() {
 }
 
 bool OmniMIDI::XSynth::UnloadSynthModule() {
+	FreeSynthConfig(_XSyConfig);	
+
 	if (!XLib)
 		return true;
 
@@ -83,22 +84,22 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 	if (IsSynthInitialized())
 		return true;
 
-	if (!Settings)
+	if (!_XSyConfig)
 		return false;
 
 	realtimeConf = XSynth_GenDefault_RealtimeConfig();
 
-	realtimeConf.fade_out_killing = Settings->FadeOutKilling;
-	realtimeConf.render_window_ms = Settings->RenderWindow;
-	realtimeConf.multithreading = Settings->ThreadsCount;
+	realtimeConf.fade_out_killing = _XSyConfig->FadeOutKilling;
+	realtimeConf.render_window_ms = _XSyConfig->RenderWindow;
+	realtimeConf.multithreading = _XSyConfig->ThreadsCount;
 
 	realtimeSynth = XSynth_Realtime_Create(realtimeConf);
 
 	if (realtimeSynth.synth) {
-		XSynth_Realtime_SendConfigEventAll(realtimeSynth, XSYNTH_CONFIG_SETLAYERS, Settings->LayerCount);
+		XSynth_Realtime_SendConfigEventAll(realtimeSynth, XSYNTH_CONFIG_SETLAYERS, _XSyConfig->LayerCount);
 
 		LoadSoundFonts();
-		SFSystem.RegisterCallback(this);
+		_sfSystem.RegisterCallback(this);
 
 		_XSyThread = std::jthread(&XSynth::XSynthThread, this);
 		if (!_XSyThread.joinable()) {
@@ -106,16 +107,7 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 			return false;
 		}
 
-		if (Settings->IsDebugMode()) {
-			_LogThread = std::jthread(&SynthModule::LogFunc, this);
-			if (!_LogThread.joinable()) {
-				Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
-				return false;
-			}
-			else Message("_LogThread running! (ID: %x)", _LogThread.get_id());
-
-			Settings->OpenConsole();
-		}
+		StartDebugOutput();
 
 		Running = true;
 	}
@@ -124,7 +116,7 @@ bool OmniMIDI::XSynth::StartSynthModule() {
 }
 
 bool OmniMIDI::XSynth::StopSynthModule() {
-	SFSystem.RegisterCallback();
+	_sfSystem.RegisterCallback();
 
 	if (IsSynthInitialized()) {
 		Running = false;
@@ -135,11 +127,7 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 	if (_XSyThread.joinable())
 		_XSyThread.join();
 
-	if (_LogThread.joinable())
-		_LogThread.join();
-
-	if (Settings->IsDebugMode() && Settings->IsOwnConsole())
-		Settings->CloseConsole();
+	StopDebugOutput();
 
 	return true;
 }
@@ -147,21 +135,21 @@ bool OmniMIDI::XSynth::StopSynthModule() {
 void OmniMIDI::XSynth::LoadSoundFonts() {
 	UnloadSoundfonts();
 
-	if (SFSystem.ClearList()) {
-		SoundFontsVector = SFSystem.LoadList();
+	if (_sfSystem.ClearList()) {
+		_sfVec = _sfSystem.LoadList();
 
-		if (SoundFontsVector == nullptr)
+		if (_sfVec == nullptr)
 			return;
 
-		auto& dSFv = *SoundFontsVector;
+		auto& _sfVecIter = *_sfVec;
 		auto sf = XSynth_GenDefault_SoundfontOptions();
 		auto realtimeParams = XSynth_Realtime_GetStreamParams(realtimeSynth);
 		
-		if (dSFv.size() < 1)
+		if (_sfVecIter.size() < 1)
 			return;
 
-		for (size_t i = 0; i < dSFv.size(); i++) {
-			auto item = dSFv[i];
+		for (size_t i = 0; i < _sfVecIter.size(); i++) {
+			auto item = _sfVecIter[i];
 			auto envOptions = XSynth_EnvelopeOptions { item.linattmod, item.lindecvol, item.lindecvol };
 			auto sfPath = item.path.c_str();
 
@@ -172,7 +160,7 @@ void OmniMIDI::XSynth::LoadSoundFonts() {
 			sf.stream_params.sample_rate = realtimeParams.sample_rate;
 			sf.preset = item.spreset;
 			sf.bank = item.sbank;
-			sf.interpolator = Settings->Interpolation;
+			sf.interpolator = _XSyConfig->Interpolation;
 			sf.vol_envelope_options = envOptions;
 			sf.use_effects = item.minfx;
 

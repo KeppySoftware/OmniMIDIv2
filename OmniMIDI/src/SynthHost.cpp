@@ -216,7 +216,7 @@ OmniMIDI::SynthModule* OmniMIDI::SynthHost::GetSynth() {
 	char r = _SHSettings->GetRenderer();
 	switch (r) {
 	case Synthesizers::External:
-		newSynth = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), ErrLog);
+		newSynth = new OmniMIDI::PluginSynth(_SHSettings->GetCustomRenderer(), _SHSettings, ErrLog);
 		Message("Plgn (%s)", _SHSettings->GetCustomRenderer());
 		break;
 
@@ -608,9 +608,10 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char* ev, uint32_t size
 										else if (dataType == BitmapMode) {
 											if (char* prnt = new char[16] { 0 }) {
 												Message("BITMAP:", asciiStream);
-												for (uint32_t i = 0; i < mult; i = i * 16) {
+												for (uint32_t i = 0; i < mult; i++) {
+													auto bufPos = i * 16;
 													for (uint8_t j = 0; j < 16; j++) {
-														prnt[j] = asciiStream[i + j];
+														prnt[j] = asciiStream[bufPos + j];
 													}
 													Message("%s", prnt);
 													memset(prnt, 0, sizeof(char) * 16);

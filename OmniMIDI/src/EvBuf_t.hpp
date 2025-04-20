@@ -27,6 +27,7 @@
 #endif
 
 #include "Common.hpp"
+#include "Utils.hpp"
 
 #include <atomic>
 #ifdef _STATSDEV
@@ -174,7 +175,6 @@ namespace OmniMIDI {
 		ShortEvent* buf = nullptr;
 		bool dontMiss = false;
 
-		constexpr bool IsRunningStatus(uint32_t ev) { return ((ev & 0xFF) & 0x80) < 1; }
 		constexpr uint32_t ApplyRunningStatus(uint32_t ev) {
 			if (ev & 0x80) {
 				runningStatus = ev & 0xFF;
@@ -183,9 +183,6 @@ namespace OmniMIDI {
 
 			return (ev << 8) | runningStatus;
 		}
-		constexpr uint8_t GetStatus(uint32_t ev) { return (ev & 0xFF) & 0x80; }
-		constexpr uint8_t GetFirstParam(uint32_t ev) { return ((ev >> 8) & 0xFF); }
-		constexpr uint8_t GetSecondParam(uint32_t ev) { return ((ev >> 16) & 0xFF); }
 
 	public:
 		EvBuf_t() { }
@@ -254,9 +251,9 @@ namespace OmniMIDI {
 			if (nextWriteHead != curReadHead) {
 #ifdef _STATSDEV
 				evSent++;
-#endif				
+#endif
 
-				buf[nextWriteHead] = ev;
+				buf[nextWriteHead] = ApplyRunningStatus(ev);
 				writeHead = nextWriteHead;
 
 				return;

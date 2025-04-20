@@ -44,12 +44,12 @@ namespace OmniMIDI {
 		PluginFuncs* _PluginFuncs = nullptr;
 
 	public:
-		PluginSynth(const char* pluginName, ErrorSystem::Logger* PErr);
+		PluginSynth(const char* pluginName, SettingsModule* sett, ErrorSystem::Logger* PErr);
 		bool LoadSynthModule() override;
 		bool UnloadSynthModule() override;
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
-		bool IsSynthInitialized() override { return Init; }
+		bool IsSynthInitialized() override { return _PluginFuncs; }
 		uint32_t SynthID() override { return 0x504C474E; }
 
 		bool IsPluginSupported();

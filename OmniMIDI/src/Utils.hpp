@@ -30,6 +30,7 @@
 #define loadLib				LoadLibraryA
 #define getError			GetLastError
 #define freeLib(x)			FreeLibrary((HMODULE)x)
+#define freeLibX(x)			FreeLibraryAndExitThread((HMODULE)x, 0)
 #define getLib				GetModuleHandleA
 #define getAddr(x, y)		GetProcAddress((HMODULE)x, y)
 #define TYPE				%s
@@ -43,6 +44,7 @@
 #define loadLib(l)			dlopen(l, RTLD_NOW)
 #define getError()			0
 #define freeLib				dlclose
+#define freeLibX			freeLib
 #define getLib()			0
 #define getLibErr()			dlerror
 #define getAddr				dlsym
@@ -183,6 +185,17 @@ namespace OMShared {
 
 		bool GetFolderPath(const FIDs fID, char* folderPath, size_t szFolderPath);
 		bool DoesFileExist(std::string filePath);
+	};
+
+	class MIDIUtils {
+	public:
+		static constexpr uint8_t GetStatus(uint32_t ev) { return (ev & 0xFF); }
+		static constexpr uint8_t GetCommand(uint8_t status) { return (status & 0xF0); }
+		static constexpr uint8_t GetChannel(uint8_t status) { return (status & 0xF); }
+
+		static constexpr uint8_t GetFirstParam(uint32_t ev) { return ((ev >> 8) & 0xFF); }
+		static constexpr uint8_t GetSecondParam(uint32_t ev) { return ((ev >> 16) & 0xFF); }
+		static constexpr uint16_t MakeFullParam(uint8_t p1, uint8_t p2, uint8_t bit) { return (p2 << bit) | p1; }
 	};
 }
 

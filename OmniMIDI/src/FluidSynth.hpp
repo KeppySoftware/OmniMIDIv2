@@ -132,8 +132,8 @@ namespace OmniMIDI {
 		};
 		size_t fLibImpLen = sizeof(fLibImp) / sizeof(fLibImp[0]);
 
-		SoundFontSystem SFSystem;
-		FluidSettings* Settings = nullptr;
+		FluidSettings* _fluidConfig = nullptr;
+		SoundFontSystem _sfSystem;
 		fluid_settings_t* fSet = nullptr;
 
 		std::vector<int> SoundFontIDs;
@@ -154,7 +154,7 @@ namespace OmniMIDI {
 		bool StopSynthModule() override;
 		void LoadSoundFonts() override;
 		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override { return false; }
-		uint32_t GetSampleRate() override  { return Settings->SampleRate; }
+		uint32_t GetSampleRate() override  { return _fluidConfig->SampleRate; }
 		bool IsSynthInitialized() override { return (AudioDrivers[0] != nullptr); }
 		uint32_t SynthID() override { return 0x6F704EC6; }
 

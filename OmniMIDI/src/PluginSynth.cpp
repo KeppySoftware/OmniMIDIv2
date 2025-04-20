@@ -8,10 +8,11 @@
 
 #include "PluginSynth.hpp"
 
-OmniMIDI::PluginSynth::PluginSynth(const char* pluginName, ErrorSystem::Logger* PErr) : SynthModule(PErr) {
+OmniMIDI::PluginSynth::PluginSynth(const char* pluginName, SettingsModule* sett, ErrorSystem::Logger* PErr) : SynthModule(PErr) {
     if (!pluginName)
         throw;
 
+    _synthConfig = sett;
     Plugin = new Lib(pluginName, LIBSUFF, ErrLog);
 }
 
@@ -25,6 +26,9 @@ bool OmniMIDI::PluginSynth::IsPluginSupported() {
 }
 
 bool OmniMIDI::PluginSynth::LoadSynthModule() {
+    if (_synthConfig == nullptr)
+        return false;
+
     auto pluginName = Plugin->GetName();
 
     Message("PluginSynth >> %s", pluginName);
@@ -32,7 +36,6 @@ bool OmniMIDI::PluginSynth::LoadSynthModule() {
     if (!Plugin->LoadLib()) return false;
     else Message("Loaded plugin %s", pluginName);
 
-    
     _PluginEntryPoint = (OMv2PEP)getAddr(Plugin->GetPtr(), OMV2_ENTRY);
     if (_PluginEntryPoint == nullptr) return false;
     else Message("%s >> Found %s at address 0x%x", pluginName, OMV2_ENTRY, _PluginEntryPoint);
@@ -44,6 +47,8 @@ bool OmniMIDI::PluginSynth::LoadSynthModule() {
     if (IsPluginSupported()) {
         if (!_PluginFuncs->InitPlugin)
             Error("Excuse me", true);
+
+        StartDebugOutput();
 
         return true;
     }
@@ -64,11 +69,13 @@ bool OmniMIDI::PluginSynth::StartSynthModule() {
         return false;
     }
 
+    Message("Plugin started.");  
     return true;
 }
 
 bool OmniMIDI::PluginSynth::StopSynthModule() {
     Message("Freeing synth plugin...");
+    Init = false;
 
     if (_PluginFuncs == nullptr){
         Message("_PluginFuncs is null!");
@@ -99,6 +106,8 @@ bool OmniMIDI::PluginSynth::UnloadSynthModule() {
         delete Plugin;
         Message("Deleted Plugin object.");
     }
+      
+    StopDebugOutput();
 
     return true;
 }

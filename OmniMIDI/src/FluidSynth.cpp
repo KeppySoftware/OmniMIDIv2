@@ -35,48 +35,49 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	if (!AudioDrivers[0])
 		return false;
 
-	auto tev = ShortEvents->Read();
+	auto evtDword = ShortEvents->Read();
 
-	if (!tev)
+	if (!evtDword)
 		return false;
 
-	uint8_t status = GetStatus(tev);
-	uint8_t cmd = GetCommand(status);
-	uint8_t ch = GetChannel(status);
-	uint8_t param1 = GetFirstParam(tev);
-	uint8_t param2 = GetSecondParam(tev);
+	uint8_t status = MIDIUtils::GetStatus(evtDword);
+	uint8_t command = MIDIUtils::GetCommand(status);
+	uint8_t chan = MIDIUtils::GetChannel(status);
 
-	fluid_synth_t* targetStream = Settings->ExperimentalMultiThreaded ? AudioStreams[ch] : AudioStreams[0];
+	uint8_t param1 = MIDIUtils::GetFirstParam(evtDword);
+	uint8_t param2 = MIDIUtils::GetSecondParam(evtDword);
 
-	switch (cmd) {
+	fluid_synth_t* targetStream = _fluidConfig->ExperimentalMultiThreaded ? AudioStreams[chan] : AudioStreams[0];
+
+	switch (command) {
 	case NoteOn:
 		// param1 is the key, param2 is the velocity
-		fluid_synth_noteon(targetStream, ch, param1, param2);
+		fluid_synth_noteon(targetStream, chan, param1, param2);
 		break;
 
 	case NoteOff:
 		// param1 is the key, ignore param2
-		fluid_synth_noteoff(targetStream, ch, param1);
+		fluid_synth_noteoff(targetStream, chan, param1);
 		break;
 
 	case Aftertouch:
-		fluid_synth_key_pressure(targetStream, ch, param1, param2);
+		fluid_synth_key_pressure(targetStream, chan, param1, param2);
 		break;
 
 	case CC:
-		fluid_synth_cc(targetStream, ch, param1, param2);
+		fluid_synth_cc(targetStream, chan, param1, param2);
 		break;
 
 	case PatchChange:
-		fluid_synth_program_change(targetStream, ch, param1);
+		fluid_synth_program_change(targetStream, chan, param1);
 		break;
 
 	case ChannelPressure:
-		fluid_synth_channel_pressure(targetStream, ch, param1);
+		fluid_synth_channel_pressure(targetStream, chan, param1);
 		break;
 
 	case PitchBend:
-		fluid_synth_pitch_bend(targetStream, ch, param2 << 7 | param1);
+		fluid_synth_pitch_bend(targetStream, chan, MIDIUtils::MakeFullParam(param1, param2, 7));
 		break;
 
 	default:
@@ -84,15 +85,15 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 
 		// Let's go!
 		case SystemMessageStart:
-			sysev = tev;
+			sysev = evtDword;
 
 			Message("SysEx Begin: %x", sysev);
 			fluid_synth_sysex(targetStream, (const char*)&sysev, 2, 0, &len, &handled, 0);
 
-			while (GetStatus(sysev) != SystemMessageEnd) {
+			while (MIDIUtils::GetStatus(sysev) != SystemMessageEnd) {
 				sysev = ShortEvents->Peek();
 
-				if (GetStatus(sysev) != SystemMessageEnd) {
+				if (MIDIUtils::GetStatus(sysev) != SystemMessageEnd) {
 					sysev = ShortEvents->Read();
 					Message("SysEx Ev: %x", sysev);
 					fluid_synth_sysex(targetStream, (const char*)&sysev, 3, 0, &len, &handled, 0);
@@ -127,14 +128,39 @@ bool OmniMIDI::FluidSynth::ProcessEvBuf() {
 	return true;
 }
 
-bool OmniMIDI::FluidSynth::LoadSynthModule() {
-	if (!Settings) {
-		auto ptr = (LibImport*)fLibImp;
-
-		if (!Settings) {
-			Settings = new FluidSettings(ErrLog);
-			Settings->LoadSynthConfig();
+void OmniMIDI::FluidSynth::LoadSoundFonts() {
+	// Free old SFs
+	for (auto i = 0; i < std::count(SoundFontIDs.begin(), SoundFontIDs.end(), -1); i++) {
+		for (size_t a = 0; a < AudioStreamSize; a++) {
+			fluid_synth_sfunload(AudioStreams[a], SoundFontIDs[i], 0);
+			fluid_synth_all_notes_off(AudioStreams[a], i);
+			fluid_synth_all_sounds_off(AudioStreams[a], i);
+			fluid_synth_system_reset(AudioStreams[a]);
 		}
+	}
+
+	SoundFontIDs.clear();
+
+	if ((_sfVec = _sfSystem.LoadList()) != nullptr) {
+		std::vector<SoundFont>& dSFv = *_sfVec;
+
+		if (dSFv.size() > 0) {
+			for (size_t i = 0; i < dSFv.size(); i++) {
+				for (size_t a = 0; a < AudioStreamSize; a++) {
+					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], (const char*)dSFv[i].path.c_str(), 1));
+				}
+			}
+		}	
+	}
+}
+
+bool OmniMIDI::FluidSynth::LoadSynthModule() {
+	if (!_fluidConfig) {
+		auto ptr = (LibImport*)fLibImp;
+		_fluidConfig = LoadSynthConfig<FluidSettings>();
+
+		if (_fluidConfig == nullptr)
+			return false;
 
 		if (!FluiLib)
 			FluiLib = new Lib(FLUIDLIB, FLUIDSFX, ErrLog, &ptr, fLibImpLen);
@@ -142,7 +168,7 @@ bool OmniMIDI::FluidSynth::LoadSynthModule() {
 		if (!FluiLib->LoadLib())
 			return false;
 
-		if (!AllocateShortEvBuf(Settings->EvBufSize)) {
+		if (!AllocateShortEvBuf(_fluidConfig->EvBufSize)) {
 			Error("AllocateShortEvBuf failed.", true);
 			return false;
 		}
@@ -159,11 +185,7 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 
 	if (!AudioStreams[0] && !AudioDrivers[0]) {
 		FreeShortEvBuf();
-
-		if (Settings) {
-			delete Settings;
-			Settings = nullptr;
-		}
+		FreeSynthConfig(_fluidConfig);
 
 		delete_fluid_settings(fSet);
 		fSet = nullptr;
@@ -181,34 +203,8 @@ bool OmniMIDI::FluidSynth::UnloadSynthModule() {
 	return false;
 }
 
-void OmniMIDI::FluidSynth::LoadSoundFonts() {
-	// Free old SFs
-	for (auto i = 0; i < std::count(SoundFontIDs.begin(), SoundFontIDs.end(), -1); i++) {
-		for (size_t a = 0; a < AudioStreamSize; a++) {
-			fluid_synth_sfunload(AudioStreams[a], SoundFontIDs[i], 0);
-			fluid_synth_all_notes_off(AudioStreams[a], i);
-			fluid_synth_all_sounds_off(AudioStreams[a], i);
-			fluid_synth_system_reset(AudioStreams[a]);
-		}
-	}
-
-	SoundFontIDs.clear();
-
-	if ((SoundFontsVector = SFSystem.LoadList()) != nullptr) {
-		std::vector<SoundFont>& dSFv = *SoundFontsVector;
-
-		if (dSFv.size() > 0) {
-			for (size_t i = 0; i < dSFv.size(); i++) {
-				for (size_t a = 0; a < AudioStreamSize; a++) {
-					SoundFontIDs.push_back(fluid_synth_sfload(AudioStreams[a], (const char*)dSFv[i].path.c_str(), 1));
-				}
-			}
-		}	
-	}
-}
-
 bool OmniMIDI::FluidSynth::StartSynthModule() {
-	if (!Settings)
+	if (!_fluidConfig)
 		return false;
 
 	fSet = new_fluid_settings();
@@ -217,26 +213,26 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 		return false;
 	}
 
-	if (Settings->ExperimentalMultiThreaded || (Settings->ThreadsCount < 1 || Settings->ThreadsCount > std::thread::hardware_concurrency()))
-		Settings->ThreadsCount = 1;
+	if (_fluidConfig->ExperimentalMultiThreaded || (_fluidConfig->ThreadsCount < 1 || _fluidConfig->ThreadsCount > std::thread::hardware_concurrency()))
+		_fluidConfig->ThreadsCount = 1;
 
-	fluid_settings_setint(fSet, "synth.cpu-cores", Settings->ExperimentalMultiThreaded ? 1 : Settings->ThreadsCount);
-	fluid_settings_setint(fSet, "audio.period-size", Settings->PeriodSize);
-	fluid_settings_setint(fSet, "audio.periods", Settings->Periods);
+	fluid_settings_setint(fSet, "synth.cpu-cores", _fluidConfig->ExperimentalMultiThreaded ? 1 : _fluidConfig->ThreadsCount);
+	fluid_settings_setint(fSet, "audio.period-size", _fluidConfig->PeriodSize);
+	fluid_settings_setint(fSet, "audio.periods", _fluidConfig->Periods);
 	fluid_settings_setint(fSet, "synth.device-id", 16);
-	fluid_settings_setint(fSet, "synth.min-note-length", Settings->MinimumNoteLength);
-	fluid_settings_setint(fSet, "synth.polyphony", Settings->VoiceLimit);
+	fluid_settings_setint(fSet, "synth.min-note-length", _fluidConfig->MinimumNoteLength);
+	fluid_settings_setint(fSet, "synth.polyphony", _fluidConfig->VoiceLimit);
 	fluid_settings_setint(fSet, "synth.verbose", 0);
-	fluid_settings_setnum(fSet, "synth.sample-rate", Settings->SampleRate);
-	fluid_settings_setnum(fSet, "synth.overflow.volume", Settings->OverflowVolume);
-	fluid_settings_setnum(fSet, "synth.overflow.percussion", Settings->OverflowPercussion);
-	fluid_settings_setnum(fSet, "synth.overflow.important", Settings->OverflowImportant);
-	fluid_settings_setnum(fSet, "synth.overflow.released", Settings->OverflowReleased);
-	fluid_settings_setstr(fSet, "audio.driver", Settings->Driver.c_str());
-	fluid_settings_setstr(fSet, "audio.sample-format", Settings->SampleFormat.c_str());
+	fluid_settings_setnum(fSet, "synth.sample-rate", _fluidConfig->SampleRate);
+	fluid_settings_setnum(fSet, "synth.overflow.volume", _fluidConfig->OverflowVolume);
+	fluid_settings_setnum(fSet, "synth.overflow.percussion", _fluidConfig->OverflowPercussion);
+	fluid_settings_setnum(fSet, "synth.overflow.important", _fluidConfig->OverflowImportant);
+	fluid_settings_setnum(fSet, "synth.overflow.released", _fluidConfig->OverflowReleased);
+	fluid_settings_setstr(fSet, "audio.driver", _fluidConfig->Driver.c_str());
+	fluid_settings_setstr(fSet, "audio.sample-format", _fluidConfig->SampleFormat.c_str());
 	fluid_settings_setstr(fSet, "synth.midi-bank-select", "xg");
 
-	if (!Settings->ExperimentalMultiThreaded)
+	if (!_fluidConfig->ExperimentalMultiThreaded)
 		AudioStreamSize = 1;
 
 	for (size_t i = 0; i < AudioStreamSize; i++) {
@@ -254,27 +250,18 @@ bool OmniMIDI::FluidSynth::StartSynthModule() {
 		}
 	}
 
-	if (Settings->IsDebugMode()) {
-		_LogThread = std::jthread(&SynthModule::LogFunc, this);
-		if (!_LogThread.joinable()) {
-			Error("_LogThread failed. (ID: %x)", true, _LogThread.get_id());
-			return false;
-		}
-		else Message("_LogThread running! (ID: %x)", _LogThread.get_id());
-
-		Settings->OpenConsole();
-	}
+	StopDebugOutput();
 
 	LoadSoundFonts();
-	SFSystem.RegisterCallback(this);
+	_sfSystem.RegisterCallback(this);
 
 	Message("fSyn and fDrv are operational. FluidSynth is now working.");
 	return true;
 }
 
 bool OmniMIDI::FluidSynth::StopSynthModule() {
-	SFSystem.RegisterCallback();
-	SFSystem.ClearList();
+	_sfSystem.RegisterCallback();
+	_sfSystem.ClearList();
 
 	for (size_t i = 0; i < AudioStreamSize; i++) {
 		if (AudioDrivers[i]) {
@@ -287,6 +274,8 @@ bool OmniMIDI::FluidSynth::StopSynthModule() {
 			AudioStreams[i] = nullptr;
 		}
 	}
+
+	StopDebugOutput();
 
 	Message("fSyn and fDrv have been freed. FluidSynth is now asleep.");
 	return true;

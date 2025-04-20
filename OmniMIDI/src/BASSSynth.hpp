@@ -323,9 +323,10 @@ namespace OmniMIDI {
 		uint32_t ExtraEvtFlags = 0;
 		std::jthread _BASThread;
 
-		SoundFontSystem SFSystem;
+		BASSSettings* _bassConfig = nullptr;
+		SoundFontSystem _sfSystem;
+
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
-		BASSSettings* Settings = nullptr;
 
 		size_t AudioStreamSize = 1;
 		size_t EvtThreadsSize = 1;
@@ -358,7 +359,7 @@ namespace OmniMIDI {
 		bool StartSynthModule() override;
 		bool StopSynthModule() override;
 		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override;
-		uint32_t GetSampleRate() override { return Settings->SampleRate; }
+		uint32_t GetSampleRate() override { return _bassConfig != nullptr ? _bassConfig->SampleRate : 0; }
 		bool IsSynthInitialized() override { return (AudioStreams != nullptr && AudioStreams[0] != 0); }
 		uint32_t SynthID() override { return 0x1411BA55; }
 

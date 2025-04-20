@@ -16,6 +16,17 @@
 #include <cstdint>
 #include <thread>
 #include <vector>
+#include <thread>
+#include <fstream>
+#include <string>
+#include <filesystem>
+
+#include "Common.hpp"
+#include "ErrSys.hpp"
+#include "Utils.hpp"
+#include "EvBuf_t.hpp"
+#include "KDMAPI.hpp"
+#include "nlohmann/json.hpp"
 
 // ERRORS
 #define SYNTH_OK				0x00
@@ -43,17 +54,6 @@
 #define SYNTHNAME_SZ		64
 #define DUMMY_STR			"dummy"
 #define EMPTYMODULE			0xDEADBEEF
-
-#include "Common.hpp"
-#include "ErrSys.hpp"
-#include "Utils.hpp"
-#include "EvBuf_t.hpp"
-#include "KDMAPI.hpp"
-#include "nlohmann/json.hpp"
-#include <thread>
-#include <fstream>
-#include <string>
-#include <filesystem>
 
 using namespace OMShared;
 
@@ -389,10 +389,11 @@ namespace OmniMIDI {
 
 	class SynthModule {
 	protected:
-		SettingsModule* Settings = nullptr;
-		std::vector<OmniMIDI::SoundFont>* SoundFontsVector = nullptr;
 		OMShared::Funcs Utils;
 		ErrorSystem::Logger* ErrLog = nullptr;
+
+		SettingsModule* _synthConfig = nullptr;
+		std::vector<OmniMIDI::SoundFont>* _sfVec = nullptr;
 
 		std::jthread* _AudThread = nullptr;
 		std::jthread _EvtThread;
@@ -408,14 +409,48 @@ namespace OmniMIDI {
 
 		BEvBuf* ShortEvents = new BaseEvBuf_t;
 		BEvBuf* LongEvents = new BaseEvBuf_t;
+		
+		virtual void StartDebugOutput();
+		virtual void StopDebugOutput();
+		virtual void LogFunc();
+
+		virtual void FreeEvBuf(BEvBuf* target);
+
+		virtual BEvBuf* AllocateShortEvBuf(size_t size);
+		virtual BEvBuf* AllocateLongEvBuf(size_t size);
+
+		virtual void FreeShortEvBuf() { FreeEvBuf(ShortEvents); }
+		virtual void FreeLongEvBuf() { FreeEvBuf(LongEvents); }
+
+		template <class T>
+		T *LoadSynthConfig(){
+			T* ptr = nullptr;
+
+			if (!_synthConfig) {
+				_synthConfig = new T(ErrLog);
+	
+				if (!_synthConfig) {
+					Error("Something went wrong while loading the configuration file!", true);
+					return nullptr;
+				}
+		
+				ptr = (T*)_synthConfig;
+				ptr->LoadSynthConfig();
+			}
+
+			return ptr;
+		}
+
+		void FreeSynthConfig(SettingsModule* ptr) {
+			if (_synthConfig) {
+				ptr = nullptr;
+	
+				delete _synthConfig;
+				_synthConfig = nullptr;
+			}
+		}
 
 	public:
-		constexpr uint8_t GetStatus(uint32_t ev) { return (ev & 0xFF); }
-		constexpr uint8_t GetCommand(uint8_t status) { return (status & 0xF0); }
-		constexpr uint8_t GetChannel(uint8_t status) { return (status & 0xF); }
-		constexpr uint8_t GetFirstParam(uint32_t ev) { return ((ev >> 8) & 0xFF); }
-		constexpr uint8_t GetSecondParam(uint32_t ev) { return ((ev >> 16) & 0xFF); }
-
 		SynthModule() { ErrLog = nullptr; }
 		SynthModule(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
 		virtual ~SynthModule() { }
@@ -434,68 +469,6 @@ namespace OmniMIDI {
 #ifdef _WIN32
 		virtual void SetInstance(HMODULE hModule) { m_hModule = hModule; }
 #endif
-
-		virtual void LogFunc() {
-			const char Templ[] = "R%06.2f%% >> P%llu (Ev%08zu/%08zu)";
-			char* Buf = new char[96];
-
-			while (!IsSynthInitialized())
-				Utils.MicroSleep(SLEEPVAL(1));
-
-			while (IsSynthInitialized()) {
-				sprintf(Buf, Templ, GetRenderingTime(), GetActiveVoices(), ShortEvents->GetReadHeadPos(), ShortEvents->GetWriteHeadPos());
-				SetTerminalTitle(Buf);
-				
-				Utils.MicroSleep(SLEEPVAL(1));
-			}
-
-			sprintf(Buf, Templ, 0.0f, (uint64_t)0, (size_t)0, (size_t)0);
-			SetTerminalTitle(Buf);
-
-			delete[] Buf;
-		}
-
-		virtual void FreeEvBuf(BEvBuf* target) {
-			if (target) {
-				auto tEvents = new BEvBuf;
-				auto oEvents = target;
-
-				target = tEvents;
-
-				delete oEvents;
-			}
-		}
-
-		virtual BEvBuf* AllocateShortEvBuf(size_t size) {
-			if (ShortEvents) {
-				auto tEvents = new EvBuf(size);
-				auto oEvents = ShortEvents;
-
-				ShortEvents = tEvents;
-
-				delete oEvents;
-			}
-
-			// Double check
-			return ShortEvents;
-		}
-
-		virtual BEvBuf* AllocateLongEvBuf(size_t size) {
-			if (LongEvents) {
-				auto tEvents = new LEvBuf(size);
-				auto oEvents = LongEvents;
-
-				LongEvents = tEvents;
-
-				delete oEvents;
-			}
-
-			// Double check
-			return LongEvents;
-		}
-
-		virtual void FreeShortEvBuf() { FreeEvBuf(ShortEvents); }
-		virtual void FreeLongEvBuf() { FreeEvBuf(LongEvents); }
 
 		// Event handling system
 		virtual void PlayShortEvent(uint32_t ev) {
@@ -520,26 +493,26 @@ namespace OmniMIDI {
 
 		virtual SynthResult TalkToSynthDirectly(uint32_t evt, uint32_t chan, uint32_t param) { return Ok; }
 	};
-
+		
 	class SoundFontSystem {
-	private:
-		ErrorSystem::Logger* ErrLog = nullptr;
-		OMShared::Funcs Utils;
-		char* ListPath = nullptr;
-		std::filesystem::file_time_type ListLastEdit;
-		std::vector<SoundFont> SoundFonts;
-		OmniMIDI::SynthModule* SynthModule = nullptr;
-		std::jthread _SFThread;
-		bool StayAwake = false;
-		void SoundFontThread();
-
-	public:
-		SoundFontSystem() { ErrLog = nullptr; }
-		SoundFontSystem(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
-		bool RegisterCallback(OmniMIDI::SynthModule* ptr = nullptr);
-		std::vector<SoundFont>* LoadList(std::string list = "");
-		bool ClearList();
-	};
+		private:
+			ErrorSystem::Logger* ErrLog = nullptr;
+			OMShared::Funcs Utils;
+			char* ListPath = nullptr;
+			std::filesystem::file_time_type ListLastEdit;
+			std::vector<SoundFont> SoundFonts;
+			OmniMIDI::SynthModule* SynthModule = nullptr;
+			std::jthread _SFThread;
+			bool StayAwake = false;
+			void SoundFontThread();
+	
+		public:
+			SoundFontSystem() { ErrLog = nullptr; }
+			SoundFontSystem(ErrorSystem::Logger* PErr) { ErrLog = PErr; }
+			bool RegisterCallback(OmniMIDI::SynthModule* ptr = nullptr);
+			std::vector<SoundFont>* LoadList(std::string list = "");
+			bool ClearList();
+		};	
 }
 
 #endif
