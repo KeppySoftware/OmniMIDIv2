@@ -6,6 +6,7 @@
 
 */
 
+#include <inttypes.h>
 #include "SynthModule.hpp"
 
 void OmniMIDI::SynthModule::StartDebugOutput() {
@@ -32,7 +33,7 @@ void OmniMIDI::SynthModule::StopDebugOutput() {
 }
 
 void OmniMIDI::SynthModule::LogFunc() {
-	const char Templ[] = "R%06.2f%% >> P%llu (Ev%08zu/%08zu)";
+	const char Templ[] = "R%06.2f%% >> P%" PRIu64 " (Ev%08zu/%08zu)";
 	char* Buf = new char[96];
 
 	while (!IsSynthInitialized())
