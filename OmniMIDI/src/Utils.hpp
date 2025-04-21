@@ -27,12 +27,6 @@
 
 #include <shlobj.h>
 
-#define loadLib				LoadLibraryA
-#define getError			GetLastError
-#define freeLib(x)			FreeLibrary((HMODULE)x)
-#define freeLibX(x)			FreeLibraryAndExitThread((HMODULE)x, 0)
-#define getLib				GetModuleHandleA
-#define getAddr(x, y)		GetProcAddress((HMODULE)x, y)
 #define TYPE				%s
 #define TYPENO				TYPE
 #define LIBSUFF				".dll"
@@ -41,13 +35,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#define loadLib(l)			dlopen(l, RTLD_NOW)
-#define getError()			0
-#define freeLib				dlclose
-#define freeLibX			freeLib
-#define getLib()			0
-#define getLibErr()			dlerror
-#define getAddr				dlsym
 #define TYPE				lib%s.so
 #define TYPENO				lib%s
 #define LIBSUFF				".so"
@@ -89,7 +76,7 @@ namespace OMShared {
 	class LibFuncs {
 	public:
 		static void* Load(const char* path);
-		static void Free(void* libPtr);
+		static bool Free(void* libPtr);
 		static void* GetLibraryAddress(const char* name);
 		static void* GetFuncAddress(void* ptr, const char* funcName);
 	};
@@ -111,35 +98,11 @@ namespace OMShared {
 			*(funcptr) = nullptr;
 		}
 
-		void* GetPtr() { return *(funcptr); }
 		const char* GetName() { return funcname; }
 		bool LoadFailed() { return funcptr == nullptr || (funcptr != nullptr && *(funcptr) == nullptr); }
-
-		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr) {
-			void* ptr = nullptr;
-
-			if (lib == nullptr && ptrname == nullptr)
-			{
-				if (funcptr)
-					*(funcptr) = nullptr;
-
-				return true;
-			}
-
-			if (lib == nullptr)
-				return false;
-
-			ptr = (void*)getAddr(lib, ptrname);
-
-			if (!ptr) {
-				return false;
-			}
-
-			if (ptr != *(funcptr))
-				*(funcptr) = ptr;
-
-			return true;
-		}
+		
+		void* GetPtr() { return *(funcptr); }
+		bool SetPtr(void* lib = nullptr, const char* ptrname = nullptr);
 	};
 
 	class Lib {

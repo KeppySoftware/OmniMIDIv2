@@ -8,6 +8,32 @@
 
 #include "Utils.hpp"
 
+bool OMShared::LibImport::SetPtr(void* lib, const char* ptrname) {
+	void* ptr = nullptr;
+
+	if (lib == nullptr && ptrname == nullptr)
+	{
+		if (funcptr)
+			*(funcptr) = nullptr;
+
+		return true;
+	}
+
+	if (lib == nullptr)
+		return false;
+
+	ptr = (void*)LibFuncs::GetFuncAddress(lib, ptrname);
+
+	if (!ptr) {
+		return false;
+	}
+
+	if (ptr != *(funcptr))
+		*(funcptr) = ptr;
+
+	return true;
+}
+
 OMShared::Lib::Lib(const char* pName, const char* pSuffix, ErrorSystem::Logger* PErr, LibImport** pFuncs, size_t pFuncsCount) {
 	ErrLog = PErr;
 	Name = pName;
@@ -64,9 +90,9 @@ bool OMShared::Lib::GetLibPath(char* outPath) {
 		skip = true;
 
 	if (!skip) {
-		auto _ = loadLib(outPath);
+		auto _ = LibFuncs::Load(outPath);
 		if (_ != nullptr) {
-			freeLib(_);
+			LibFuncs::Free(_);
 		}
 	}
 
@@ -119,12 +145,12 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 			snprintf(libPath, MAX_PATH_LONG, "%s/%s", CustomPath, Name);
 		}
 
-		Library = loadLib(libPath == nullptr ? Name : libPath);
+		Library = LibFuncs::Load(libPath == nullptr ? Name : libPath);
 		if (Library == nullptr) {
 			libPath = new char[MAX_PATH_LONG] { 0 };
 
 			if (GetLibPath(libPath)) {
-				Library = loadLib(libPath);
+				Library = LibFuncs::Load(libPath);
 			}
 		}
 	}
@@ -165,7 +191,7 @@ bool OMShared::Lib::UnloadLib() {
 			AppSelfHosted = false;
 		}
 		else {
-			bool r = freeLib(Library);
+			bool r = LibFuncs::Free(Library);
 
 #ifndef _WIN32
 			// flip the boolean for non Win32 OSes
@@ -217,14 +243,14 @@ void* OMShared::LibFuncs::Load(const char* path) {
 #endif
 }
 
-void OMShared::LibFuncs::Free(void* ptr) {
+bool OMShared::LibFuncs::Free(void* ptr) {
 	if (ptr == nullptr)
-		return;
+		return false;
 
 #ifdef _WIN32
-	FreeLibrary((HMODULE)ptr);
+	return FreeLibrary((HMODULE)ptr);
 #else
-	dlclose(ptr);
+	return dlclose(ptr) == 0;
 #endif
 }
 
@@ -244,7 +270,7 @@ void* OMShared::LibFuncs::GetFuncAddress(void* ptr, const char* funcName) {
 		return nullptr;
 
 #ifdef _WIN32
-	return GetProcAddress((HMODULE)ptr, funcName);
+	return (void*)GetProcAddress((HMODULE)ptr, funcName);
 #else
 	return dlsym(ptr, funcName);
 #endif
@@ -285,7 +311,7 @@ OMShared::Funcs::Funcs() {
 OMShared::Funcs::~Funcs() {
 #ifdef _WIN32
 	if (LL) {
-		if (!freeLib(ntdll))
+		if (!LibFuncs::Free(ntdll))
 			exit(GetLastError());
 
 		ntdll = nullptr;

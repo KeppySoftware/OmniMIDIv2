@@ -22,6 +22,8 @@
 
 #define OMV2_PLGVER		MAKEVER(PLGMAJ, PLGMIN, PLGBLD, PLGREV)
 
+using namespace OMShared;
+
 struct PluginFuncs {
 	uint32_t (WINAPI* SupportedAPIVer)() = nullptr;
 	bool (WINAPI* InitPlugin)() = nullptr;

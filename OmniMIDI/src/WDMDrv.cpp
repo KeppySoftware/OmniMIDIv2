@@ -111,9 +111,9 @@ unsigned long WinDriver::DriverMask::GiveCaps(UINT DeviceIdentifier, PVOID CapsP
 WinDriver::DriverCallback::DriverCallback(ErrorSystem::Logger* PErr) {
 	ErrLog = PErr;
 
-	auto winmmHandle = getLib("winmm");
+	auto winmmHandle = LibFuncs::GetLibraryAddress("winmm");
 	if (winmmHandle) {
-		pDrvProc = (drvDefDriverProc)getAddr(winmmHandle, "DefDriverProc");
+		pDrvProc = (drvDefDriverProc)LibFuncs::GetFuncAddress(winmmHandle, "DefDriverProc");
 	}
 }
 
@@ -238,7 +238,7 @@ bool WinDriver::DriverComponent::OpenDriver(MIDIOPENDESC* OpInfStruct, DWORD Cal
 
 	// Check if the app wants a cooked player
 	if (CallbackMode & 0x00000002L) {
-		if (CookedPlayerAddress == NULL) {
+		if (CookedPlayerAddress == 0) {
 			Error("No memory address has been specified for the MIDI_IO_COOKED player.", false);
 			return false;
 		}

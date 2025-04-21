@@ -28,6 +28,8 @@
 #include "ErrSys.hpp"
 #include "Utils.hpp"
 
+using namespace OMShared;
+
 namespace WinDriver {
 	typedef void(CALLBACK* midiOutProc)(HMIDIOUT hmOut, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR Param1, DWORD_PTR Param2);
 	typedef LRESULT(WINAPI* drvDefDriverProc)(DWORD dwDI, HDRVR hdrvr, UINT uMsg, LPARAM lP1, LPARAM lP2);
