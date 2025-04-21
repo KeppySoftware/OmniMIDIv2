@@ -678,10 +678,6 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
 	switch (_bassConfig->AudioEngine) {
 	case Internal:	
-#if defined(_WIN32)
-		deviceFlags |= BASS_DEVICE_DSOUND;
-#endif
-
 		BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 		if (BASS_Init(-1, _bassConfig->SampleRate, BASS_DEVICE_STEREO, 0, nullptr)) {
 			if ((bInfoGood = BASS_GetInfo(&defInfo))) {

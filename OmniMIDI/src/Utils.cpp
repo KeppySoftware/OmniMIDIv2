@@ -206,21 +206,65 @@ bool OMShared::Lib::IsSupported(uint32_t loaded, uint32_t minimum) {
 	return true;
 }
 
+void* OMShared::LibFuncs::Load(const char* path) {
+	if (path == nullptr)
+		return nullptr;
+
+#ifdef _WIN32
+	return LoadLibraryA(path);
+#else
+	return dlopen(path, RTLD_NOW);
+#endif
+}
+
+void OMShared::LibFuncs::Free(void* ptr) {
+	if (ptr == nullptr)
+		return;
+
+#ifdef _WIN32
+	FreeLibrary((HMODULE)ptr);
+#else
+	dlclose(ptr);
+#endif
+}
+
+void* OMShared::LibFuncs::GetLibraryAddress(const char* libName) {
+	if (libName == nullptr)
+		return nullptr;
+
+#ifdef _WIN32
+	return GetModuleHandleA(libName);
+#else
+	return dlopen(libName, RTLD_NOLOAD | RTLD_GLOBAL);
+#endif
+}
+
+void* OMShared::LibFuncs::GetFuncAddress(void* ptr, const char* funcName) {
+	if (ptr == nullptr || funcName == nullptr)
+		return nullptr;
+
+#ifdef _WIN32
+	return GetProcAddress((HMODULE)ptr, funcName);
+#else
+	return dlsym(ptr, funcName);
+#endif
+}
+
 OMShared::Funcs::Funcs() {
 #ifdef _WIN32
 	// There is no equivalent to this in Linux/macOS
-	ntdll = getLib("ntdll");
+	ntdll = LibFuncs::GetLibraryAddress("ntdll");
 
 	if (!ntdll) {
 		LL = true;
-		ntdll = loadLib("ntdll");
+		ntdll = LibFuncs::Load("ntdll");
 	}
 
 	assert(ntdll != 0);
 	if (!ntdll)
 		return;
 
-	auto v1 = (unsigned int (WINAPI*)(unsigned char, signed long long*))getAddr(ntdll, "NtDelayExecution");
+	auto v1 = (uint32_t (WINAPI*)(uint8_t, int64_t*))LibFuncs::GetFuncAddress(ntdll, "NtDelayExecution");
 	assert(v1 != 0);
 
 	if (v1 == nullptr)
@@ -228,7 +272,7 @@ OMShared::Funcs::Funcs() {
 
 	pNtDelayExecution = v1;
 
-	auto v2 = (unsigned int (WINAPI*)(signed long long*))getAddr(ntdll, "NtQuerySystemTime");
+	auto v2 = (uint32_t (WINAPI*)(int64_t*))LibFuncs::GetFuncAddress(ntdll, "NtQuerySystemTime");
 	assert(v2 != 0);
 
 	if (v2 == nullptr)
@@ -249,7 +293,7 @@ OMShared::Funcs::~Funcs() {
 #endif
 }
 
-void OMShared::Funcs::MicroSleep(signed long long v) {
+void OMShared::Funcs::MicroSleep(int64_t v) {
 	if (v == 0)
 		return;
 
@@ -260,13 +304,13 @@ void OMShared::Funcs::MicroSleep(signed long long v) {
 #endif
 }
 
-uint32_t OMShared::Funcs::QuerySystemTime(signed long long* v) {
+uint32_t OMShared::Funcs::QuerySystemTime(int64_t* v) {
 #ifdef _WIN32
 	return pNtQuerySystemTime(v);
 #else
 	struct timeval tnow;
 	gettimeofday(&tnow, 0);
-	*v = tnow.tv_sec * (unsigned long long)10000000 + (((369 * 365 + 89) * (unsigned long long)86400) * 10000000);
+	*v = tnow.tv_sec * (uint64_t)10000000 + (((369 * 365 + 89) * (uint64_t)86400) * 10000000);
 	*v += tnow.tv_usec * 10;
 	return 0;
 #endif

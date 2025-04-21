@@ -86,6 +86,14 @@ namespace OMShared {
 		unsigned int GetRaw() { return GetHiWord() << 16 | GetLoWord(); }
 	};
 
+	class LibFuncs {
+	public:
+		static void* Load(const char* path);
+		static void Free(void* libPtr);
+		static void* GetLibraryAddress(const char* name);
+		static void* GetFuncAddress(void* ptr, const char* funcName);
+	};
+	
 	class LibImport
 	{
 	protected:
@@ -168,8 +176,8 @@ namespace OMShared {
 	private:
 		void* ntdll = nullptr;
 		bool LL = false;
-		uint32_t (WINAPI* pNtDelayExecution)(unsigned char, signed long long*) = nullptr;
-		uint32_t (WINAPI* pNtQuerySystemTime)(signed long long*) = nullptr;
+		uint32_t (WINAPI* pNtDelayExecution)(uint8_t, int64_t*) = nullptr;
+		uint32_t (WINAPI* pNtQuerySystemTime)(int64_t*) = nullptr;
 #endif
 
 	public:
