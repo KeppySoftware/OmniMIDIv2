@@ -249,7 +249,7 @@ OMShared::Funcs::~Funcs() {
 #endif
 }
 
-void OMShared::Funcs::MicroSleep(signed long long v) {
+void OMShared::Funcs::MicroSleep(int64_t v) {
 	if (v == 0)
 		return;
 
@@ -260,7 +260,7 @@ void OMShared::Funcs::MicroSleep(signed long long v) {
 #endif
 }
 
-uint32_t OMShared::Funcs::QuerySystemTime(signed long long* v) {
+uint32_t OMShared::Funcs::QuerySystemTime(int64_t* v) {
 #ifdef _WIN32
 	return pNtQuerySystemTime(v);
 #else
