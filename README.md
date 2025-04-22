@@ -34,7 +34,53 @@ Here's what available with OmniMIDI v2 so far.
 - ✔️ Debug window
 
 ## How to compile
-### Windows
+This guide will help you set up your environment and compile OmniMIDI v2 from source.
+
+### Prerequisites
+
+- [Xmake](https://xmake.io/#/home)
+- A GCC C++ compiler (MinGW or Clang)
+- Git
+
+### Steps
+
+1. **Install Xmake**
+
+   You can install Xmake by following its online guide: https://xmake.io/mirror/guide/installation.html
+
+2. **Download the compiler**
+
+   Download either **MinGW** or **Clang**, then extract and place it somewhere accessible (e.g., `F:\Compilers\MinGW`)
+
+3. **Clone the repo**
+
+   Clone the repo somewhere on your device:
+
+   ```sh
+   git clone https://github.com/KeppySoftware/OmniMIDIv2.git
+   ```
+
+4. **Prepare the project**
+
+   Open a terminal on the newly cloned repo, and navigate to the project's directory:
+
+   ```sh
+   cd OmniMIDI
+   ```
+
+   Then prepare the project for the compile process, and compile it.<br>
+   Replace <pathtosdk> with the full path to your compiler's SDK:
+
+   ```sh
+   xmake f -m release --sdk=<pathtosdk>
+   xmake
+   ```
+
+5. **Test the build**
+
+   Test the build against something that can use it (WinMM under Win32, ALSAMIDI under Linux, KDMAPI for both).
+
+   If you're under Linux, and you want to test the newly created build against a KDMAPI test app, remember to export the build's directory as a valid library loading path, by calling `export LD_LIBRARY_PATH=$PWD` in the terminal.
 
 ## Future of KDMAPI
 [**Keppy's Direct MIDI API**](https://github.com/KeppySoftware/OmniMIDI/blob/master/DeveloperContent/KDMAPI.md), introduced in OmniMIDI *v1*, *will* continue to be supported in OmniMIDI *v2*.
