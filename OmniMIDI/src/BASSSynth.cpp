@@ -657,7 +657,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		(_bassConfig->MonoRendering ? BASS_SAMPLE_MONO : 0) |
 		(_bassConfig->FloatRendering ? BASS_SAMPLE_FLOAT : 0) |
 		(_bassConfig->AsyncMode ? BASS_MIDI_ASYNC : 0) |
-		(_bassConfig->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0);
+		(_bassConfig->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
+		(_bassConfig->DisableEffects ? BASS_MIDI_NOFX : 0);
 
 	if (_bassConfig->AudioEngine < Internal || _bassConfig->AudioEngine > BASSENGINE_COUNT)
 		_bassConfig->AudioEngine = Internal;

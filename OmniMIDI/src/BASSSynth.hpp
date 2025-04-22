@@ -67,6 +67,7 @@ namespace OmniMIDI {
 		bool MonoRendering = false;
 		bool OneThreadMode = false;
 		bool StreamDirectFeed = false;
+		bool DisableEffects = false;
 
 		// EXP
 		const uint8_t ChannelDiv = 16;
@@ -100,6 +101,7 @@ namespace OmniMIDI {
 				ConfGetVal(StreamDirectFeed),
 				ConfGetVal(FloatRendering),
 				ConfGetVal(MonoRendering),
+				ConfGetVal(DisableEffects),
 
 				ConfGetVal(OneThreadMode),
 				ConfGetVal(ExperimentalMultiThreaded),
@@ -145,6 +147,7 @@ namespace OmniMIDI {
 				SynthSetVal(bool, FloatRendering);
 				SynthSetVal(bool, MonoRendering);
 				SynthSetVal(bool, FollowOverlaps);
+				SynthSetVal(bool, DisableEffects);
 				SynthSetVal(int32_t, AudioEngine);
 				SynthSetVal(uint32_t, SampleRate);
 				SynthSetVal(uint32_t, RenderTimeLimit);
