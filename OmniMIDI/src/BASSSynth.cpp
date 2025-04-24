@@ -410,6 +410,29 @@ DWORD CALLBACK OmniMIDI::BASSSynth::AsioEvProc(int, DWORD, void* buffer, DWORD l
 #endif
 
 bool OmniMIDI::BASSSynth::LoadFuncs() {
+	auto ptr = (LibImport*)LibImports;
+
+	if (!BAudLib)
+		BAudLib = new Lib("bass", nullptr, ErrLog, &ptr, LibImportsSize);
+
+	if (!BMidLib)
+		BMidLib = new Lib("bassmidi", nullptr, ErrLog, &ptr, LibImportsSize);
+
+	if (!BEfxLib)
+		BEfxLib = new Lib("bass_fx", nullptr, ErrLog, &ptr, LibImportsSize);
+
+#if defined(_WIN32)
+	if (!BWasLib)
+		BWasLib = new Lib("basswasapi", nullptr, ErrLog, &ptr, LibImportsSize);
+
+	if (!BAsiLib)
+		BAsiLib = new Lib("bassasio", nullptr, ErrLog, &ptr, LibImportsSize);
+#endif
+
+	// Plugins	
+	if (!BFlaLib)
+		BFlaLib = new Lib("bassflac", nullptr, ErrLog);
+
 	// Load required libs
 	if (!BAudLib->LoadLib())
 		return false;
@@ -548,32 +571,10 @@ void OmniMIDI::BASSSynth::BASSThread() {
 }
 
 bool OmniMIDI::BASSSynth::LoadSynthModule() {
-	auto ptr = (LibImport*)LibImports;
 	_bassConfig = LoadSynthConfig<BASSSettings>();
 
 	if (_bassConfig == nullptr)
 		return false;
-
-	if (!BAudLib)
-		BAudLib = new Lib("bass", nullptr, ErrLog, &ptr, LibImportsSize);
-
-	if (!BMidLib)
-		BMidLib = new Lib("bassmidi", nullptr, ErrLog, &ptr, LibImportsSize);
-
-	if (!BEfxLib)
-		BEfxLib = new Lib("bass_fx", nullptr, ErrLog, &ptr, LibImportsSize);
-
-#if defined(_WIN32)
-	if (!BWasLib)
-		BWasLib = new Lib("basswasapi", nullptr, ErrLog, &ptr, LibImportsSize);
-
-	if (!BAsiLib)
-		BAsiLib = new Lib("bassasio", nullptr, ErrLog, &ptr, LibImportsSize);
-#endif
-
-	// Plugins	
-	if (!BFlaLib)
-		BFlaLib = new Lib("bassflac", nullptr, ErrLog);
 
 	// LOG(SynErr, L"LoadBASSSynth called.");
 	if (!LoadFuncs()) {

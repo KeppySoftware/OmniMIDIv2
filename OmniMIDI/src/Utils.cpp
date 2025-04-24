@@ -180,34 +180,26 @@ bool OMShared::Lib::LoadLib(char* CustomPath) {
 }
 
 bool OMShared::Lib::UnloadLib() {
-	if (Funcs != nullptr && FuncsCount != 0) {
+	if (Funcs != nullptr && FuncsCount > 0) {
 		for (size_t i = 0; i < FuncsCount; i++)
 			Funcs[i].SetPtr();
 	}
 
 	if (Library != nullptr) {
-		if (AppSelfHosted)
+		if (!AppSelfHosted)
 		{
-			AppSelfHosted = false;
-		}
-		else {
-			bool r = LibFuncs::Free(Library);
+			bool success = LibFuncs::Free(Library);
 
-#ifndef _WIN32
-			// flip the boolean for non Win32 OSes
-			r = !r;
-#endif
-
-			assert(r == true);
-			if (!r) {
+			assert(success == true);
+			if (!success) {
 				Error("A fatal error has occurred while unloading %s!!!", Name);
 			}
 			else Message("%s unloaded.", Name);
 		}
-
-		Library = nullptr;
+		else AppSelfHosted = false;
 	}
 
+	Library = nullptr;
 	LoadFailed = false;
 	Initialized = false;
 	return true;
