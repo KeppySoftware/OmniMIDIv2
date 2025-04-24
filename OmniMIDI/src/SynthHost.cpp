@@ -126,10 +126,12 @@ void OmniMIDI::SynthHost::RefreshSettings() {
 }
 
 bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
+	_hostMutex.lock();
 	RefreshSettings();
 
 	auto newSynth = GetSynth();
 	auto oldSynth = Synth;
+	bool rv = true;
 
 	if (newSynth) {
 		if (newSynth->LoadSynthModule()) {
@@ -141,22 +143,25 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 #ifdef _WIN32 
 				if (StreamPlayer) {
 					if (!SpInit(newSynth))
-						return false;
+						rv = false;
 				}
 #endif
 
-				if (!_HealthThread.joinable()) 
-					_HealthThread = std::jthread(&SynthHost::HostHealthCheck, this);
+				if (rv) {
+					if (!_HealthThread.joinable()) 
+						_HealthThread = std::jthread(&SynthHost::HostHealthCheck, this);
 
-				if (_HealthThread.joinable()) {			
-					Synth = newSynth;
-					delete oldSynth;
-					return true;
+					if (_HealthThread.joinable()) {			
+						Synth = newSynth;
+						delete oldSynth;
+						_hostMutex.unlock();
+						return true;
+					}
+					else Error("_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
+
+					if (!newSynth->StopSynthModule())
+						Fatal("StopSynthModule() failed!!!");
 				}
-				else Error("_HealthThread failed. (ID: %x)", true, _HealthThread.get_id());
-
-				if (!newSynth->StopSynthModule())
-					Fatal("StopSynthModule() failed!!!");
 			}
 			else Error("StartSynthModule() failed! The driver will not output audio.", true);
 		}
@@ -167,11 +172,13 @@ bool OmniMIDI::SynthHost::Start(bool StreamPlayer) {
 		Fatal("UnloadSynthModule() failed!!!");
 
 	delete newSynth;
-
+	_hostMutex.unlock();
 	return false;
 }
 
 bool OmniMIDI::SynthHost::Stop(bool restart) {
+	_hostMutex.lock();
+	
 	auto dummySynth = new SynthModule(ErrLog);
 	auto deadSynth = Synth;
 
@@ -207,6 +214,7 @@ bool OmniMIDI::SynthHost::Stop(bool restart) {
 			_HealthThread.join();
 	}
 
+	_hostMutex.unlock();
 	return true;
 }
 

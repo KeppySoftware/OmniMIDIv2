@@ -493,9 +493,10 @@ extern "C" {
 		Host->PlayShortEvent(ev);
 	}
 
-	EXPORT void WINAPI SendDirectDataNoBuf(uint32_t ev) {
+	EXPORT uint32_t WINAPI SendDirectDataNoBuf(uint32_t ev) {
 		// Unsupported, forward to SendDirectData
 		SendDirectData(ev);
+		return 0;
 	}
 
 	EXPORT uint32_t WINAPI SendDirectLongData(MIDIHDR* IIMidiHdr, UINT IIMidiHdrSize) {

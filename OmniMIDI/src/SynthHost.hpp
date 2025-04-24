@@ -35,8 +35,10 @@ namespace OmniMIDI {
 		OMShared::Funcs Utils;
 		ErrorSystem::Logger* ErrLog = nullptr;
 		SynthModule* Synth = nullptr;
-		HostSettings* _SHSettings = nullptr;
+		
 		std::jthread _HealthThread;
+		HostSettings* _SHSettings = nullptr;
+		std::mutex _hostMutex;
 
 #ifdef _WIN32
 		// From driver lib
