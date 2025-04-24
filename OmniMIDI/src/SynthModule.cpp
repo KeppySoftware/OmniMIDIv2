@@ -357,6 +357,7 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 									SF.xgdrums = subitem["xgdrums"].is_null() ? SF.xgdrums : (bool)subitem["xgdrums"];
 									SF.linattmod = subitem["linattmod"].is_null() ? SF.linattmod : (bool)subitem["linattmod"];
 									SF.lindecvol = subitem["lindecvol"].is_null() ? SF.lindecvol : (bool)subitem["lindecvol"];
+									SF.nofx = subitem["nofx"].is_null() ? SF.minfx : (bool)subitem["nofx"];
 									SF.minfx = subitem["minfx"].is_null() ? SF.minfx : (bool)subitem["minfx"];
 									SF.nolimits = subitem["nolimits"].is_null() ? SF.nolimits : (bool)subitem["nolimits"];
 									SF.norampin = subitem["norampin"].is_null() ? SF.norampin : (bool)subitem["norampin"];

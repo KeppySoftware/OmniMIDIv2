@@ -1135,6 +1135,7 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
 					bmfiflags |= sfItem.xgdrums ? BASS_MIDI_FONT_XGDRUMS : 0;
 					bmfiflags |= sfItem.linattmod ? BASS_MIDI_FONT_LINATTMOD : 0;
 					bmfiflags |= sfItem.lindecvol ? BASS_MIDI_FONT_LINDECVOL : 0;
+					bmfiflags |= sfItem.nofx ? BASS_MIDI_NOFX : 0;
 					bmfiflags |= sfItem.minfx ? BASS_MIDI_FONT_MINFX : 0;
 					bmfiflags |= sfItem.nolimits ? BASS_MIDI_FONT_SBLIMITS : BASS_MIDI_FONT_NOSBLIMITS;
 					bmfiflags |= sfItem.norampin ? BASS_MIDI_FONT_NORAMPIN : 0;

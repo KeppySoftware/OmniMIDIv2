@@ -286,6 +286,7 @@ namespace OmniMIDI {
 		bool xgdrums = false;
 		bool linattmod = false;
 		bool lindecvol = false;
+		bool nofx = false;
 		bool minfx = true;
 		bool nolimits = true;
 		bool norampin = false;
@@ -305,6 +306,7 @@ namespace OmniMIDI {
 					ConfGetVal(xgdrums),
 					ConfGetVal(linattmod),
 					ConfGetVal(lindecvol),
+					ConfGetVal(nofx),
 					ConfGetVal(minfx),
 					ConfGetVal(nolimits),
 					ConfGetVal(norampin),
