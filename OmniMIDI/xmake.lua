@@ -146,7 +146,7 @@ target("libOmniMIDI")
 		set_prefixname("")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("uuid", "shlwapi", "ole32")
+		add_syslinks("uuid", "shlwapi", "ole32", "user32", "shell32")
 		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
 
 		if is_mode("debug") then 
