@@ -96,16 +96,12 @@ target("libOmniMIDI")
 	set_options("statsdev")
 	set_options("useclang")
 
-	if has_config("useclang") then
-		if is_plat("windows") then
-			set_toolchains("clang-cl")
-		else 
+	if is_plat("windows") then
+		set_toolchains("mingw")
+	else 
+		if has_config("useclang") then
 			set_toolchains("clang")
-		end
-	else
-		if is_plat("windows") then
-			set_toolchains("mingw")
-		else 
+		else
 			set_toolchains("gcc")
 		end
 	end
