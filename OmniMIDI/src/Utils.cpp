@@ -402,7 +402,22 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	}
 #endif
 
-	return false;
+	return true;
+}
+
+bool OMShared::Funcs::CreateFolder(char* folderPath, size_t szFolderPath) {
+	// try again
+	fs::path fp = folderPath;
+
+	if (fp.has_filename())
+		fp = fp.remove_filename();
+
+	if (fs::is_directory(fp)) {
+		if (!fs::create_directory(fp))
+			return false;
+	}
+
+	return true;
 }
 
 #ifdef _WIN32

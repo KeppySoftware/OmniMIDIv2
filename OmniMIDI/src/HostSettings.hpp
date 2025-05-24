@@ -38,6 +38,8 @@ namespace OmniMIDI {
 
 			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
 				snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/settings.json", OMPath);
+				Utils.CreateFolder(OMPath, sizeof(OMPath));
+				
 				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 #ifdef _WIN32
 				snprintf(OMBPath, sizeof(OMBPath), "%s/OmniMIDI/blacklist.json", OMBPath);

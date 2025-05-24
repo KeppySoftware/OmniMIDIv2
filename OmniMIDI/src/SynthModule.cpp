@@ -92,7 +92,7 @@ OmniMIDI::BEvBuf* OmniMIDI::SynthModule::AllocateLongEvBuf(size_t size) {
 }
 
 bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, size_t pSynthName_sz) {
-	char* userProfile = new char[MAX_PATH_LONG] { 0 };
+	char userProfile[MAX_PATH_LONG] = { 0 };
 	SettingsPath = new char[MAX_PATH_LONG] { 0 };
 	size_t szSetPath = sizeof(SettingsPath) * MAX_PATH_LONG;
 
@@ -118,11 +118,13 @@ bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, si
 		return false;
 	}
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, MAX_PATH_LONG)) {
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile))) {
 		Message("Utils.GetFolderPath path: %s", userProfile);
 
 		snprintf(SettingsPath, szSetPath, "%s/OmniMIDI/settings.json", userProfile);
 		Message("Configuration path: %s", SettingsPath);
+		
+		Utils.CreateFolder(userProfile, sizeof(userProfile));
 
 		JSONStream->open((char*)SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
 		if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
@@ -323,6 +325,8 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 			listPath = (char*)list.c_str();
 			szListPath = list.size();
 		}
+
+		Utils.CreateFolder(listPath, szListPath);
 
 		std::fstream sfs;
 		sfs.open(listPath, std::fstream::in);

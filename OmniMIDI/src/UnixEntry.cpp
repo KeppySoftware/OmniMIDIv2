@@ -173,6 +173,7 @@ extern "C" {
 #ifdef OM_STANDALONE
 void standalone() {
     int32_t status = 0;
+    uint32_t size = 1 << 30;
 
     try {
         status = snd_seq_open(&seq_handle, "default", SND_SEQ_OPEN_INPUT, SND_SEQ_NONBLOCK);
@@ -199,12 +200,12 @@ void standalone() {
         }
         else Message("snd_seq_set_client_name %x >> virtual port with caps GM/GS/XG", in_port);
 
-        status = snd_seq_set_input_buffer_size(seq_handle, 4194304);
+        status = snd_seq_set_input_buffer_size(seq_handle, size);
         if (status) {
             Error("snd_seq_set_client_name failed.", true);
             return;
         }
-        else Message("snd_seq_set_input_buffer_size >> %x", 4194304);
+        else Message("snd_seq_set_input_buffer_size >> %x", size);
 
         if (Host->Start()) {
             seq_thread = std::jthread(&evThread);
@@ -238,121 +239,133 @@ snd_seq_event_t* readEvent() {
     return ret < 0 ? nullptr : ev;
 }
 
+bool pBuf() {
+    if (auto ev = readEvent()) {
+        snd_seq_event_data_t evData = ev->data;
+        uint32_t evDword = 0;
+
+        switch (ev->type) {
+            case SND_SEQ_EVENT_NOTEON:
+            case SND_SEQ_EVENT_NOTEOFF:
+            {
+                auto noteData = evData.note;
+                    
+                auto vel = noteData.velocity;
+                auto note = noteData.note;
+                auto status = noteData.channel | ((vel < 1 || ev->type == SND_SEQ_EVENT_NOTEOFF) ? MIDI_CMD_NOTE_OFF : MIDI_CMD_NOTE_ON);
+
+                evDword = status | note << 8 | vel << 16;
+                break;
+            }
+                
+            case SND_SEQ_EVENT_KEYPRESS:
+            {
+                auto noteData = evData.note;
+
+                auto pressure = noteData.velocity;
+                auto note = noteData.note;
+                auto status = noteData.channel | MIDI_CMD_NOTE_PRESSURE;
+
+                evDword = status | note << 8 | pressure << 16;
+                break;
+            }
+
+            case SND_SEQ_EVENT_CONTROLLER:
+            case SND_SEQ_EVENT_CHANPRESS:
+            case SND_SEQ_EVENT_PGMCHANGE:         
+            case SND_SEQ_EVENT_PITCHBEND:
+            case SND_SEQ_EVENT_CONTROL14:
+            case SND_SEQ_EVENT_REGPARAM:
+            case SND_SEQ_EVENT_NONREGPARAM:
+            {
+                auto ctrlData = evData.control;
+                auto cc = ctrlData.param;
+                auto cv = ctrlData.value;
+                auto status = ctrlData.channel;
+
+                switch (ev->type) {
+                    case SND_SEQ_EVENT_CONTROLLER:
+                        status |= MIDI_CMD_CONTROL;
+                        break;
+
+                    case SND_SEQ_EVENT_CHANPRESS:
+                        status |= MIDI_CMD_CHANNEL_PRESSURE;
+                        break;
+
+                    default:
+                        break;
+                }
+
+                if (ev->type == SND_SEQ_EVENT_PGMCHANGE) {
+                    evDword = (status | MIDI_CMD_PGM_CHANGE) | cv << 8;
+                    break;
+                }
+
+                if (ev->type == SND_SEQ_EVENT_PITCHBEND) {
+                    evDword = (status | MIDI_CMD_BENDER) | ((unsigned short)((short)cv + 0x2000) << 0x9);
+                    break;
+                }
+
+                evDword = status | cc << 8 | cv << 16;
+                break;
+            }
+
+            case SND_SEQ_EVENT_SYSEX:
+            {
+                auto sysexData = evData.ext;
+                char* ptr = (char*)sysexData.ptr;
+                size_t len = sysexData.len;
+
+                char* fixBuf = new char[len + 2] { 0 };
+                fixBuf[0] = 0xF0;
+                memcpy(fixBuf + 1, ptr, len);
+                fixBuf[len] = 0xF7;
+
+                Host->PlayLongEvent(fixBuf, len);
+                delete[] fixBuf;
+
+                return true;
+            }
+
+            case SND_SEQ_EVENT_RESET:
+            {
+                Host->Reset();
+                return true;
+            }
+
+            case SND_SEQ_EVENT_PORT_SUBSCRIBED:
+            case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
+            {
+                auto subData = evData.connect;
+                Message("Client %s: %x:%x", ev->type == SND_SEQ_EVENT_PORT_SUBSCRIBED ? "connected" : "disconnected", subData.sender.client, subData.sender.port);
+                Host->Reset();
+                break;
+            }
+
+            default:
+                Message("Unknown event %x (type %x)", evData.raw32.d[0], ev->type);
+                return true;
+        }
+
+        Host->PlayShortEvent(evDword);
+        return true;
+    }
+
+    return false;
+}
+
 void evThread() {
     while (!Host->IsSynthInitialized());
 
+    auto ev = readEvent();
+    do {
+        
+    }
+    while (Host->IsSynthInitialized() && (ev = readEvent()) != nullptr);
+
     while (Host->IsSynthInitialized()) {
-        auto ev = readEvent();
-
-        if (ev != nullptr) {
-            snd_seq_event_data_t evData = ev->data;
-            uint32_t evDword = 0;
-
-            switch (ev->type) {
-                case SND_SEQ_EVENT_NOTEON:
-                case SND_SEQ_EVENT_NOTEOFF:
-                {
-                    auto noteData = evData.note;
-
-                    auto vel = noteData.velocity;
-                    auto note = noteData.note;
-                    auto status = noteData.channel | ((vel < 1 || ev->type == SND_SEQ_EVENT_NOTEOFF) ? MIDI_CMD_NOTE_OFF : MIDI_CMD_NOTE_ON);
-
-                    evDword = status | note << 8 | vel << 16;
-                    break;
-                }
-                    
-                case SND_SEQ_EVENT_KEYPRESS:
-                {
-                    auto noteData = evData.note;
-
-                    auto pressure = noteData.velocity;
-                    auto note = noteData.note;
-                    auto status = noteData.channel | MIDI_CMD_NOTE_PRESSURE;
-
-                    evDword = status | note << 8 | pressure << 16;
-                    break;
-                }
-
-                case SND_SEQ_EVENT_CONTROLLER:
-                case SND_SEQ_EVENT_CHANPRESS:
-                case SND_SEQ_EVENT_PGMCHANGE:         
-                case SND_SEQ_EVENT_PITCHBEND:
-                case SND_SEQ_EVENT_CONTROL14:
-                case SND_SEQ_EVENT_REGPARAM:
-                case SND_SEQ_EVENT_NONREGPARAM:
-                {
-                    auto ctrlData = evData.control;
-                    auto cc = ctrlData.param;
-                    auto cv = ctrlData.value;
-                    auto status = ctrlData.channel;
-
-                    switch (ev->type) {
-                        case SND_SEQ_EVENT_CONTROLLER:
-                            status |= MIDI_CMD_CONTROL;
-                            break;
-
-                        case SND_SEQ_EVENT_CHANPRESS:
-                            status |= MIDI_CMD_CHANNEL_PRESSURE;
-                            break;
-
-                        default:
-                            break;
-                    }
-
-                    if (ev->type == SND_SEQ_EVENT_PGMCHANGE) {
-                        evDword = (status | MIDI_CMD_PGM_CHANGE) | cv << 8;
-                        break;
-                    }
-
-                    if (ev->type == SND_SEQ_EVENT_PITCHBEND) {
-                        evDword = (status | MIDI_CMD_BENDER) | ((unsigned short)((short)cv + 0x2000) << 0x9);
-                        break;
-                    }
-
-                    evDword = status | cc << 8 | cv << 16;
-                    break;
-                }
-
-                case SND_SEQ_EVENT_SYSEX:
-                {
-                    auto sysexData = evData.ext;
-                    char* ptr = (char*)sysexData.ptr;
-                    size_t len = sysexData.len;
-
-                    char* fixBuf = new char[len + 2] { 0 };
-                    fixBuf[0] = 0xF0;
-                    memcpy(fixBuf + 1, ptr, len);
-                    fixBuf[len] = 0xF7;
-
-                    Host->PlayLongEvent(fixBuf, len);
-                    delete[] fixBuf;
-
-                    continue;
-                }
-
-                case SND_SEQ_EVENT_RESET:
-                {
-                    Host->Reset();
-                    continue;
-                }
-
-                case SND_SEQ_EVENT_PORT_SUBSCRIBED:
-                case SND_SEQ_EVENT_PORT_UNSUBSCRIBED:
-                {
-                    auto subData = evData.connect;
-                    Message("Client %s: %x:%x", ev->type == SND_SEQ_EVENT_PORT_SUBSCRIBED ? "connected" : "disconnected", subData.sender.client, subData.sender.port);
-                    break;
-                }
-
-                default:
-                    Message("Unknown event %x (type %x)", evData.raw32.d[0], ev->type);
-                    continue;
-            }
-
-            Host->PlayShortEvent(evDword);
-        }
-        else Utils->MicroSleep(SLEEPVAL(1));
+        if (!pBuf()) 
+            Utils->MicroSleep(SLEEPVAL(1));
     }
 }
 #endif

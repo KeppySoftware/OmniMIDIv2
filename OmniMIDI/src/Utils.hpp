@@ -16,8 +16,9 @@
 #include <cstring>
 #include <fstream>
 #include <cassert>
-#include "ErrSys.hpp"
 #include <format>
+#include <filesystem>
+#include "ErrSys.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -42,6 +43,8 @@
 
 #define STREXP(X)			#X
 #define LIBEXP(X)			STREXP(X)
+
+namespace fs = std::filesystem;
 
 namespace OMShared {
 	enum FIDs {
@@ -155,6 +158,7 @@ namespace OMShared {
 #endif
 
 		bool GetFolderPath(const FIDs fID, char* folderPath, size_t szFolderPath);
+		bool CreateFolder(char* folderPath, size_t szFolderPath);
 		bool DoesFileExist(std::string filePath);
 	};
 
