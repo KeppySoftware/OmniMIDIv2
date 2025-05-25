@@ -43,5 +43,6 @@
 .xmake/
 OmniMIDI/.idea/
 OmniMIDI/.vscode/
+OmniMIDI/.xmake/
 OmniMIDI/WIN7DBG/
 .vscode/
