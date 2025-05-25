@@ -7,6 +7,9 @@
 #include <winuser.h>
 
 static void *kdmapi_handle = NULL;
+
+static uint32_t (*lnk_modMessage)(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = NULL;
+
 static int32_t (*lnk_IsKDMAPIAvailable)() = NULL;
 static int32_t (*lnk_InitializeKDMAPIStream)() = NULL;
 static int32_t (*lnk_TerminateKDMAPIStream)() = NULL;
@@ -30,6 +33,7 @@ static BOOL load_kdmapi() {
         return FALSE;
     }
 
+    lnk_modMessage = dlsym(kdmapi_handle, "modMessage"); 
     lnk_IsKDMAPIAvailable = dlsym(kdmapi_handle, "IsKDMAPIAvailable");
     lnk_InitializeKDMAPIStream = dlsym(kdmapi_handle, "InitializeKDMAPIStream");
     lnk_TerminateKDMAPIStream = dlsym(kdmapi_handle, "TerminateKDMAPIStream");
@@ -58,6 +62,10 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason, LPVOID lpReserved)
     }
 
 	return TRUE;
+}
+
+uint32_t WINAPI proxy_modMessage(UINT uDID, UINT dwMsg, DWORD_PTR usrPtr, DWORD_PTR p1, DWORD_PTR p2) {
+    return lnk_modMessage(uDID, dwMsg, usrPtr, p1, p2);
 }
 
 int32_t WINAPI proxy_IsKDMAPIAvailable() {
