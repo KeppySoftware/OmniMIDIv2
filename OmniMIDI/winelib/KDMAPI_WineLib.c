@@ -3,11 +3,36 @@
 #include <stdint.h>
 #include <dlfcn.h>
 #include <windows.h>
+#include <math.h>
 #include <windef.h> /* Part of the Wine header files */
 #include <winuser.h>
 
+#define NAME                "KDMAPI WINELIB"
+#define WNAME               L"KDMAPI WINELIB\0"
+#define MAXPNAMELEN         32
+
+#define MODM_INIT           101
+#define MODM_GETNUMDEVS     1
+#define MODM_GETDEVCAPS     2
+#define MODM_OPEN           3
+#define MODM_CLOSE          4
+#define MODM_PREPARE        5
+#define MODM_UNPREPARE      6
+#define MODM_DATA           7
+#define MODM_LONGDATA       8
+#define MODM_RESET          9
+#define MODM_GETVOLUME      10
+#define MODM_SETVOLUME      11
+#define MODM_CACHEPATCHES       12
+#define MODM_CACHEDRUMPATCHES   13
+
 #define MIDI_IO_PACKED	0x00000000L			// Legacy mode, used by most MIDI apps
 #define MIDI_IO_COOKED	0x00000002L			// Stream mode, used by some old MIDI apps (Such as GZDoom)
+
+#define MANUFACTURERID  0xFFFF
+#define PRODUCTID       0xFFFF
+#define SYNTHTECHN      MOD_SWSYNTH
+#define SYNTHSUPPORT    MIDICAPS_VOLUME | MIDICAPS_STREAM
 
 static void *kdmapi_handle = NULL;
 
@@ -16,8 +41,6 @@ static DWORD dwCallbackMode = CALLBACK_NULL | MIDI_IO_PACKED;
 static DWORD_PTR dwCallback = 0;
 static DWORD_PTR dwInstance = 0;
 static HMIDI dwHMI = NULL;
-
-static uint32_t (*lnk_modMessage)(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = NULL;
 
 static uint32_t (*lnk_ReturnKDMAPIVer)() = NULL;
 static int32_t (*lnk_IsKDMAPIAvailable)() = NULL;
@@ -37,15 +60,11 @@ static uint64_t (*lnk_GetVoiceCount)() = NULL;
 static BOOL load_kdmapi() {
     if (kdmapi_handle != NULL) return TRUE;
 
-    MessageBoxA(NULL, "loading.", "!!!", MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
-
     kdmapi_handle = dlopen("./libOmniMIDI.so", RTLD_NOW);
     if (!kdmapi_handle) {
-        MessageBoxA(NULL, "fail.", "!!!", MB_ICONWARNING | MB_OK | MB_SYSTEMMODAL);
+        MessageBoxA(NULL, "libOmniMIDI.so load failed.", "KDMAPI WINELIB", MB_ICONERROR | MB_OK | MB_SYSTEMMODAL);
         return FALSE;
     }
-
-    lnk_modMessage = dlsym(kdmapi_handle, "modMessage");
 
     lnk_ReturnKDMAPIVer = dlsym(kdmapi_handle, "ReturnKDMAPIVer");
     lnk_IsKDMAPIAvailable = dlsym(kdmapi_handle, "IsKDMAPIAvailable");
@@ -108,7 +127,104 @@ BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason, LPVOID lpReserved)
 }
 
 uint32_t WINAPI proxy_modMessage(UINT uDID, UINT dwMsg, DWORD_PTR usrPtr, DWORD_PTR p1, DWORD_PTR p2) {
-    return lnk_modMessage(uDID, dwMsg, usrPtr, p1, p2);
+    switch (dwMsg) {
+        case MODM_DATA:
+            lnk_SendDirectData(p1);
+            return MMSYSERR_NOERROR;
+        case MODM_LONGDATA:
+            return lnk_SendDirectLongData((PVOID)p1, p2);
+        case MODM_OPEN:
+            return lnk_InitializeKDMAPIStream() ? MMSYSERR_NOERROR : MMSYSERR_ERROR;
+        case MODM_CLOSE:
+            return lnk_TerminateKDMAPIStream() ? MMSYSERR_NOERROR : MMSYSERR_ERROR;
+        case MODM_GETNUMDEVS:
+            return 1;
+        case MODM_GETDEVCAPS:
+            {
+                MIDIOUTCAPSA CapsA;
+                MIDIOUTCAPSW CapsW;
+                MIDIOUTCAPS2A Caps2A;
+                MIDIOUTCAPS2W Caps2W;
+
+                DWORD dummy = 0;
+
+                PVOID CapsPointer = (PVOID)p1;
+                DWORD CapsSize = (DWORD)p2;
+
+                // Why would this happen? Stupid MIDI app dev smh
+                if (CapsPointer == NULL || CapsSize == 0)
+                {
+                    return MMSYSERR_INVALPARAM;
+                }
+
+                // I have to support all this s**t or else it won't work in some apps smh
+                switch (CapsSize) {
+                case (sizeof(MIDIOUTCAPSA)):
+                    strncpy(CapsA.szPname, NAME, MAXPNAMELEN);
+                    CapsA.dwSupport = SYNTHSUPPORT;
+                    CapsA.wChannelMask = 0xFFFF;
+                    CapsA.wMid = MANUFACTURERID;
+                    CapsA.wPid = PRODUCTID;
+                    CapsA.wTechnology = SYNTHTECHN;
+                    CapsA.wNotes = 65535;
+                    CapsA.wVoices = 65535;
+                    CapsA.vDriverVersion = MAKEWORD(6, 2);
+                    memcpy((LPMIDIOUTCAPSA)CapsPointer, &CapsA, fmin(CapsSize, sizeof(CapsA)));
+                    break;
+
+                case (sizeof(MIDIOUTCAPSW)):
+                    wcsncpy(CapsW.szPname, WNAME, MAXPNAMELEN);
+                    CapsW.dwSupport = SYNTHSUPPORT;
+                    CapsW.wChannelMask = 0xFFFF;
+                    CapsW.wMid = MANUFACTURERID;
+                    CapsW.wPid = PRODUCTID;
+                    CapsW.wTechnology = SYNTHTECHN;
+                    CapsW.wNotes = 65535;
+                    CapsW.wVoices = 65535;
+                    CapsW.vDriverVersion = MAKEWORD(6, 2);
+                    memcpy((LPMIDIOUTCAPSW)CapsPointer, &CapsW, fmin(CapsSize, sizeof(CapsW)));
+                    break;
+
+                case (sizeof(MIDIOUTCAPS2A)):
+                    strncpy(Caps2A.szPname, NAME, MAXPNAMELEN);
+                    Caps2A.dwSupport = SYNTHSUPPORT;
+                    Caps2A.wChannelMask = 0xFFFF;
+                    Caps2A.wMid = MANUFACTURERID;
+                    Caps2A.wPid = PRODUCTID;
+                    Caps2A.wTechnology = SYNTHTECHN;
+                    Caps2A.wNotes = 65535;
+                    Caps2A.wVoices = 65535;
+                    Caps2A.vDriverVersion = MAKEWORD(6, 2);
+                    memcpy((LPMIDIOUTCAPS2A)CapsPointer, &Caps2A, fmin(CapsSize, sizeof(Caps2A)));
+                    break;
+
+                case (sizeof(MIDIOUTCAPS2W)):
+                    wcsncpy(Caps2W.szPname, WNAME, MAXPNAMELEN);
+                    Caps2W.dwSupport = SYNTHSUPPORT;
+                    Caps2W.wChannelMask = 0xFFFF;
+                    Caps2W.wMid = MANUFACTURERID;
+                    Caps2W.wPid = PRODUCTID;
+                    Caps2W.wTechnology = SYNTHTECHN;
+                    Caps2W.wNotes = 65535;
+                    Caps2W.wVoices = 65535;
+                    Caps2W.vDriverVersion = MAKEWORD(6, 2);
+                    memcpy((LPMIDIOUTCAPS2W)CapsPointer, &Caps2W, fmin(CapsSize, sizeof(Caps2W)));
+                    break;
+
+                default:
+                    // ???????
+                    return MMSYSERR_INVALPARAM;
+
+                }
+
+                return MMSYSERR_NOERROR;
+            }
+        case MODM_SETVOLUME:
+		case MODM_GETVOLUME:
+            return MMSYSERR_NOTSUPPORTED;
+		default:
+			return MMSYSERR_NOERROR;
+    }
 }
 
 uint32_t WINAPI proxy_ReturnKDMAPIVer() {
