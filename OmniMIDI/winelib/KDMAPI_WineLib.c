@@ -6,7 +6,16 @@
 #include <windef.h> /* Part of the Wine header files */
 #include <winuser.h>
 
+#define MIDI_IO_PACKED	0x00000000L			// Legacy mode, used by most MIDI apps
+#define MIDI_IO_COOKED	0x00000002L			// Stream mode, used by some old MIDI apps (Such as GZDoom)
+
 static void *kdmapi_handle = NULL;
+
+typedef VOID(CALLBACK* WMMC)(HMIDIOUT, DWORD, DWORD_PTR, DWORD_PTR, DWORD_PTR);
+static DWORD dwCallbackMode = CALLBACK_NULL | MIDI_IO_PACKED;
+static DWORD_PTR dwCallback = 0;
+static DWORD_PTR dwInstance = 0;
+static HMIDI dwHMI = NULL;
 
 static uint32_t (*lnk_modMessage)(UINT, UINT, DWORD_PTR, DWORD_PTR, DWORD_PTR) = NULL;
 
@@ -17,6 +26,8 @@ static int32_t (*lnk_TerminateKDMAPIStream)() = NULL;
 static void (*lnk_ResetKDMAPIStream)() = NULL;
 static void (*lnk_SendDirectData)(uint32_t) = NULL;
 static uint32_t (*lnk_SendDirectLongData)(void*, uint32_t) = NULL;
+static uint32_t (*lnk_PrepareLongData)(LPMIDIHDR, UINT) = NULL;
+static uint32_t (*lnk_UnprepareLongData)(LPMIDIHDR, UINT) = NULL;
 static int32_t (*lnk_SendCustomEvent)(uint32_t, uint32_t, uint32_t) = NULL;
 static int32_t (*lnk_DriverSettings)(uint32_t, uint32_t, void*, uint32_t) = NULL;
 static int32_t (*lnk_LoadCustomSoundFontsList)(char*) = NULL;
@@ -43,6 +54,8 @@ static BOOL load_kdmapi() {
     lnk_ResetKDMAPIStream = dlsym(kdmapi_handle, "ResetKDMAPIStream");
     lnk_SendDirectData = dlsym(kdmapi_handle, "SendDirectData");
     lnk_SendDirectLongData = dlsym(kdmapi_handle, "SendDirectLongData");
+    lnk_PrepareLongData = dlsym(kdmapi_handle, "PrepareLongData");
+    lnk_UnprepareLongData = dlsym(kdmapi_handle, "UnprepareLongData");
     lnk_SendCustomEvent = dlsym(kdmapi_handle, "SendCustomEvent");
     lnk_DriverSettings = dlsym(kdmapi_handle, "DriverSettings");
     lnk_LoadCustomSoundFontsList = dlsym(kdmapi_handle, "LoadCustomSoundFontsList");
@@ -50,6 +63,33 @@ static BOOL load_kdmapi() {
     lnk_GetVoiceCount = dlsym(kdmapi_handle, "GetVoiceCount");
 
     return TRUE;
+}
+
+static void DoCallback(DWORD msg, DWORD_PTR p1, DWORD_PTR p2) {
+	switch (dwCallbackMode & CALLBACK_TYPEMASK) {
+	case CALLBACK_FUNCTION:
+	{
+		(*(WMMC)dwCallback)((HMIDIOUT)dwHMI, msg, dwInstance, p1, p2);
+		break;
+	}
+	case CALLBACK_EVENT:
+	{
+		SetEvent((HANDLE)dwCallback);
+		break;
+	}
+	case CALLBACK_THREAD:
+	{
+		PostThreadMessageW((DWORD)dwCallback, msg, p1, p2);
+		break;
+	}
+	case CALLBACK_WINDOW:
+	{
+		PostMessageW((HWND)dwCallback, msg, p1, p2);
+		break;
+	}
+	default:
+		break;
+	}
 }
 
 BOOL APIENTRY DllMain(HANDLE hModule, DWORD ul_reason, LPVOID lpReserved)
@@ -91,11 +131,49 @@ void WINAPI proxy_ResetKDMAPIStream() {
     lnk_ResetKDMAPIStream();
 }
 
+int32_t WINAPI proxy_InitializeCallbackFeatures(HMIDI hmo, DWORD_PTR cb, DWORD_PTR inst, DWORD_PTR usr, DWORD cbmode) {
+    const BOOL check = ((cbmode != 0) && (!cb && !inst));
+
+    if ((cbmode & CALLBACK_TYPEMASK) == CALLBACK_WINDOW) 
+	{
+		if (cb && !IsWindow((HWND)cb))
+		{
+			return FALSE;
+		}
+	}
+
+    // Not supported in Linux
+    if (cbmode & MIDI_IO_COOKED)
+        return FALSE;
+
+    dwHMI = hmo;
+    dwCallback = (DWORD_PTR)(check ? 0 : cb);
+	dwInstance = (DWORD_PTR)(check ? 0 : inst);
+	dwCallbackMode = (DWORD)(check ? 0 : cbmode);
+
+    return TRUE;
+}
+
+void WINAPI proxy_RunCallbackFunction(DWORD msg, DWORD_PTR p1, DWORD_PTR p2) {
+    DoCallback(msg, p1, p2);
+}
+
 void WINAPI proxy_SendDirectData(uint32_t ev) {
     lnk_SendDirectData(ev);
 }
 
 uint32_t WINAPI proxy_SendDirectLongData(void* IIMidiHdr, uint32_t IIMidiHdrSize) {
+    // TODO, LINUX TO WIN32
+    return 0;
+}
+
+uint32_t WINAPI proxy_PrepareLongData(void* IIMidiHdr, uint32_t IIMidiHdrSize) {
+    // TODO, LINUX TO WIN32
+    return 0;
+}
+
+uint32_t WINAPI proxy_UnprepareLongData(void* IIMidiHdr, uint32_t IIMidiHdrSize) {
+    // TODO, LINUX TO WIN32
     return 0;
 }
 
@@ -112,9 +190,15 @@ int32_t WINAPI proxy_LoadCustomSoundFontsList(char* Directory) {
 }
 
 float WINAPI proxy_GetRenderingTime() {
+    if (!lnk_GetRenderingTime)
+        return 0.0f;
+
     return lnk_GetRenderingTime();
 }
 
 uint64_t WINAPI proxy_GetVoiceCount() {
+    if (!lnk_GetVoiceCount)
+        return 0;
+
     return lnk_GetVoiceCount();
 }
