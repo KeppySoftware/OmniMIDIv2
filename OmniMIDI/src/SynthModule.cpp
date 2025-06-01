@@ -94,7 +94,7 @@ OmniMIDI::BEvBuf* OmniMIDI::SynthModule::AllocateLongEvBuf(size_t size) {
 bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, size_t pSynthName_sz) {
 	char userProfile[MAX_PATH_LONG] = { 0 };
 	SettingsPath = new char[MAX_PATH_LONG] { 0 };
-	size_t szSetPath = sizeof(SettingsPath) * MAX_PATH_LONG;
+	size_t szSetPath = sizeof(char) * MAX_PATH_LONG;
 
 	if (JSONStream && JSONStream->is_open())
 		CloseConfig();
@@ -118,13 +118,13 @@ bool OmniMIDI::SettingsModule::InitConfig(bool write, const char* pSynthName, si
 		return false;
 	}
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, sizeof(userProfile))) {
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userProfile, szSetPath)) {
 		Message("Utils.GetFolderPath path: %s", userProfile);
 
 		snprintf(SettingsPath, szSetPath, "%s/OmniMIDI/settings.json", userProfile);
 		Message("Configuration path: %s", SettingsPath);
 		
-		Utils.CreateFolder(userProfile, sizeof(userProfile));
+		Utils.CreateFolder(SettingsPath, szSetPath);
 
 		JSONStream->open((char*)SettingsPath, write ? (std::fstream::out | std::fstream::trunc) : std::fstream::in);
 		if (JSONStream->is_open() && nlohmann::json::accept(*JSONStream, true)) {
@@ -308,23 +308,19 @@ std::vector<OmniMIDI::SoundFont>* OmniMIDI::SoundFontSystem::LoadList(std::strin
 	char OMPath[MAX_PATH_LONG] = { 0 };
 
 	char* listPath = nullptr;
-	size_t szListPath = 0;
+	size_t szListPath = sizeof(char) * MAX_PATH_LONG;
 
 	const char* soundfontPath = nullptr;
 
 	if (SoundFonts.size() > 0)
 		return &SoundFonts;
 
-	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, sizeof(tmpUtils))) {
+	if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, tmpUtils, szListPath)) {
 		if (list.empty()) {
-			snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
+			snprintf(OMPath, szListPath, "%s/OmniMIDI/lists/OmniMIDI_A.json", tmpUtils);
 			listPath = OMPath;
-			szListPath = sizeof(OMPath);
 		}
-		else {
-			listPath = (char*)list.c_str();
-			szListPath = list.size();
-		}
+		else listPath = (char*)list.c_str();
 
 		Utils.CreateFolder(listPath, szListPath);
 

@@ -20,9 +20,11 @@
 #ifdef _DEBUG
 #define NAME                        "OmniMIDI (Debug)"
 #define WNAME                       L"OmniMIDI (Debug)\0"
+#define DEBUGCOMPILE                true
 #else
 #define NAME                        "OmniMIDI"
 #define WNAME                       L"OmniMIDI\0"
+#define DEBUGCOMPILE                false
 #endif
 
 #include <stdint.h>

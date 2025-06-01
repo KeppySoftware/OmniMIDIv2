@@ -14,6 +14,7 @@
 #include <string>
 #include <string_view>
 #include <mutex>
+#include <cinttypes>
 
 #if !defined(_MSC_VER)
 #define __func__ __FUNCTION__

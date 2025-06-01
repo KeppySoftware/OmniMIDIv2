@@ -338,7 +338,7 @@ namespace OmniMIDI {
 		// Default values
 		char Renderer = Synthesizers::BASSMIDI;
 		bool KDMAPIEnabled = true;
-		bool DebugMode = false;
+		bool DebugMode = DEBUGCOMPILE;
 		std::string CustomRenderer = "empty";
 
 		bool IgnoreVelocityRange = false;

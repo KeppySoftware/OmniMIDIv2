@@ -380,10 +380,8 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 		break;
 	case UserFolder:
 	case PluginFolder:
-		if (std::getenv("XDG_CONFIG_HOME") != nullptr) {
-			envPath = std::getenv("XDG_CONFIG_HOME");
-		}
-		else {
+		envPath = std::getenv("XDG_CONFIG_HOME");
+		if (envPath == nullptr || envPath[0] == 0) {
 			// Default to ~/.config
 			static std::string configPath = std::format("{0}/.config", std::getenv("HOME"));
 			envPath = configPath.c_str();
@@ -402,7 +400,7 @@ bool OMShared::Funcs::GetFolderPath(const FIDs FolderID, char* path, size_t szPa
 	}
 #endif
 
-	return true;
+	return false;
 }
 
 bool OMShared::Funcs::CreateFolder(char* folderPath, size_t szFolderPath) {
@@ -412,7 +410,7 @@ bool OMShared::Funcs::CreateFolder(char* folderPath, size_t szFolderPath) {
 	if (fp.has_filename())
 		fp = fp.remove_filename();
 
-	if (fs::is_directory(fp)) {
+	if (!fs::is_directory(fp)) {
 		if (!fs::create_directory(fp))
 			return false;
 	}

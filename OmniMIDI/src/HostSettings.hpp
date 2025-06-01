@@ -29,16 +29,19 @@ namespace OmniMIDI {
 
 		HostSettings(ErrorSystem::Logger* PErr) : SettingsModule(PErr) {
 			// When you initialize Settings(), load OM's own settings by default
-			char OMPath[MAX_PATH] = { 0 };
+			char userFolder[MAX_PATH_LONG] = { 0 };
+			char OMPath[MAX_PATH_LONG] = { 0 };
 
 #ifdef _WIN32
-			char OMBPath[MAX_PATH] = { 0 };
-			char OMDBPath[MAX_PATH] = { 0 };
+			char OMBPath[MAX_PATH_LONG] = { 0 };
+			char OMDBPath[MAX_PATH_LONG] = { 0 };
 #endif
 
-			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, OMPath, sizeof(OMPath))) {
-				snprintf(OMPath, sizeof(OMPath), "%s/OmniMIDI/settings.json", OMPath);
-				Utils.CreateFolder(OMPath, sizeof(OMPath));
+			size_t szPath = sizeof(char) * MAX_PATH_LONG;
+
+			if (Utils.GetFolderPath(OMShared::FIDs::UserFolder, userFolder, szPath)) {
+				snprintf(OMPath, szPath, "%s/OmniMIDI/settings.json", userFolder);
+				Utils.CreateFolder(OMPath, szPath);
 				
 				InitConfig(false, DUMMY_STR, sizeof(DUMMY_STR));
 #ifdef _WIN32
