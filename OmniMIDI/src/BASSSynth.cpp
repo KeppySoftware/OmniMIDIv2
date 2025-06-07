@@ -539,7 +539,7 @@ void OmniMIDI::BASSSynth::EventsThread() {
 }
 
 void OmniMIDI::BASSSynth::BASSThread() {
-	uint32_t itv = 0;
+	uint64_t itv = 0;
 	float buf = 0.0f;
 
 	float rtr = 0.0f;
@@ -553,8 +553,7 @@ void OmniMIDI::BASSSynth::BASSThread() {
 			if (AudioStreams != nullptr && AudioStreams[i] != 0) {
 				BASS_ChannelGetAttribute(AudioStreams[i], BASS_ATTRIB_CPU, &buf);
 				BASS_ChannelGetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_VOICES_ACTIVE, &tv);
-
-				itv += (uint32_t)tv;
+				itv += (uint64_t)tv;
 
 				if (buf > rtr)
 					rtr = buf;
@@ -628,7 +627,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 	uint32_t asioCount = 0, asioDev = 0;
 
 	double asioFreq = (double)_bassConfig->SampleRate;
-	uint8_t leftChID = -1, rightChID = -1;
+	int32_t leftChID = -1, rightChID = -1;
 	const char* lCh = _bassConfig->ASIOLCh.c_str();
 	const char* rCh = _bassConfig->ASIORCh.c_str();
 	const char* dev = _bassConfig->ASIODevice.c_str();
@@ -722,7 +721,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				Error("BASS_MIDI_StreamCreate failed with error 0x%x.", true, BASS_ErrorGetCode());
 				return false;
 			}
-
+			
 			_AudThread[i] = std::jthread(&BASSSynth::AudioThread, this, i);
 			if (!_AudThread[i].joinable()) {
 				Error("_AudThread[%d] failed. (ID: %x)", true, i, _AudThread[i].get_id());
@@ -813,7 +812,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			}
 		}
 
-		Message("Available ASIO channels:");
+		Message("Available ASIO channels (Total: %d):", asioInfo.outputs);
 		for (uint32_t curSrcCh = 0; curSrcCh < asioInfo.outputs; curSrcCh++) {
 			BASS_ASIO_ChannelGetInfo(0, curSrcCh, &chInfo);
 
@@ -830,11 +829,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				Message("%s >> This channel matches what the user requested for the right channel! (ID: %d)",  chInfo.name, rightChID);
 			}
 
-			if (leftChID != (uint32_t)-1 && rightChID != (uint32_t)-1)
+			if (leftChID != -1 && rightChID != -1)
 				break;
 		}
 
-		if (leftChID == (uint32_t)-1 && rightChID == (uint32_t)-1) {
+		if (leftChID == -1 && rightChID == -1) {
 			leftChID = 0;
 			rightChID = 1;
 			Message("No ASIO output channels found, defaulting to CH%d for left and CH%d for right.", leftChID, rightChID);
@@ -863,13 +862,15 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 		}
 		else Message("BASS_Init returned true. (freq: %d, dFlags: %d)", (int)asioFreq, deviceFlags);
 
-		AudioStreams[0] = BASS_MIDI_StreamCreate(16, streamFlags, _bassConfig->SampleRate);
+		AudioStreams[0] = BASS_MIDI_StreamCreate(16, streamFlags, (uint32_t)asioFreq);
 		if (!AudioStreams[0]) {
 			Error("BASS_MIDI_StreamCreate[0] w/ BASS_STREAM_DECODE failed with error 0x%x.", true, BASS_ErrorGetCode());
 			return false;
 		}
+		else Message("BASS_MIDI_StreamCreate returned stream address 0x%x.", AudioStreams[0]);
 
-		if (!noFreqChange) BASS_ASIO_SetRate(asioFreq);
+		if (!noFreqChange && !BASS_ASIO_SetRate(asioFreq))
+			Message("BASS_ASIO_SetRate encountered an error.");
 
 		if (_bassConfig->StreamDirectFeed) asioCheck = BASS_ASIO_ChannelEnableBASS(0, leftChID, AudioStreams[0], 0);
 		else asioCheck = BASS_ASIO_ChannelEnable(0, leftChID, proc, this);
@@ -900,6 +901,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			}
 		}
 
+		Error("BASSASIO encountered error %d while starting up the stream.", true, BASS_ASIO_ErrorGetCode());
 		return false;
 	}
 #endif
@@ -950,7 +952,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 			BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_CPU, (float)_bassConfig->RenderTimeLimit);
 			
 			if (_bassConfig->AsyncMode) {
-				if (BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_EVENTBUF_ASYNC, (float)fsize)) asyncGood++;
+				if (BASS_ChannelSetAttribute(AudioStreams[i], BASS_ATTRIB_MIDI_QUEUE_ASYNC, (float)fsize)) asyncGood++;
 				else Error("AudioStream[%d] >> Failed to set async buffer size!", true, i);
 			}
 		}
