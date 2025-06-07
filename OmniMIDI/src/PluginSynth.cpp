@@ -16,6 +16,15 @@ OmniMIDI::PluginSynth::PluginSynth(const char* pluginName, SettingsModule* sett,
     Plugin = new Lib(pluginName, LIBSUFF, ErrLog);
 }
 
+void OmniMIDI::PluginSynth::PluginThread() {
+	while (IsSynthInitialized()) {
+		RenderingTime = _PluginFuncs->RenderingTime();
+		ActiveVoices = _PluginFuncs->ActiveVoices();
+
+		Utils.MicroSleep(SLEEPVAL(100000));
+	}
+}
+
 bool OmniMIDI::PluginSynth::IsPluginSupported() {
     if (Plugin != nullptr && (Plugin->IsOnline() && _PluginFuncs != nullptr)) {
         return Plugin->IsSupported(_PluginFuncs->SupportedAPIVer(), OMV2_PLGVER);
@@ -47,6 +56,13 @@ bool OmniMIDI::PluginSynth::LoadSynthModule() {
     if (IsPluginSupported()) {
         if (!_PluginFuncs->InitPlugin)
             Error("Excuse me", true);
+
+        _PlgThread = std::jthread(&PluginSynth::PluginThread, this);
+        if (!_PlgThread.joinable()) {
+            Error("_PlgThread failed. (ID: %x)", true, _PlgThread.get_id());
+            return false;
+        }
+        else Message("_PlgThread running! (ID: %x)", _PlgThread.get_id());
 
         StartDebugOutput();
 
@@ -97,6 +113,11 @@ bool OmniMIDI::PluginSynth::UnloadSynthModule() {
         Message("_PluginFuncs set to nullptr");
         _PluginFuncs = nullptr;
     }
+
+	if (_PlgThread.joinable()) {
+		_PlgThread.join();
+		Message("_PlgThread freed.");
+	}
 
     if (Plugin != nullptr && Plugin->IsOnline()) {
         if (!Plugin->UnloadLib()) {

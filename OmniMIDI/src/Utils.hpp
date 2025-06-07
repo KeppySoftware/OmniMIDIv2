@@ -160,6 +160,7 @@ namespace OMShared {
 		bool GetFolderPath(const FIDs fID, char* folderPath, size_t szFolderPath);
 		bool CreateFolder(char* folderPath, size_t szFolderPath);
 		bool DoesFileExist(std::string filePath);
+		bool OpenFile(std::string filePath);
 	};
 
 	class MIDIUtils {

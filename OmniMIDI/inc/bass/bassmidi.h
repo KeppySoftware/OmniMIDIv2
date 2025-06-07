@@ -1,16 +1,8 @@
 /*
-
-	OmniMIDI v15+ (Rewrite) for Windows NT
-
-	This file contains the required code to run the driver under Windows 7 SP1 and later.
-	This file is useful only if you want to compile the driver under Windows, it's not needed for Linux/macOS porting.
-	This header has been modified to work properly with the new rewrite.
-
-	Original header: BASSMIDI 2.4 C/C++ header file
-	Copyright (c) 2006-2022 Un4seen Developments Ltd.
+	BASSMIDI 2.4 C/C++ header file
+	Copyright (c) 2006-2024 Un4seen Developments Ltd.
 
 	See the BASSMIDI.CHM file for more detailed documentation
-
 */
 
 #ifndef _BASSMIDI_H
@@ -58,6 +50,7 @@ typedef DWORD HSOUNDFONT;	// soundfont handle
 #define BASS_SYNC_MIDI_KEYSIG	0x10007
 
 // Additional BASS_MIDI_StreamCreateFile/etc flags
+#define BASS_MIDI_NODRUMPARAMUSER	0x200
 #define BASS_MIDI_NODRUMPARAM	0x400
 #define BASS_MIDI_NOSYSRESET	0x800
 #define BASS_MIDI_DECAYEND		0x1000
@@ -112,9 +105,9 @@ typedef struct {
 #define BASS_MIDI_FONT_EX2		0x2000000	// BASS_MIDI_FONTEX2
 
 typedef struct {
-	const char* name;
-	const char* copyright;
-	const char* comment;
+	const char *name;
+	const char *copyright;
+	const char *comment;
 	DWORD presets;		// number of presets/instruments
 	DWORD samsize;		// total size (in bytes) of the sample data
 	DWORD samload;		// amount of sample data currently loaded
@@ -124,7 +117,7 @@ typedef struct {
 typedef struct {
 	DWORD track;		// track containing marker
 	DWORD pos;			// marker position
-	const char* text;	// marker text
+	const char *text;	// marker text
 } BASS_MIDI_MARK;
 
 // Marker types
@@ -138,6 +131,7 @@ typedef struct {
 #define BASS_MIDI_MARK_TRACK	7	// track name
 #define BASS_MIDI_MARK_INST		8	// instrument name
 #define BASS_MIDI_MARK_TRACKSTART	9	// track start (SMF2)
+#define BASS_MIDI_MARK_SEQSPEC	10	// sequencer-specific
 #define BASS_MIDI_MARK_TICK		0x10000 // flag: get position in ticks (otherwise bytes)
 
 // MIDI events
@@ -280,11 +274,10 @@ typedef struct {
 #define BASS_ATTRIB_MIDI_SPEED		0x12008
 #define BASS_ATTRIB_MIDI_REVERB		0x12009
 #define BASS_ATTRIB_MIDI_VOL		0x1200a
-#define BASS_ATTRIB_MIDI_EVENTBUF_TICK  0x1200b
-#define BASS_ATTRIB_MIDI_EVENTBUF_BYTE  0x1200c
-#define BASS_ATTRIB_MIDI_EVENTBUF_ASYNC 0x1200d
+#define BASS_ATTRIB_MIDI_QUEUE_TICK	0x1200b
+#define BASS_ATTRIB_MIDI_QUEUE_BYTE	0x1200c
+#define BASS_ATTRIB_MIDI_QUEUE_ASYNC	0x1200d
 #define BASS_ATTRIB_MIDI_TRACK_VOL	0x12100 // + track #
-
 
 // Additional tag type
 #define BASS_TAG_MIDI_TRACK	0x11000	// + track #, track text : array of null-terminated ANSI strings
@@ -292,7 +285,7 @@ typedef struct {
 // BASS_ChannelGetLength/GetPosition/SetPosition mode
 #define BASS_POS_MIDI_TICK		2		// tick position
 
-typedef BOOL(CALLBACK MIDIFILTERPROC)(HSTREAM handle, int track, BASS_MIDI_EVENT* event, BOOL seeking, void* user);
+typedef BOOL (CALLBACK MIDIFILTERPROC)(HSTREAM handle, int track, BASS_MIDI_EVENT *event, BOOL seeking, void *user);
 /* Event filtering callback function.
 handle : MIDI stream handle
 track  : Track containing the event

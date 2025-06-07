@@ -44,6 +44,7 @@ namespace OmniMIDI {
 		Lib* Plugin = nullptr;
 		OMv2PEP _PluginEntryPoint = nullptr;
 		PluginFuncs* _PluginFuncs = nullptr;
+		std::jthread _PlgThread;
 
 	public:
 		PluginSynth(const char* pluginName, SettingsModule* sett, ErrorSystem::Logger* PErr);
@@ -55,6 +56,7 @@ namespace OmniMIDI {
 		uint32_t SynthID() override { return 0x504C474E; }
 
 		bool IsPluginSupported();
+		void PluginThread();
 
 		// Event handling system
 		void PlayShortEvent(uint32_t ev) override {

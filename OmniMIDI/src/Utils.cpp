@@ -466,3 +466,27 @@ bool OMShared::Funcs::DoesFileExist(std::string filePath) {
 	return exists;
 #endif
 }
+
+bool OMShared::Funcs::OpenFile(std::string filePath) {
+	if (!DoesFileExist(filePath))
+		return false;
+	
+	char* cStr = (char*)filePath.c_str();
+
+#ifdef _WIN32
+	wchar_t* wStr = GetUTF16(cStr);
+	auto ret = ShellExecuteW(NULL, L"open", wStr, NULL, NULL, SW_SHOW);
+
+	if (ret > (HINSTANCE)32)
+		return true;
+#else
+	char fStr[MAX_PATH_LONG] { 0 };
+	sprintf(fStr, "xdg-open %s &", cStr);
+	auto ret = system(fStr);
+
+	if (!ret)
+		return true;
+#endif
+
+	return false;
+}
