@@ -66,6 +66,7 @@ target("OmniMIDI")
 		add_defines("OM_STANDALONE")
 
 		add_includedirs("inc")
+		add_includedirs("../vcpkg_installed/x64-linux/include/")
 		add_files("src/*.cpp")
 
 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
@@ -130,6 +131,7 @@ target("libOmniMIDI")
 	add_ldflags("-j")
 	add_cxflags("-Wall", "-Wdangling-else")
 
+	add_includedirs("../vcpkg_installed/x64-linux/include/")
 	add_includedirs("inc")
 	add_files("src/*.cpp")
 

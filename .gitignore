@@ -42,7 +42,20 @@
 # OmniMIDIv2
 .xmake/
 OmniMIDI/.idea/
-OmniMIDI/.vscode/
-OmniMIDI/.xmake/
 OmniMIDI/WIN7DBG/
 .vscode/
+build/
+
+# MacOS Cache
+.DS_Store
+
+# Language Server
+.clangd
+
+# Qt Creator generated files
+*.pro.user*
+CMakeLists.txt.user*
+CMakeCache.txt
+
+# vcpkg
+vcpkg_installed/
