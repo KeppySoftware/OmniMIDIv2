@@ -1,0 +1,3 @@
+[submodule "OmniMIDIConfigurator/vcpkg"]
+	path = OmniMIDIConfigurator/vcpkg
+	url = https://github.com/microsoft/vcpkg

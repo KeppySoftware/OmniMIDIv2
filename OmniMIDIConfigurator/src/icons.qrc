@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file alias="OMInfo.png">../../assets/OMInfo.png</file>
+        <file alias="OMConfigurator.png">../../assets/OMConfigurator.png</file>
+    </qresource>
+</RCC>

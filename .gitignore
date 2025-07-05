@@ -38,6 +38,7 @@
 */Debug
 */Release*
 */.vs
+build/
 
 # OmniMIDIv2
 .xmake/
@@ -46,3 +47,12 @@ OmniMIDI/.vscode/
 OmniMIDI/.xmake/
 OmniMIDI/WIN7DBG/
 .vscode/
+
+# Language server
+.clangd
+
+# qtcreator generated files
+*.pro.user*
+CMakeLists.txt.user*
+CMakeCache.txt
+vcpkg_installed/
