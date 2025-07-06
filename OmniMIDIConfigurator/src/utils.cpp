@@ -264,7 +264,7 @@ xsynth:
     FreeLibrary(hLib);
 
 fluidsynth:
-    hLib = LoadLibraryA("fluidsynth.dll");
+    hLib = LoadLibraryA("libfluidsynth-3.dll");
     if (hLib == NULL) {
         v.fluidsynth = "N/A";
         goto finish;
@@ -327,7 +327,7 @@ void Utils::openASIOConfig(std::string name) {
     if (func4 == NULL)
         throw std::runtime_error("Error loading BASSASIO library");
 
-    int device;
+    int device = 0;
     BASS_ASIO_DEVICEINFO info;
     for (int i = 0; func3(i, &info); i++) {
         if (name == std::string(info.name))
