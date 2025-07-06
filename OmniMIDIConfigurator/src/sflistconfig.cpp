@@ -54,7 +54,7 @@ std::vector<SoundFont*> SFListConfig::loadFromDisk() {
                         (std::istreambuf_iterator<char>()));
 
     try {
-        m_list = json::parse(content);
+        m_list = json::parse(content, nullptr, false, true);
         json jsonList = m_list["SoundFonts"];
 
         for (json sf : jsonList) {

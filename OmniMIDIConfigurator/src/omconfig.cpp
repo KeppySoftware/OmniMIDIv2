@@ -16,7 +16,7 @@ void OMConfig::loadFromDisk() {
                         (std::istreambuf_iterator<char>()));
 
     try {
-        m_cfg = json::parse(content)["OmniMIDI"];
+        m_cfg = json::parse(content, nullptr, false, true)["OmniMIDI"];
 
         Renderer = m_cfg.value("Renderer", Renderer);
         DebugMode = m_cfg.value("DebugMode", DebugMode);
