@@ -1,6 +1,7 @@
 #include "bassmidisettings.h"
 #include "./ui_bassmidisettings.h"
 #include "utils.h"
+#include <QMessageBox>
 
 BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
     : QWidget(parent)
@@ -16,9 +17,9 @@ BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
     ui->linuxAudio->hide();
     connect(ui->audioEngine, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::showWinAudioSettings);
     connect(ui->asioReload, &QPushButton::pressed, this, &BASSMIDISettings::reloadASIODevices);
+    connect(ui->asioOpenCfg, &QPushButton::pressed, this, &BASSMIDISettings::openASIOConfig);
 
     reloadASIODevices();
-    // ToDo: configure button
 #endif
 }
 
@@ -36,6 +37,16 @@ void BASSMIDISettings::reloadASIODevices() {
         ui->asioDevice->addItem("N/A", "N/A");
         ui->asioDevice->setEnabled(false);
         QString s = "An error occured while loading the available ASIO devices:\n";
+        QMessageBox::warning(this, WARNING_TITLE, s + e.what());
+    }
+}
+
+void BASSMIDISettings::openASIOConfig() {
+    try {
+        if (ui->asioDevice->currentData() != NULL)
+            Utils::openASIOConfig(ui->asioDevice->currentData().toString().toStdString());
+    } catch (const std::exception &e) {
+        QString s = "An error occured while trying to open the control panel:\n";
         QMessageBox::warning(this, WARNING_TITLE, s + e.what());
     }
 }

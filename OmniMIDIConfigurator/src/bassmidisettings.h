@@ -24,6 +24,7 @@ public:
 #ifdef _WIN32
     void extracted(std::vector<std::string> &list);
     void reloadASIODevices();
+    void openASIOConfig();
 #endif
 
 private:

@@ -14,6 +14,14 @@ typedef struct {
     const char *driver;
 } BASS_ASIO_DEVICEINFO;
 typedef int (*BASS_ASIO_GetDeviceInfo)(unsigned int, BASS_ASIO_DEVICEINFO *info);
+typedef bool (*BASS_ASIO_Init)(int device, DWORD flags);
+typedef bool (*BASS_ASIO_ControlPanel)();
+typedef bool (*BASS_ASIO_Free)();
+
+typedef int (*BASS_GetVersion)();
+typedef int (*BASS_MIDI_GetVersion)();
+typedef uint32_t (*XSynth_GetVersion)();
+typedef char* (*fluid_version_str)();
 #endif
 
 #define MAX_STRING 8192
@@ -197,6 +205,82 @@ fluid:
     dlclose(handle);
 finish:
 #elif defined(_WIN32)
+    HMODULE hLib;
+    BASS_GetVersion func1;
+    BASS_MIDI_GetVersion func2;
+    XSynth_GetVersion func3;
+    fluid_version_str func4;
+
+    hLib = LoadLibraryA("bass.dll");
+    if (hLib == NULL) {
+        v.bass = "N/A";
+        goto bassmidi;
+    }
+
+    func1 = (BASS_GetVersion)GetProcAddress(hLib, "BASS_GetVersion");
+    if (func1 == NULL) {
+        FreeLibrary(hLib);
+        v.bass = "N/A";
+        goto bassmidi;
+    }
+    tmp = func1();
+    v.bass = Utils::versionToString(tmp);
+
+    FreeLibrary(hLib);
+bassmidi:
+    hLib = LoadLibraryA("bassmidi.dll");
+    if (hLib == NULL) {
+        v.bassmidi = "N/A";
+        goto xsynth;
+    }
+
+    func2 = (BASS_MIDI_GetVersion)GetProcAddress(hLib, "BASS_MIDI_GetVersion");
+    if (func2 == NULL) {
+        FreeLibrary(hLib);
+        v.bassmidi = "N/A";
+        goto xsynth;
+    }
+    tmp = func2();
+    v.bassmidi = Utils::versionToString(tmp);
+
+    FreeLibrary(hLib);
+
+xsynth:
+    hLib = LoadLibraryA("xsynth.dll");
+    if (hLib == NULL) {
+        v.xsynth = "N/A";
+        goto fluidsynth;
+    }
+
+    func3 = (XSynth_GetVersion)GetProcAddress(hLib, "XSynth_GetVersion");
+    if (func3 == NULL) {
+        FreeLibrary(hLib);
+        v.xsynth = "N/A";
+        goto fluidsynth;
+    }
+    tmp = func3();
+    v.xsynth = Utils::versionToString(tmp << 8);
+
+    FreeLibrary(hLib);
+
+fluidsynth:
+    hLib = LoadLibraryA("fluidsynth.dll");
+    if (hLib == NULL) {
+        v.fluidsynth = "N/A";
+        goto finish;
+    }
+
+    func4 = (fluid_version_str)GetProcAddress(hLib, "fluid_version_str");
+    if (func4 == NULL) {
+        FreeLibrary(hLib);
+        v.fluidsynth = "N/A";
+        goto finish;
+    }
+    v.fluidsynth = std::string(func4());
+
+    FreeLibrary(hLib);
+
+finish:
 #endif
     return v;
 }
@@ -218,10 +302,45 @@ std::vector<std::string> Utils::getASIODevices() {
         out.push_back(std::string(info.name));
     }
 
+    FreeLibrary(hLib);
     return out;
 }
 
 void Utils::openASIOConfig(std::string name) {
-    // ToDo
+    HMODULE hLib = LoadLibraryA("bassasio.dll");
+    if (hLib == NULL)
+        throw std::runtime_error("Error loading BASSASIO library");
+
+    BASS_ASIO_Init func1 = (BASS_ASIO_Init)GetProcAddress(hLib, "BASS_ASIO_Init");
+    if (func1 == NULL)
+        throw std::runtime_error("Error loading BASSASIO library");
+
+    BASS_ASIO_ControlPanel func2 = (BASS_ASIO_ControlPanel)GetProcAddress(hLib, "BASS_ASIO_ControlPanel");
+    if (func2 == NULL)
+        throw std::runtime_error("Error loading BASSASIO library");
+
+    BASS_ASIO_GetDeviceInfo func3 = (BASS_ASIO_GetDeviceInfo)GetProcAddress(hLib, "BASS_ASIO_GetDeviceInfo");
+    if (func3 == NULL)
+        throw std::runtime_error("Error loading BASSASIO library");
+
+    BASS_ASIO_Free func4 = (BASS_ASIO_Free)GetProcAddress(hLib, "BASS_ASIO_Free");
+    if (func4 == NULL)
+        throw std::runtime_error("Error loading BASSASIO library");
+
+    int device;
+    BASS_ASIO_DEVICEINFO info;
+    for (int i = 0; func3(i, &info); i++) {
+        if (name == std::string(info.name))
+            break;
+        ++device;
+    }
+
+    if (!func1(device, 0))
+        throw std::runtime_error("Error initializing ASIO device");
+    if (!func2())
+        throw std::runtime_error("Error opening ASIO control panel");
+
+    func4();
+    FreeLibrary(hLib);
 }
 #endif

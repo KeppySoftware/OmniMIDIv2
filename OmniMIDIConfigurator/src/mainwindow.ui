@@ -270,7 +270,7 @@
                  <string/>
                 </property>
                 <property name="icon">
-                 <iconset theme="preferences-other"/>
+                 <iconset theme="document-properties"/>
                 </property>
                </widget>
               </item>
@@ -563,8 +563,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>738</width>
-             <height>446</height>
+             <width>746</width>
+             <height>466</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7"/>
@@ -1060,7 +1060,7 @@
      <x>0</x>
      <y>0</y>
      <width>780</width>
-     <height>23</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOmniMIDI">
