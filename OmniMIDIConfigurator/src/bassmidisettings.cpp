@@ -54,13 +54,9 @@ void BASSMIDISettings::openASIOConfig() {
 
 void BASSMIDISettings::showWinAudioSettings(int idx) {
     if (idx == 2) {
-        ui->wasapi->setVisible(false);
-        ui->wasapi->hide();
         ui->asio->setVisible(true);
         ui->asio->show();
     } else {
-        ui->wasapi->setVisible(true);
-        ui->wasapi->show();
         ui->asio->setVisible(false);
         ui->asio->hide();
     }
@@ -82,14 +78,15 @@ void BASSMIDISettings::loadSettings() {
     ui->multithreading->setChecked(m_cfg->ExperimentalMultiThreaded);
     ui->bitDepth->setCurrentIndex(m_cfg->FloatRendering ? 0 : 1);
 #if defined(__linux__)
-    ui->bufferPeriod->setValue(m_cfg->BufPeriod);
+    ui->audioBuffer->setValue(m_cfg->AudioBuf);
+    ui->bufPeriod->setValue(m_cfg->BufPeriod);
 #elif defined(_WIN32)
     ui->audioEngine->setCurrentIndex(m_cfg->AudioEngine);
     showWinAudioSettings(m_cfg->AudioEngine);
     if (m_cfg->AudioEngine == 1) // WASAPI
-        ui->wasabiBuffer->setValue(m_cfg->WASAPIBuf);
+        ui->audioBuffer->setValue(m_cfg->WASAPIBuf);
     else // Internal
-        ui->wasabiBuffer->setValue(m_cfg->AudioBuf);
+        ui->audioBuffer->setValue(m_cfg->AudioBuf);
     ui->streamDirectFeed->setCheckState(CCS(m_cfg->StreamDirectFeed));
     ui->asioChunksDivision->setValue(m_cfg->ASIOChunksDivision);
     ui->asioLCh->setValue(std::stoi(m_cfg->ASIOLCh));
@@ -119,13 +116,14 @@ void BASSMIDISettings::storeSettings() {
     m_cfg->ExperimentalMultiThreaded = ui->multithreading->isChecked();
     m_cfg->FloatRendering = ui->bitDepth->currentIndex() == 0;
 #if defined(__linux__)
-    m_cfg->BufPeriod = ui->bufferPeriod->value();
+    m_cfg->BufPeriod = ui->bufPeriod->value();
+    m_cfg->AudioBuf = ui->audioBuffer->value();
 #elif defined(_WIN32)
     m_cfg->AudioEngine = ui->audioEngine->currentIndex();
     if (m_cfg->AudioEngine == 1)
-        m_cfg->WASAPIBuf = ui->wasabiBuffer->value();
+        m_cfg->WASAPIBuf = ui->audioBuffer->value();
     else
-        m_cfg->AudioBuf = ui->wasabiBuffer->value();
+        m_cfg->AudioBuf = ui->audioBuffer->value();
     m_cfg->StreamDirectFeed = ui->streamDirectFeed->isChecked();
     m_cfg->ASIOChunksDivision = ui->asioChunksDivision->value();
     m_cfg->ASIOLCh = std::to_string(ui->asioLCh->value());
@@ -140,6 +138,6 @@ QWidget *BASSMIDISettings::getWidget() {
 }
 
 BASSMIDISettings::~BASSMIDISettings() {
-    delete m_cfg;
+    //delete m_cfg;
     delete ui;
 }

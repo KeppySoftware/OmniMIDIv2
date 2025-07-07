@@ -22,11 +22,10 @@ public:
     uint32_t SampleRate = 48000;
     uint32_t VoiceLimit = 1024;
     int32_t AudioEngine = 0;
+    uint32_t AudioBuf = 10;
 #ifndef _WIN32
     uint32_t BufPeriod = 480;
 #else
-    uint32_t AudioBuf = 10;
-
     // WASAPI
     float WASAPIBuf = 32.0f;
 

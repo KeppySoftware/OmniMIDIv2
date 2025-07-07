@@ -145,7 +145,16 @@ void SoundFontList::replaceList(SFListConfig *list) {
 }
 
 void SoundFontList::getData() {
-    auto list = m_list->loadFromDisk();
+    this->clear();
+    std::vector<SoundFont*> list;
+
+    try {
+        list = m_list->loadFromDisk();
+    } catch (const std::exception &e) {
+        QString s = "An error occured while loading the soundfont list:\n";
+        QMessageBox::warning(this, WARNING_TITLE, s + e.what());
+        return;
+    }
 
     for (std::vector<SoundFont *>::reverse_iterator sf = list.rbegin();
          sf != list.rend(); ++sf)
@@ -167,7 +176,13 @@ void SoundFontList::saveData() {
         list.push_back(sf);
     }
 
-    m_list->storeToDisk(list);
+    try {
+        m_list->storeToDisk(list);
+    } catch (const std::exception &e) {
+        QString s = "An error occured while saving the soundfont list:\n";
+        QMessageBox::warning(this, WARNING_TITLE, s + e.what());
+        return;
+    }
 }
 
 void SoundFontList::openCfgs() {

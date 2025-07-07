@@ -24,11 +24,11 @@ void BASSConfig::load() {
         ExpMTKeyboardDiv = m_cfg.value("ExpMTKeyboardDiv", ExpMTKeyboardDiv);
         ExpMTVoiceLimit = m_cfg.value("ExpMTVoiceLimit", ExpMTVoiceLimit);
         ExperimentalMultiThreaded = m_cfg.value("ExperimentalMultiThreaded", ExperimentalMultiThreaded);
+        AudioBuf = m_cfg.value("AudioBuf", AudioBuf);
 #if defined(__linux__)
         BufPeriod = m_cfg.value("BufPeriod", BufPeriod);
 #elif defined(_WIN32)
         StreamDirectFeed = m_cfg.value("StreamDirectFeed", StreamDirectFeed);
-        AudioBuf = m_cfg.value("AudioBuf", AudioBuf);
         WASAPIBuf = m_cfg.value("WASAPIBuf", WASAPIBuf);
         ASIOChunksDivision = m_cfg.value("ASIOChunksDivision", ASIOChunksDivision);
         ASIODevice = m_cfg.value("ASIODevice", ASIODevice);
@@ -59,11 +59,11 @@ void BASSConfig::store() {
     m_cfg["ExpMTKeyboardDiv"] = ExpMTKeyboardDiv;
     m_cfg["ExpMTVoiceLimit"] = ExpMTVoiceLimit;
     m_cfg["ExperimentalMultiThreaded"] = ExperimentalMultiThreaded;
+    m_cfg["AudioBuf"] = AudioBuf;
 #if defined(__linux__)
     m_cfg["BufPeriod"] = BufPeriod;
 #elif defined(_WIN32)
     m_cfg["StreamDirectFeed"] = StreamDirectFeed;
-    m_cfg["AudioBuf"] = AudioBuf;
     m_cfg["WASAPIBuf"] = WASAPIBuf;
     m_cfg["ASIOChunksDivision"] = ASIOChunksDivision;
     m_cfg["ASIODevice"] = ASIODevice;
