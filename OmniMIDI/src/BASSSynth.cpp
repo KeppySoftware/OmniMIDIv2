@@ -888,9 +888,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				if (_bassConfig->MonoRendering) Message("Channel %d mirrored to %d for mono rendering. (F%d)", leftChID, rightChID, _bassConfig->MonoRendering);
 				else Message("Channel %d joined to %d for stereo rendering. (F%d)", rightChID, leftChID, _bassConfig->MonoRendering);
 
-				if (!BASS_ASIO_Start(0, 0))
+				if (!BASS_ASIO_Start(0, 0)) {
 					Error("BASS_ASIO_Start failed with error 0x%x. If the code is zero, that means the device encountered an error and aborted the initialization process.", true, BASS_ErrorGetCode());
-
+				}			
 				else {
 					BASS_ASIO_ChannelSetFormat(0, leftChID, BASS_ASIO_FORMAT_FLOAT | BASS_ASIO_FORMAT_DITHER);
 					BASS_ASIO_ChannelSetRate(0, leftChID, asioFreq);
@@ -900,9 +900,10 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 				}
 			}
 		}
-
-		Error("BASSASIO encountered error %d while starting up the stream.", true, BASS_ASIO_ErrorGetCode());
-		return false;
+		else {
+			Error("BASSASIO encountered error %d while starting up the stream.", true, BASS_ASIO_ErrorGetCode());
+			return false;
+		}	
 	}
 #endif
 
