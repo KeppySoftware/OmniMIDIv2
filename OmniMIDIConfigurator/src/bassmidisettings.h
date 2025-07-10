@@ -16,6 +16,7 @@ class BASSMIDISettings : public QWidget, public SynthSettings
 public:
     explicit BASSMIDISettings(QWidget *parent = nullptr, BASSConfig *config = nullptr);
     ~BASSMIDISettings();
+    void updateMTValues();
     void showWinAudioSettings(int idx);
     void loadSettings() override;
     void storeSettings() override;
@@ -24,7 +25,6 @@ public:
 #ifdef _WIN32
     void extracted(std::vector<std::string> &list);
     void reloadASIODevices();
-    void openASIOConfig();
 #endif
 
 private:

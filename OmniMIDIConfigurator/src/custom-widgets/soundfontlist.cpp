@@ -1,7 +1,7 @@
 #include "soundfontlist.h"
 #include <QMessageBox>
 #include <filesystem>
-#include "utils.h"
+#include "../utils.h"
 #include <QHeaderView>
 
 SoundFontList::SoundFontList(QWidget *parent, SFListConfig *list)

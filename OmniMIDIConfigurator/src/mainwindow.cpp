@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "soundfontlist.h"
+#include "custom-widgets/soundfontlist.h"
 #include "./ui_mainwindow.h"
 #include <QMessageBox>
 #include <QFileDialog>

@@ -13,18 +13,18 @@ const std::map<std::string, std::string> audioDrivers  = {
 #if defined(__linux__)
     {"pipewire", "PipeWire"},
     {"alsa", "ALSA"},
-    {"oss", "Open Sound System"},
+    {"oss", "OSS"},
 #elif defined(_WIN32)
     {"wasapi", "WASAPI"},
-    {"dsound", "Microsoft DirectSound"},
-    {"waveout", "Microsoft WaveOut"},
+    {"dsound", "DirectSound"},
+    {"waveout", "WaveOut"},
 #elif defined(__APPLE__)
-    {"coreaudio", "Apple CoreAudio"},
+    {"coreaudio", "CoreAudio"},
 #endif
-    {"jack", "JACK Audio Connection Kit"},
+    {"jack", "JACK"},
     {"pulseaudio", "PulseAudio"},
-    {"portaudio", "PortAudio Library"},
-    {"file", "Driver to output audio to a file"}
+    {"portaudio", "PortAudio"},
+    {"file", "Output to file"}
 };
 
 class FluidSettings : public QWidget, public SynthSettings

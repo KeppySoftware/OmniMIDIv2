@@ -14,8 +14,7 @@ int main(int argc, char *argv[])
     try {
         Utils::InitializeKdmapi();
     } catch (const std::exception &e) {
-        QMessageBox::warning(nullptr, FATAL_ERROR_TITLE, e.what());
-        exit(0);
+        QMessageBox::warning(nullptr, WARNING_TITLE, e.what());
     }
 
     int r = 0;

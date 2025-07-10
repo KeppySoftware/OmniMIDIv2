@@ -305,42 +305,4 @@ std::vector<std::string> Utils::getASIODevices() {
     FreeLibrary(hLib);
     return out;
 }
-
-void Utils::openASIOConfig(std::string name) {
-    HMODULE hLib = LoadLibraryA("bassasio.dll");
-    if (hLib == NULL)
-        throw std::runtime_error("Error loading BASSASIO library");
-
-    BASS_ASIO_Init func1 = (BASS_ASIO_Init)GetProcAddress(hLib, "BASS_ASIO_Init");
-    if (func1 == NULL)
-        throw std::runtime_error("Error loading BASSASIO library");
-
-    BASS_ASIO_ControlPanel func2 = (BASS_ASIO_ControlPanel)GetProcAddress(hLib, "BASS_ASIO_ControlPanel");
-    if (func2 == NULL)
-        throw std::runtime_error("Error loading BASSASIO library");
-
-    BASS_ASIO_GetDeviceInfo func3 = (BASS_ASIO_GetDeviceInfo)GetProcAddress(hLib, "BASS_ASIO_GetDeviceInfo");
-    if (func3 == NULL)
-        throw std::runtime_error("Error loading BASSASIO library");
-
-    BASS_ASIO_Free func4 = (BASS_ASIO_Free)GetProcAddress(hLib, "BASS_ASIO_Free");
-    if (func4 == NULL)
-        throw std::runtime_error("Error loading BASSASIO library");
-
-    int device = 0;
-    BASS_ASIO_DEVICEINFO info;
-    for (int i = 0; func3(i, &info); i++) {
-        if (name == std::string(info.name))
-            break;
-        ++device;
-    }
-
-    if (!func1(device, 0))
-        throw std::runtime_error("Error initializing ASIO device");
-    if (!func2())
-        throw std::runtime_error("Error opening ASIO control panel");
-
-    func4();
-    FreeLibrary(hLib);
-}
 #endif

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>544</width>
+    <width>666</width>
     <height>695</height>
    </rect>
   </property>
@@ -76,15 +76,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
-       <widget class="QSpinBox" name="sampleRate">
-        <property name="maximum">
-         <number>999999999</number>
-        </property>
-       </widget>
-      </item>
       <item row="5" column="1">
        <widget class="QSpinBox" name="periods">
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="toolTip">
          <string/>
         </property>
@@ -98,6 +97,12 @@
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="label_5">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="text">
          <string>Sample Rate (Hz)</string>
         </property>
@@ -141,7 +146,7 @@
          <item>
           <widget class="QPushButton" name="pushButton">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of the audio buffers used by the driver. This number&lt;/p&gt;&lt;p&gt;of buffers, multiplied by the period size, determines the maximum&lt;/p&gt;&lt;p&gt;latency of the audio driver. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The number of the audio buffers used by the driver. This number of buffers, multiplied by the period size, determines the maximum latency of the audio driver. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -188,7 +193,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_2">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the number of audio samples most audio drivers will&lt;/p&gt;&lt;p&gt;request from the synth at one time. Specifying too big numbers&lt;/p&gt;&lt;p&gt;here may cause MIDI events to be poorly quantized (=untimed)&lt;/p&gt;&lt;p&gt;when a MIDI driver or the synth's API directly is used, as fluidsynth&lt;/p&gt;&lt;p&gt;cannot determine when those events are to arrive. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This is the number of audio samples most audio drivers will request from the synth at one time. Specifying too big numbers here may cause MIDI events to be poorly quantized (=untimed) when a MIDI driver or the synth's API directly is used, as fluidsynth cannot determine when those events are to arrive. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -202,6 +207,16 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="SampleRateSelector" name="sampleRate">
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>0</height>
+         </size>
+        </property>
        </widget>
       </item>
      </layout>
@@ -294,7 +309,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_3">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the minimum note duration in milliseconds. This ensures&lt;/p&gt;&lt;p&gt;that really short duration note events, such as percussion notes,&lt;/p&gt;&lt;p&gt;have a better chance of sounding as intended. Set to 0 to disable&lt;/p&gt;&lt;p&gt;this feature.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the minimum note duration in milliseconds. This ensures that really short duration note events, such as percussion notes, have a better chance of sounding as intended. Set to 0 to disable this feature.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -408,7 +423,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_4">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices based on their&lt;/p&gt;&lt;p&gt;current volume. The voice volume is normalized to a value&lt;/p&gt;&lt;p&gt;between 0 and 1 and multiplied with this setting. So voices with&lt;/p&gt;&lt;p&gt;maximum volume get added the full score, voices with only half&lt;/p&gt;&lt;p&gt;that volume get added half of this score. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices based on their current volume. The voice volume is normalized to a value between 0 and 1 and multiplied with this setting. So voices with maximum volume get added the full score, voices with only half that volume get added half of this score. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -455,7 +470,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_5">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices that have already&lt;/p&gt;&lt;p&gt;received a note-off event. This is usually a negative score, to give&lt;/p&gt;&lt;p&gt;released voices a lower priority so that they are killed first in an&lt;/p&gt;&lt;p&gt;overflow situation. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices that have already received a note-off event. This is usually a negative score, to give released voices a lower priority so that they are killed first in an overflow situation. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -502,7 +517,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_6">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices on a percussion&lt;/p&gt;&lt;p&gt;channel. This is usually a positive score, to give percussion voices&lt;/p&gt;&lt;p&gt;a higher priority and less chance of being killed in an overflow situation. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Sets the overflow priority score added to voices on a percussion channel. This is usually a positive score, to give percussion voices a higher priority and less chance of being killed in an overflow situation. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -549,7 +564,7 @@
          <item>
           <widget class="QPushButton" name="pushButton_7">
            <property name="toolTip">
-            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This score is added to voices on channels marked with the &lt;/p&gt;&lt;p&gt;important-channels setting. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This score is added to voices on channels marked with the important-channels setting. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
             <string/>
@@ -625,6 +640,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SampleRateSelector</class>
+   <extends>QComboBox</extends>
+   <header location="global">../../../../../src/custom-widgets/samplerateselector.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

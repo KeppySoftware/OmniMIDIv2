@@ -17,10 +17,16 @@ BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
     ui->linuxAudio->hide();
     connect(ui->audioEngine, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::showWinAudioSettings);
     connect(ui->asioReload, &QPushButton::pressed, this, &BASSMIDISettings::reloadASIODevices);
-    connect(ui->asioOpenCfg, &QPushButton::pressed, this, &BASSMIDISettings::openASIOConfig);
 
     reloadASIODevices();
 #endif
+    connect(ui->globalVoiceLimit, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
+    connect(ui->mtKbDivs, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
+}
+
+void BASSMIDISettings::updateMTValues() {
+    ui->mtVLthread->setText(QString::number(ui->globalVoiceLimit->value()));
+    ui->mtVLtotal->setText(QString::number(ui->globalVoiceLimit->value() * ui->mtKbDivs->value()));
 }
 
 #ifdef _WIN32
@@ -40,16 +46,6 @@ void BASSMIDISettings::reloadASIODevices() {
         QMessageBox::warning(this, WARNING_TITLE, s + e.what());
     }
 }
-
-void BASSMIDISettings::openASIOConfig() {
-    try {
-        if (ui->asioDevice->currentData() != NULL)
-            Utils::openASIOConfig(ui->asioDevice->currentData().toString().toStdString());
-    } catch (const std::exception &e) {
-        QString s = "An error occured while trying to open the control panel:\n";
-        QMessageBox::warning(this, WARNING_TITLE, s + e.what());
-    }
-}
 #endif
 
 void BASSMIDISettings::showWinAudioSettings(int idx) {
@@ -65,7 +61,7 @@ void BASSMIDISettings::showWinAudioSettings(int idx) {
 void BASSMIDISettings::loadSettings() {
     ui->evBufSize->setValue(m_cfg->EvBufSize);
     ui->renderTimeLimit->setValue(m_cfg->RenderTimeLimit);
-    ui->sampleRate->setValue(m_cfg->SampleRate);
+    ui->sampleRate->setRate(m_cfg->SampleRate);
     ui->globalVoiceLimit->setValue(m_cfg->VoiceLimit);
     ui->followOverlaps->setCheckState(CCS(m_cfg->FollowOverlaps));
     ui->audioLimiter->setCheckState(CCS(m_cfg->LoudMax));
@@ -74,7 +70,6 @@ void BASSMIDISettings::loadSettings() {
     ui->oneThreadMode->setCheckState(CCS(m_cfg->OneThreadMode));
     ui->disableEffects->setCheckState(CCS(m_cfg->DisableEffects));
     ui->mtKbDivs->setValue(m_cfg->ExpMTKeyboardDiv);
-    ui->mtVoiceLimit->setValue(m_cfg->ExpMTVoiceLimit);
     ui->multithreading->setChecked(m_cfg->ExperimentalMultiThreaded);
     ui->bitDepth->setCurrentIndex(m_cfg->FloatRendering ? 0 : 1);
 #if defined(__linux__)
@@ -104,7 +99,7 @@ void BASSMIDISettings::loadSettings() {
 void BASSMIDISettings::storeSettings() {
     m_cfg->EvBufSize = ui->evBufSize->value();
     m_cfg->RenderTimeLimit = ui->renderTimeLimit->value();
-    m_cfg->SampleRate = ui->sampleRate->value();
+    m_cfg->SampleRate = ui->sampleRate->getRate();
     m_cfg->VoiceLimit = ui->globalVoiceLimit->value();
     m_cfg->FollowOverlaps = ui->followOverlaps->isChecked();
     m_cfg->LoudMax = ui->audioLimiter->isChecked();
@@ -128,7 +123,7 @@ void BASSMIDISettings::storeSettings() {
     m_cfg->ASIOChunksDivision = ui->asioChunksDivision->value();
     m_cfg->ASIOLCh = std::to_string(ui->asioLCh->value());
     m_cfg->ASIORCh = std::to_string(ui->asioRCh->value());
-    if (ui->asioDevice->currentData() != NULL)
+    if (!ui->asioDevice->currentData().isNull())
         m_cfg->ASIODevice = ui->asioDevice->currentData().toString().toStdString();
 #endif
 }

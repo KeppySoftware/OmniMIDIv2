@@ -46,7 +46,6 @@ public:
     bool DisableEffects = false;
 
     uint8_t ExpMTKeyboardDiv = 4;
-    uint32_t ExpMTVoiceLimit = 128;
     bool ExperimentalMultiThreaded = false;
 
 private:

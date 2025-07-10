@@ -21,7 +21,7 @@ void FluidSettings::loadSettings() {
     }
     ui->audioDriver->setCurrentIndex(driverIndexes[m_cfg->Driver]);
     ui->bitDepth->setCurrentIndex(m_cfg->SampleFormat == "float" ? 0 : 1);
-    ui->sampleRate->setValue(m_cfg->SampleRate);
+    ui->sampleRate->setRate(m_cfg->SampleRate);
     ui->periods->setValue(m_cfg->Periods);
     ui->periodSize->setValue(m_cfg->PeriodSize);
     ui->voiceLimit->setValue(m_cfg->VoiceLimit);
@@ -38,7 +38,7 @@ void FluidSettings::loadSettings() {
 void FluidSettings::storeSettings() {
     m_cfg->Driver = driverIndexes[ui->audioDriver->currentText().toStdString()];
     m_cfg->SampleFormat = ui->bitDepth->currentIndex() == 0 ? "float" : "16bits";
-    m_cfg->SampleRate = ui->sampleRate->value();
+    m_cfg->SampleRate = ui->sampleRate->getRate();
     m_cfg->Periods = ui->periods->value();
     m_cfg->PeriodSize = ui->periodSize->value();
     m_cfg->VoiceLimit = ui->voiceLimit->value();

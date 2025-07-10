@@ -1119,7 +1119,7 @@
   <customwidget>
    <class>SoundFontList</class>
    <extends>QTreeWidget</extends>
-   <header>../../../../../src/soundfontlist.h</header>
+   <header>../../../../../src/custom-widgets/soundfontlist.h</header>
   </customwidget>
  </customwidgets>
  <resources>

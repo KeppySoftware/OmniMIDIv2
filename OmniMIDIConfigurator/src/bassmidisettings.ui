@@ -234,7 +234,7 @@
                <item>
                 <widget class="QPushButton" name="pushButton">
                  <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Each audio output iteration will be divided into&lt;/p&gt;&lt;p&gt;the set amount of chunks. A higher value will&lt;/p&gt;&lt;p&gt;effectively result in a lower output audio buffer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Each audio output iteration will be divided into the set amount of chunks. A higher value will effectively result in a lower output audio buffer.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                  <property name="text">
                   <string/>
@@ -281,13 +281,6 @@
                  </property>
                  <property name="text">
                   <string>ASIO Device</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="asioOpenCfg">
-                 <property name="text">
-                  <string>Configure</string>
                  </property>
                 </widget>
                </item>
@@ -418,25 +411,6 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QSpinBox" name="sampleRate">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>999999999</number>
-           </property>
-          </widget>
-         </item>
          <item row="3" column="0">
           <widget class="QCheckBox" name="asyncMode">
            <property name="text">
@@ -508,6 +482,9 @@
             <number>999999999</number>
            </property>
           </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="SampleRateSelector" name="sampleRate"/>
          </item>
         </layout>
        </widget>
@@ -645,36 +622,6 @@
          <bool>true</bool>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="1">
-          <widget class="QSpinBox" name="mtKbDivs">
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>128</number>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_7">
-           <property name="text">
-            <string>Voice Limit Per Thread (N/A)</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QSpinBox" name="mtVoiceLimit">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="maximum">
-            <number>999999999</number>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0">
           <widget class="QWidget" name="horizontalWidget" native="true">
            <layout class="QHBoxLayout" name="horizontalLayout_5">
@@ -706,7 +653,88 @@
             <item>
              <widget class="QPushButton" name="pushButton_2">
               <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When multithreading is enabled, OmniMIDI will create by default&lt;/p&gt;&lt;p&gt;one thread per MIDI channel (16 threads). This factor will devide&lt;/p&gt;&lt;p&gt;the 128 keys of the MIDI keyboard into chunks for each one of&lt;/p&gt;&lt;p&gt;which, a thread will be created. For example when setting to 4,&lt;/p&gt;&lt;p&gt;the amount of threads will be 16 x 4 = 64 threads. For the best&lt;/p&gt;&lt;p&gt;results, this should be a power of 2.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When multithreading is enabled, OmniMIDI will create by default one thread per MIDI channel (16 threads). This factor will devide the 128 keys of the MIDI keyboard into chunks for each one of which, a thread will be created. For example when setting to 4, the amount of threads will be 16 x 4 = 64 threads. For the best results, this should be a power of 2.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="text">
+               <string/>
+              </property>
+              <property name="icon">
+               <iconset theme="help-about"/>
+              </property>
+              <property name="flat">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="mtKbDivs">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>128</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Voice Limit Per Thread</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="mtVLthread">
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="mtVLtotal">
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QWidget" name="horizontalWidget" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label_9">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Total Voice Limit (approx.)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_3">
+              <property name="toolTip">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To change the voice limit please see the corresponding setting in &amp;quot;Audio Setup&amp;quot;. The voice limit will be set per thread and the total limit will only be reached when maxing out the voices in every thread.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="text">
                <string/>
@@ -743,6 +771,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>SampleRateSelector</class>
+   <extends>QComboBox</extends>
+   <header location="global">../../../../../src/custom-widgets/samplerateselector.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

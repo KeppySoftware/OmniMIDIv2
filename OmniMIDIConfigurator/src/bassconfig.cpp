@@ -22,7 +22,6 @@ void BASSConfig::load() {
         OneThreadMode = m_cfg.value("OneThreadMode", OneThreadMode);
         DisableEffects = m_cfg.value("DisableEffects", DisableEffects);
         ExpMTKeyboardDiv = m_cfg.value("ExpMTKeyboardDiv", ExpMTKeyboardDiv);
-        ExpMTVoiceLimit = m_cfg.value("ExpMTVoiceLimit", ExpMTVoiceLimit);
         ExperimentalMultiThreaded = m_cfg.value("ExperimentalMultiThreaded", ExperimentalMultiThreaded);
         AudioBuf = m_cfg.value("AudioBuf", AudioBuf);
 #if defined(__linux__)
@@ -57,7 +56,6 @@ void BASSConfig::store() {
     m_cfg["OneThreadMode"] = OneThreadMode;
     m_cfg["DisableEffects"] = DisableEffects;
     m_cfg["ExpMTKeyboardDiv"] = ExpMTKeyboardDiv;
-    m_cfg["ExpMTVoiceLimit"] = ExpMTVoiceLimit;
     m_cfg["ExperimentalMultiThreaded"] = ExperimentalMultiThreaded;
     m_cfg["AudioBuf"] = AudioBuf;
 #if defined(__linux__)

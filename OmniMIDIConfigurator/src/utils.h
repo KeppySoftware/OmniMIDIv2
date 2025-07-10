@@ -27,7 +27,6 @@ SynthVersions getSynthVersions();
 
 #ifdef _WIN32
 std::vector<std::string> getASIODevices();
-void openASIOConfig(std::string name);
 #endif
 }
 

@@ -6,8 +6,8 @@
 #include <QDropEvent>
 #include <QMimeData>
 #include <QPainter>
-#include "sflistconfig.h"
-#include "sfsettings.h"
+#include "../sflistconfig.h"
+#include "../sfsettings.h"
 #include <filesystem>
 
 Q_DECLARE_METATYPE(SoundFont*)
