@@ -11,11 +11,11 @@ int main(int argc, char *argv[])
 
     // Important to generate/fix config before starting the configurator
     // Temporary until a new API is implemented
-    try {
-        Utils::InitializeKdmapi();
-    } catch (const std::exception &e) {
-        QMessageBox::warning(nullptr, WARNING_TITLE, e.what());
-    }
+    // try {
+    //     Utils::InitializeKdmapi();
+    // } catch (const std::exception &e) {
+    //     QMessageBox::warning(nullptr, WARNING_TITLE, e.what());
+    // }
 
     int r = 0;
     try {

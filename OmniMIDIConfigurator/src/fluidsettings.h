@@ -9,24 +9,6 @@ namespace Ui {
 class FluidSettings;
 }
 
-const std::map<std::string, std::string> audioDrivers  = {
-#if defined(__linux__)
-    {"pipewire", "PipeWire"},
-    {"alsa", "ALSA"},
-    {"oss", "OSS"},
-#elif defined(_WIN32)
-    {"wasapi", "WASAPI"},
-    {"dsound", "DirectSound"},
-    {"waveout", "WaveOut"},
-#elif defined(__APPLE__)
-    {"coreaudio", "CoreAudio"},
-#endif
-    {"jack", "JACK"},
-    {"pulseaudio", "PulseAudio"},
-    {"portaudio", "PortAudio"},
-    {"file", "Output to file"}
-};
-
 class FluidSettings : public QWidget, public SynthSettings
 {
     Q_OBJECT

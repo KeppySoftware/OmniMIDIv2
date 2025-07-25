@@ -21,7 +21,10 @@ void XSynthConfig::load() {
 }
 
 void XSynthConfig::store() {
-    if (m_cfg.is_null()) return;
+    if (m_cfg.is_null()) {
+        m_cfg = json::parse("{}");
+    }
+
 
     m_cfg["FadeOutKilling"] = FadeOutKilling;
     m_cfg["Interpolation"] = Interpolation;

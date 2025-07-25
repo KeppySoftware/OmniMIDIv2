@@ -9,9 +9,7 @@ FluidSettings::FluidSettings(QWidget *parent, FluidConfig *config)
     , m_cfg(config)
 {
     ui->setupUi(this);
-}
 
-void FluidSettings::loadSettings() {
     // https://www.fluidsynth.org/api/CreatingAudioDriver.html
     int i = 0;
     driverIndexes.clear();
@@ -19,6 +17,9 @@ void FluidSettings::loadSettings() {
         driverIndexes[it.first] = i;
         ui->audioDriver->insertItem(i++, QString::fromStdString(it.second), QString::fromStdString(it.first));
     }
+}
+
+void FluidSettings::loadSettings() {
     ui->audioDriver->setCurrentIndex(driverIndexes[m_cfg->Driver]);
     ui->bitDepth->setCurrentIndex(m_cfg->SampleFormat == "float" ? 0 : 1);
     ui->sampleRate->setRate(m_cfg->SampleRate);
@@ -36,7 +37,7 @@ void FluidSettings::loadSettings() {
 }
 
 void FluidSettings::storeSettings() {
-    m_cfg->Driver = driverIndexes[ui->audioDriver->currentText().toStdString()];
+    m_cfg->Driver = ui->audioDriver->currentData().toString().toStdString();
     m_cfg->SampleFormat = ui->bitDepth->currentIndex() == 0 ? "float" : "16bits";
     m_cfg->SampleRate = ui->sampleRate->getRate();
     m_cfg->Periods = ui->periods->value();

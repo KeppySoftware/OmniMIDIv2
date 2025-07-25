@@ -41,7 +41,10 @@ void BASSConfig::load() {
 }
 
 void BASSConfig::store() {
-    if (m_cfg.is_null()) return;
+    if (m_cfg.is_null()) {
+        m_cfg = json::parse("{}");
+    }
+
 
     m_cfg["EvBufSize"] = EvBufSize;
     m_cfg["RenderTimeLimit"] = RenderTimeLimit;

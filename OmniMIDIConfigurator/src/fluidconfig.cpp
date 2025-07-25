@@ -30,7 +30,9 @@ void FluidConfig::load() {
 }
 
 void FluidConfig::store() {
-    if (m_cfg.is_null()) return;
+    if (m_cfg.is_null()) {
+        m_cfg = json::parse("{}");
+    }
 
     m_cfg["EvBufSize"] = EvBufSize;
     m_cfg["PeriodSize"] = PeriodSize;

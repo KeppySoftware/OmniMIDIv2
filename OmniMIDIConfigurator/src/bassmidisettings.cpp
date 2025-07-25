@@ -26,7 +26,7 @@ BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
 
 void BASSMIDISettings::updateMTValues() {
     ui->mtVLthread->setText(QString::number(ui->globalVoiceLimit->value()));
-    ui->mtVLtotal->setText(QString::number(ui->globalVoiceLimit->value() * ui->mtKbDivs->value()));
+    ui->mtVLtotal->setText(QString::number(ui->globalVoiceLimit->value() * ui->mtKbDivs->value() * 16));
 }
 
 #ifdef _WIN32

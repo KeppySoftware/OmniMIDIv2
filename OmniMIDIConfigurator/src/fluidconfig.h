@@ -3,6 +3,24 @@
 
 #include "omconfig.h"
 
+static std::map<std::string, std::string> audioDrivers  = {
+#if defined(__linux__)
+    {"pipewire", "PipeWire"},
+    {"alsa", "ALSA"},
+    {"oss", "OSS"},
+#elif defined(_WIN32)
+    {"wasapi", "WASAPI"},
+    {"dsound", "DirectSound"},
+    {"waveout", "WaveOut"},
+#elif defined(__APPLE__)
+    {"coreaudio", "CoreAudio"},
+#endif
+    {"jack", "JACK"},
+    {"pulseaudio", "PulseAudio"},
+    {"portaudio", "PortAudio"},
+    {"file", "Output to file"}
+};
+
 class FluidConfig : public SynthConfig
 {
 public:
@@ -26,7 +44,7 @@ public:
     double OverflowReleased = -10000.0;
     double OverflowImportant = 0.0;
     std::string SampleFormat = "float";
-    std::string Driver = "alsa";
+    std::string Driver = audioDrivers.begin()->first;
     uint32_t SampleRate = 48000;
     uint32_t VoiceLimit = 1024;
 
