@@ -20,7 +20,7 @@
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
 #include "bass/bass_fx.h"
-#define	BASE_IMPORTS				38
+#define	BASE_IMPORTS				43
 
 #if defined(_WIN32)
 #include "bass/bassasio.h"
@@ -58,25 +58,25 @@ namespace OmniMIDI {
 		// Global settings
 		uint64_t EvBufSize = 32768;
 		uint32_t RenderTimeLimit = 95;
-		int32_t AudioEngine = (int)DEFAULT_ENGINE;
+		int32_t AudioAPI = (int)DEFAULT_ENGINE;
 
 		bool FollowOverlaps = false;
-		bool LoudMax = false;
+		bool AudioLimiter = false;
 		bool AsyncMode = true;
-		bool FloatRendering = true;
+		bool FloatingPointAudio = true;
 		bool MonoRendering = false;
 		bool OneThreadMode = false;
 		bool StreamDirectFeed = false;
 		bool DisableEffects = false;
 
 		// EXP
-		const uint8_t ChannelDiv = 16;
-		uint8_t ExpMTKeyboardDiv = 4;
-		uint8_t KeyboardChunk = 128 / ExpMTKeyboardDiv;
+		const uint8_t MultiThreadChDiv = 16;
+		uint8_t MultiThreadKbDiv = 4;
+		uint8_t KeyboardChunk = 128 / MultiThreadKbDiv;
 
-		bool ExperimentalMultiThreaded = false;
-		uint64_t ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
-		uint32_t AudioBuf = 10;
+		bool MultiThreadMode = false;
+		uint64_t MultiThreadMultiplier = MultiThreadChDiv * MultiThreadKbDiv;
+		uint32_t AudioBufSize = 10;
 
 #ifndef _WIN32
 		uint32_t BufPeriod = 480;
@@ -99,21 +99,22 @@ namespace OmniMIDI {
 			nlohmann::json DefConfig = {
 				ConfGetVal(AsyncMode),
 				ConfGetVal(StreamDirectFeed),
-				ConfGetVal(FloatRendering),
+				ConfGetVal(FloatingPointAudio),
 				ConfGetVal(MonoRendering),
 				ConfGetVal(DisableEffects),
 
+				ConfGetVal(MultiThreadMode),
+				ConfGetVal(MultiThreadKbDiv),
+
 				ConfGetVal(OneThreadMode),
-				ConfGetVal(ExperimentalMultiThreaded),
-				ConfGetVal(ExpMTKeyboardDiv),
 				ConfGetVal(FollowOverlaps),
-				ConfGetVal(AudioEngine),
+				ConfGetVal(AudioAPI),
 				ConfGetVal(SampleRate),
 				ConfGetVal(EvBufSize),
-				ConfGetVal(LoudMax),
+				ConfGetVal(AudioLimiter),
 				ConfGetVal(RenderTimeLimit),
 				ConfGetVal(VoiceLimit),
-				ConfGetVal(AudioBuf),
+				ConfGetVal(AudioBufSize),
 
 #if !defined(_WIN32)
 				ConfGetVal(BufPeriod),
@@ -139,20 +140,20 @@ namespace OmniMIDI {
 		void LoadSynthConfig() override {
 			if (InitConfig(false, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
 				SynthSetVal(bool, AsyncMode);
-				SynthSetVal(bool, LoudMax);
+				SynthSetVal(bool, AudioLimiter);
 				SynthSetVal(bool, OneThreadMode);
-				SynthSetVal(bool, ExperimentalMultiThreaded);
-				SynthSetVal(char, ExpMTKeyboardDiv);
+				SynthSetVal(bool, MultiThreadMode);
+				SynthSetVal(char, MultiThreadKbDiv);
 				SynthSetVal(bool, StreamDirectFeed);
-				SynthSetVal(bool, FloatRendering);
+				SynthSetVal(bool, FloatingPointAudio);
 				SynthSetVal(bool, MonoRendering);
 				SynthSetVal(bool, FollowOverlaps);
 				SynthSetVal(bool, DisableEffects);
-				SynthSetVal(int32_t, AudioEngine);
+				SynthSetVal(int32_t, AudioAPI);
 				SynthSetVal(uint32_t, SampleRate);
 				SynthSetVal(uint32_t, RenderTimeLimit);
 				SynthSetVal(uint32_t, VoiceLimit);
-				SynthSetVal(uint32_t, AudioBuf);
+				SynthSetVal(uint32_t, AudioBufSize);
 				SynthSetVal(size_t, EvBufSize);
 
 #if !defined(_WIN32)
@@ -173,15 +174,15 @@ namespace OmniMIDI {
 				if (VoiceLimit < 1 || VoiceLimit > 100000)
 					VoiceLimit = 1024;
 
-				if (AudioEngine < Internal || AudioEngine > BASSENGINE_COUNT)
-					AudioEngine = DEFAULT_ENGINE;
+				if (AudioAPI < Internal || AudioAPI > BASSENGINE_COUNT)
+					AudioAPI = DEFAULT_ENGINE;
 
-				if (ExpMTKeyboardDiv > 128)
-					ExpMTKeyboardDiv = 128;
+				if (MultiThreadKbDiv > 128)
+					MultiThreadKbDiv = 128;
 
 				// Round to nearest power of 2, to avoid issues with pitch bends
-				if ((bool)ExpMTKeyboardDiv && !(ExpMTKeyboardDiv & (ExpMTKeyboardDiv - 1))) {
-					ExpMTKeyboardDiv = (uint8_t)pow(2, ceil(log(ExpMTKeyboardDiv)/log(2)));
+				if ((bool)MultiThreadKbDiv && !(MultiThreadKbDiv & (MultiThreadKbDiv - 1))) {
+					MultiThreadKbDiv = (uint8_t)pow(2, ceil(log(MultiThreadKbDiv)/log(2)));
 				}
 
 #if !defined(_WIN32)
@@ -189,8 +190,8 @@ namespace OmniMIDI {
 					BufPeriod = 480;
 #endif		
 				
-				KeyboardChunk = 128 / ExpMTKeyboardDiv;
-				ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
+				KeyboardChunk = 128 / MultiThreadKbDiv;
+				MultiThreadMultiplier = MultiThreadChDiv * MultiThreadKbDiv;
 
 				return;
 			}
@@ -199,6 +200,67 @@ namespace OmniMIDI {
 				RewriteSynthConfig();
 			}
 		}
+	};
+
+	struct BASSMTBufStruct {
+		float* data = nullptr;
+		bool filled = false;
+	};
+
+	class BASSMTBuf {
+	private:
+		BASSMTBufStruct* _bufPtr = nullptr;
+		size_t _bufCount = 0;
+		uint32_t _bufSize = 0;
+		std::mutex audioBufferMutex;
+
+	public:
+		BASSMTBuf(size_t count, uint32_t size = 0) {
+			_bufCount = count;
+			_bufSize = size;
+
+			if (_bufCount < 1)
+				return;
+			
+			_bufPtr = new BASSMTBufStruct[count] { 0 };
+			if (!_bufPtr)
+				delete this;
+
+			SetBufSize(_bufSize);
+		}
+
+		~BASSMTBuf() {
+			SetBufSize(0);
+
+			if (_bufPtr != nullptr)
+				delete[] _bufPtr;
+
+			_bufPtr = nullptr;
+			_bufCount = 0;
+		}
+
+		void SetBufSize(uint32_t size) {
+			_bufSize = size;
+
+			for (size_t i = 0; i < _bufCount; i++) {
+				if (_bufSize < 1) {
+					if (_bufPtr[i].data != nullptr)
+						delete[] _bufPtr[i].data;
+
+					_bufPtr[i].data = nullptr;
+					continue;
+				}
+	
+				_bufPtr[i].data = new float[_bufSize] { 0.0f };
+				if (!_bufPtr[i].data)
+					delete this;
+			}
+		}
+
+		BASSMTBufStruct* GetBufArray() { return _bufPtr; }
+		BASSMTBufStruct* GetBufPtr(size_t id) { return &_bufPtr[id]; }
+		size_t GetBufCount() { return _bufCount; }
+		uint32_t GetBufSize() { return _bufSize; }
 	};
 
 	class BASSSynth : public SynthModule {
@@ -244,13 +306,18 @@ namespace OmniMIDI {
 			// BASS
 			ImpFunc(BASS_GetVersion),
 			ImpFunc(BASS_ChannelFlags),
+			ImpFunc(BASS_StreamCreate),
 			ImpFunc(BASS_ChannelGetAttribute),
 			ImpFunc(BASS_ChannelGetData),
+			ImpFunc(BASS_ChannelSetPosition),
+			ImpFunc(BASS_ChannelGetPosition),
+			ImpFunc(BASS_ChannelSeconds2Bytes),
+			ImpFunc(BASS_ChannelBytes2Seconds),
+			ImpFunc(BASS_StreamPutData),
 			ImpFunc(BASS_ChannelGetLevelEx),
 			ImpFunc(BASS_ChannelIsActive),
 			ImpFunc(BASS_ChannelPlay),
 			ImpFunc(BASS_ChannelRemoveFX),
-			ImpFunc(BASS_ChannelSeconds2Bytes),
 			ImpFunc(BASS_ChannelSetAttribute),
 			ImpFunc(BASS_ChannelSetDevice),
 			ImpFunc(BASS_ChannelSetFX),
@@ -327,8 +394,11 @@ namespace OmniMIDI {
 		size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 		HFX audioLimiter = 0;
-		uint32_t* AudioStreams = nullptr;
-		uint32_t ExtraEvtFlags = 0;
+
+		BASSMTBuf* _audBufs = nullptr;
+		uint32_t* _audStreams = nullptr;
+
+		uint32_t _extraEvtFlags = 0;
 		std::jthread _BASThread;
 
 		BASSSettings* _bassConfig = nullptr;
@@ -336,8 +406,8 @@ namespace OmniMIDI {
 
 		std::vector<BASS_MIDI_FONTEX> SoundFonts;
 
-		size_t AudioStreamSize = 1;
-		size_t EvtThreadsSize = 1;
+		size_t _streamsBegin = 0;
+		size_t _streamsSize = 1;
 
 		// BASS system
 		bool LoadFuncs();
@@ -346,9 +416,13 @@ namespace OmniMIDI {
 		void ProcessEvBuf();
 		void ProcessEvBufChk();
 
-		void AudioThread(uint32_t id);
+		inline bool SIMDBufCpy(float* dst, size_t dstCount);
+		void AudioThread(bool multiThreadedMode, uint32_t multiThreadedModed);
 		void EventsThread();
 		void BASSThread();
+
+		static uint32_t CALLBACK MTProcesser(void *buffer, uint32_t length, BASSSynth* me);
+		static DWORD CALLBACK BassProc(HSTREAM, void*, DWORD, void*);
 
 #if defined(_WIN32)
 		static DWORD CALLBACK AudioProcesser(void*, DWORD, BASSSynth*);
@@ -368,7 +442,7 @@ namespace OmniMIDI {
 		bool StopSynthModule() override;
 		bool SettingsManager(uint32_t setting, bool get, void* var, size_t size) override;
 		uint32_t GetSampleRate() override { return _bassConfig != nullptr ? _bassConfig->SampleRate : 0; }
-		bool IsSynthInitialized() override { return (AudioStreams != nullptr && AudioStreams[0] != 0); }
+		bool IsSynthInitialized() override { return (_audStreams != nullptr && _audStreams[0] != 0); }
 		uint32_t SynthID() override { return 0x1411BA55; }
 
 		uint32_t PlayLongEvent(uint8_t* ev, uint32_t size) override;
