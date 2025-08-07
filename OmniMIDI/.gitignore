@@ -7,3 +7,5 @@ build/
 
 # Language Server
 .clangd
+.cache
+compile_commands.json

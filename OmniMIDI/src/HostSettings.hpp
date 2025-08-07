@@ -13,13 +13,12 @@
 
 #ifdef _WIN32
 #include <shlwapi.h>
+#include <fstream>
 #endif
 
-#include <fstream>
 #include "Common.hpp"
 #include "ErrSys.hpp"
-#include "SynthModule.hpp"
-#include "KDMAPI.hpp"
+#include "synth/SynthModule.hpp"
 
 namespace OmniMIDI {
 	class HostSettings : public SettingsModule {

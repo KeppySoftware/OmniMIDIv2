@@ -9,9 +9,9 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
-#ifdef __VSCODE_IDE__
-#define _NONFREE
-#endif
+// #ifdef __VSCODE_IDE__
+// #define _NONFREE
+// #endif
 
 #define MAX_PATH_LONG	            32767
 #define RANGE(value, minv, maxv)    ((value) >= minv && (value) <= maxv)
@@ -71,5 +71,10 @@
     #define IMPORT
     #pragma warning			        Unknown compiler
 #endif
+
+typedef struct {
+    uint32_t sample_rate;
+    uint16_t channels;
+} AudioStreamParams;
 
 #endif

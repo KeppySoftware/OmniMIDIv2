@@ -9,6 +9,8 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
+add_requires("vcpkg::nlohmann-json", "vcpkg::portaudio")
+
 option("nonfree")
     set_default(false)
     set_showmenu(true)
@@ -26,66 +28,75 @@ option("useclang")
     set_showmenu(true)
 
 -- Self-hosted MIDI out for Linux
-target("OmniMIDI")		
-	if is_plat("windows") then 	
-		-- Dummy
-		set_enabled(false)	
-	else 	
-		set_options("nonfree")
-		set_options("statsdev")
-		set_options("useclang")
+-- target("OmniMIDI")		
+-- 	if is_plat("windows") then 	
+-- 		-- Dummy
+-- 		set_enabled(false)	
+-- 	else 	
+-- 		set_options("nonfree")
+-- 		set_options("statsdev")
+-- 		set_options("useclang")
 
-		set_kind("binary")
+-- 		set_kind("binary")
 
-		if has_config("useclang") then
-			set_toolchains("clang")
-		else
-			set_toolchains("gcc")
-		end
+-- 		if has_config("useclang") then
+-- 			set_toolchains("clang")
+-- 		else
+-- 			set_toolchains("gcc")
+-- 		end
 
-		if has_config("nonfree") then
-			add_defines("_NONFREE")
-		end
+-- 		if has_config("nonfree") then
+-- 			add_defines("_NONFREE")
+-- 		end
 
-		if has_config("statsdev") then
-			add_defines("_STATSDEV")
-		end
+-- 		if has_config("statsdev") then
+-- 			add_defines("_STATSDEV")
+-- 		end
 
-		if is_mode("debug") then
-			add_defines("DEBUG")
-			add_defines("_DEBUG")
-			set_symbols("debug")
-			set_optimize("none")
-		else	
-			add_defines("NDEBUG")
-			set_symbols("hidden")
-			set_optimize("fastest")
-			set_strip("all")
-		end
+-- 		if is_mode("debug") then
+-- 			add_defines("DEBUG")
+-- 			add_defines("_DEBUG")
+-- 			set_symbols("debug")
+-- 			set_optimize("none")
+-- 		else	
+-- 			add_defines("NDEBUG")
+-- 			set_symbols("hidden")
+-- 			set_optimize("fastest")
+-- 			set_strip("all")
+-- 		end
 
-		add_defines("OM_STANDALONE")
+-- 		add_defines("OM_STANDALONE")
 
-		add_includedirs("inc")
-		add_files("src/*.cpp")
+-- 		add_packages("vcpkg::nlohmann-json", "vcpkg::portaudio")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
-		add_syslinks("asound")
+-- 		add_includedirs("inc")
+-- 		add_files("src/*.cpp")
+-- 		add_files("src/audio/*.cpp")
+-- 		add_files("src/system/*.cpp")
+-- 		add_files("src/synth/*.cpp")
+-- 		add_files("src/synth/bassmidi/*.cpp")
+-- 		add_files("src/synth/xsynth/*.cpp")
+-- 		add_files("src/synth/fluidsynth/*.cpp")
+-- 		add_files("src/synth/plugin/*.cpp")
 
-		add_shflags("-pie", "-Wl,-E", { force = true })
+-- 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
+-- 		add_syslinks("asound")
 
-		if not has_config("nonfree") then
-			remove_files("src/bass*.c*")
-		end
+-- 		add_shflags("-pie", "-Wl,-E", { force = true })
 
-		-- ASIO and WASAPI not available under Linux/FreeBSD
-		remove_files("src/bassasio.cpp")
-		remove_files("src/basswasapi.cpp")
+-- 		if not has_config("nonfree") then
+-- 			remove_files("src/bass*.c*")
+-- 		end
 
-		-- Windows stuff
-		remove_files("src/WDM*.cpp")
-		remove_files("src/StreamPlayer.cpp")
-	end
-target_end()
+-- 		-- ASIO and WASAPI not available under Linux/FreeBSD
+-- 		remove_files("src/bassasio.cpp")
+-- 		remove_files("src/basswasapi.cpp")
+
+-- 		-- Windows stuff
+-- 		remove_files("src/WDM*.cpp")
+-- 		remove_files("src/StreamPlayer.cpp")
+-- 	end
+-- target_end()
 
 -- Actual lib (or user-mode driver, under Win32)
 target("libOmniMIDI")
@@ -130,8 +141,17 @@ target("libOmniMIDI")
 	add_ldflags("-j")
 	add_cxflags("-Wall", "-Wdangling-else")
 
+	add_packages("vcpkg::nlohmann-json", "vcpkg::portaudio")
+
 	add_includedirs("inc")
 	add_files("src/*.cpp")
+	add_files("src/audio/*.cpp")
+	add_files("src/system/*.cpp")
+	add_files("src/synth/*.cpp")
+	add_files("src/synth/bassmidi/*.cpp")
+	add_files("src/synth/xsynth/*.cpp")
+	add_files("src/synth/fluidsynth/*.cpp")
+	add_files("src/synth/plugin/*.cpp")
 
 	if not has_config("nonfree") then
 		remove_files("src/bass*.c*")

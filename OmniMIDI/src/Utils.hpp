@@ -11,13 +11,8 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
-#include "Common.hpp"
-
 #include <cstring>
-#include <fstream>
 #include <cassert>
-#include <format>
-#include <filesystem>
 #include "ErrSys.hpp"
 
 #ifdef _WIN32
@@ -43,8 +38,6 @@
 
 #define STREXP(X)			#X
 #define LIBEXP(X)			STREXP(X)
-
-namespace fs = std::filesystem;
 
 namespace OMShared {
 	enum FIDs {

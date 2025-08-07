@@ -6,7 +6,13 @@
 
 */
 
+#include "Common.hpp"
 #include "Utils.hpp"
+#include <fstream>
+#include <format>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 bool OMShared::LibImport::SetPtr(void* lib, const char* ptrname) {
 	void* ptr = nullptr;
