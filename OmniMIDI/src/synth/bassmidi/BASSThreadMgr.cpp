@@ -155,6 +155,10 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     t->thread = std::jthread(ThreadFunc, t);
   }
 
+  for (uint32_t i = 0; i < kbdiv; i++) {
+    shared.instances[(9 * kbdiv) + i]->SetDrums(true);
+  }
+
   Message("Creating renderer.");
 
   AudioStreamParams stream_params{sample_rate, audio_channels};
