@@ -127,15 +127,17 @@ bool OmniMIDI::BASSSynth::LoadSynthModule() {
     Error("Something went wrong while importing the libraries' functions!!!",
           true);
     return false;
-  } else
+  } else {
     Message("Libraries loaded.");
+  }
 
   if (!AllocateShortEvBuf(_bassConfig->EvBufSize)) {
     Error("AllocateShortEvBuf failed.", true);
     return false;
-  } else
+  } else {
     Message("Short events buffer allocated for %llu events.",
             _bassConfig->EvBufSize);
+  }
 
   return true;
 }
@@ -232,6 +234,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
   }
   Message("BASSMIDI thread manager initialized.");
 
+  LoadSoundFonts();
+  _sfSystem->RegisterCallback(this);
+
   _EvtThread = std::jthread(&BASSSynth::EventsThread, this);
   if (!_EvtThread.joinable()) {
     Error("_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
@@ -239,14 +244,14 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
   }
   Message("Event thread started.");
 
-  LoadSoundFonts();
-
   _StatsThread = std::jthread(&BASSSynth::StatsThread, this);
   if (!_StatsThread.joinable()) {
     Error("_StatsThread failed. (ID: %x)", true, _StatsThread.get_id());
     return false;
   }
   Message("Stats thread started.");
+
+  ShortEvents->ResetHeads();
 
   isActive = true;
 
@@ -256,7 +261,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 bool OmniMIDI::BASSSynth::StopSynthModule() {
   Message("Stopping BASSSynth.");
   isActive = false;
-  
+
   _sfSystem->ClearList();
   _sfSystem->RegisterCallback();
 
@@ -270,8 +275,8 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
     Message("_StatsThread freed.");
   }
 
-  Message("Deleting BASSMIDI thread manager.");
   delete thread_mgr;
+  Message("Deleted BASSMIDI thread manager.");
 
   return true;
 }

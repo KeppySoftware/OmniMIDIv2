@@ -17,7 +17,7 @@ public:
   BASSInstance(BASSSettings *bassConfig, uint32_t channels, bool decoding);
   ~BASSInstance();
 
-  int SendEvents(uint32_t *event, uint32_t count);
+  void SendEvent(uint32_t event);
   int ReadSamples(float *buffer, size_t num_samples);
   uint64_t GetVoiceCount();
   float GetRenderingTime();
@@ -28,6 +28,10 @@ public:
 
 private:
   void FlushEvents();
+
+  uint32_t *evbuf;
+  uint32_t evbuf_len;
+  uint32_t evbuf_capacity;
 
   HSTREAM stream;
 };

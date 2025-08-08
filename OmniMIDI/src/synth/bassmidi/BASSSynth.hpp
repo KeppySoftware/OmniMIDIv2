@@ -13,8 +13,8 @@
 #define _BASSSYNTH_H
 
 #include "../SynthModule.hpp"
-#include <unordered_map>
 #include <atomic>
+#include <unordered_map>
 
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
@@ -51,7 +51,6 @@
 #define MIDI_EVENT_RAW 0xFFFF
 
 namespace OmniMIDI {
-
 
 class BASSSynth : public SynthModule {
 private:
@@ -105,8 +104,8 @@ private:
       ImpFunc(BASS_ErrorGetCode), ImpFunc(BASS_Free), ImpFunc(BASS_Update),
       ImpFunc(BASS_GetDevice), ImpFunc(BASS_GetDeviceInfo),
       ImpFunc(BASS_GetInfo), ImpFunc(BASS_Init), ImpFunc(BASS_SetConfig),
-      ImpFunc(BASS_Stop), ImpFunc(BASS_StreamFree),
-      ImpFunc(BASS_PluginLoad), ImpFunc(BASS_PluginFree),
+      ImpFunc(BASS_Stop), ImpFunc(BASS_StreamFree), ImpFunc(BASS_PluginLoad),
+      ImpFunc(BASS_PluginFree),
 
       // BASSMIDI
       ImpFunc(BASS_MIDI_FontFree), ImpFunc(BASS_MIDI_FontInit),
@@ -170,9 +169,7 @@ public:
   uint32_t GetSampleRate() override {
     return _bassConfig != nullptr ? _bassConfig->SampleRate : 0;
   }
-  bool IsSynthInitialized() override {
-    return isActive;
-  }
+  bool IsSynthInitialized() override { return isActive; }
 
   uint32_t SynthID() override { return 0x1411BA55; }
 

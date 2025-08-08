@@ -65,6 +65,6 @@ public:
   void RewriteSynthConfig() override;
   void LoadSynthConfig() override;
 };
-}
+} // namespace OmniMIDI
 
 #endif
