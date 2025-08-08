@@ -2,22 +2,21 @@
 
 void OmniMIDI::BASSSettings::RewriteSynthConfig() {
   nlohmann::json DefConfig = {
-      ConfGetVal(AsyncMode),        ConfGetVal(StreamDirectFeed),
-      ConfGetVal(FloatRendering),   ConfGetVal(MonoRendering),
-      ConfGetVal(DisableEffects),
+      ConfGetVal(FloatRendering),
+      ConfGetVal(MonoRendering),    ConfGetVal(DisableEffects),
 
-      ConfGetVal(OneThreadMode),    ConfGetVal(ExperimentalMultiThreaded),
-      ConfGetVal(ExpMTKeyboardDiv), ConfGetVal(FollowOverlaps),
+      ConfGetVal(Threading),
+      ConfGetVal(KeyboardDivisions), ConfGetVal(FollowOverlaps),
       ConfGetVal(AudioEngine),      ConfGetVal(SampleRate),
-      ConfGetVal(EvBufSize),        ConfGetVal(LoudMax),
+      ConfGetVal(GlobalEvBufSize),  ConfGetVal(AudioLimiter),
       ConfGetVal(RenderTimeLimit),  ConfGetVal(VoiceLimit),
       ConfGetVal(AudioBuf),         ConfGetVal(ThreadCount),
-      ConfGetVal(MaxInstanceNPS),
+      ConfGetVal(MaxInstanceNPS),   ConfGetVal(InstanceEvBufSize),
 
 #if !defined(_WIN32)
       ConfGetVal(BufPeriod),
 #else
-      ConfGetVal(ASIODevice),       ConfGetVal(ASIOLCh),
+      ConfGetVal(StreamDirectFeed), ConfGetVal(ASIODevice),       ConfGetVal(ASIOLCh),
       ConfGetVal(ASIORCh),          ConfGetVal(ASIOChunksDivision),
       ConfGetVal(WASAPIBuf),
 #endif
@@ -32,12 +31,9 @@ void OmniMIDI::BASSSettings::RewriteSynthConfig() {
 
 void OmniMIDI::BASSSettings::LoadSynthConfig() {
   if (InitConfig(false, BASSSYNTH_STR, sizeof(BASSSYNTH_STR))) {
-    SynthSetVal(bool, AsyncMode);
-    SynthSetVal(bool, LoudMax);
-    SynthSetVal(bool, OneThreadMode);
-    SynthSetVal(bool, ExperimentalMultiThreaded);
-    SynthSetVal(char, ExpMTKeyboardDiv);
-    SynthSetVal(bool, StreamDirectFeed);
+    SynthSetVal(bool, AudioLimiter);
+    SynthSetVal(BASSMultithreadingType, Threading);
+    SynthSetVal(char, KeyboardDivisions);
     SynthSetVal(bool, FloatRendering);
     SynthSetVal(bool, MonoRendering);
     SynthSetVal(bool, FollowOverlaps);
@@ -46,14 +42,16 @@ void OmniMIDI::BASSSettings::LoadSynthConfig() {
     SynthSetVal(uint32_t, SampleRate);
     SynthSetVal(uint32_t, RenderTimeLimit);
     SynthSetVal(uint32_t, VoiceLimit);
-    SynthSetVal(uint32_t, AudioBuf);
-    SynthSetVal(size_t, EvBufSize);
+    SynthSetVal(float, AudioBuf);
+    SynthSetVal(size_t, GlobalEvBufSize);
     SynthSetVal(uint32_t, ThreadCount);
     SynthSetVal(uint32_t, MaxInstanceNPS);
+    SynthSetVal(uint64_t, InstanceEvBufSize);
 
 #if !defined(_WIN32)
     SynthSetVal(uint32_t, BufPeriod);
 #else
+    SynthSetVal(bool, StreamDirectFeed);
     SynthSetVal(std::string, ASIODevice);
     SynthSetVal(std::string, ASIOLCh);
     SynthSetVal(std::string, ASIORCh);
@@ -70,22 +68,16 @@ void OmniMIDI::BASSSettings::LoadSynthConfig() {
     if (AudioEngine < Internal || AudioEngine > BASSENGINE_COUNT)
       AudioEngine = DEFAULT_ENGINE;
 
-    if (ExpMTKeyboardDiv > 128)
-      ExpMTKeyboardDiv = 128;
+    if (KeyboardDivisions > 128)
+      KeyboardDivisions = 128;
 
-    // // Round to nearest power of 2, to avoid issues with pitch bends
-    // if ((bool)ExpMTKeyboardDiv && !(ExpMTKeyboardDiv & (ExpMTKeyboardDiv -
-    // 1))) { 	ExpMTKeyboardDiv = (uint8_t)pow(2,
-    // ceil(log(ExpMTKeyboardDiv)/log(2)));
-    // }
+    if (ThreadCount > KeyboardDivisions * 16)
+      ThreadCount = KeyboardDivisions * 16;
 
 #if !defined(_WIN32)
     if (BufPeriod < 0 || BufPeriod > 4096)
       BufPeriod = 480;
 #endif
-
-    KeyboardChunk = 128 / ExpMTKeyboardDiv;
-    ExperimentalAudioMultiplier = ChannelDiv * ExpMTKeyboardDiv;
 
     return;
   }

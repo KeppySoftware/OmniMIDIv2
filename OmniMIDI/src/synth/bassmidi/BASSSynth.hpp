@@ -17,11 +17,12 @@
 #include <unordered_map>
 
 #include "bass/bass.h"
+#include "bass/bass_fx.h"
 #include "bass/bassmidi.h"
 
 #include "BASSThreadMgr.hpp"
 
-#define BASE_IMPORTS 36
+#define BASE_IMPORTS 38
 
 #if defined(_WIN32)
 
@@ -113,6 +114,7 @@ private:
       ImpFunc(BASS_MIDI_StreamEvent), ImpFunc(BASS_MIDI_StreamEvents),
       ImpFunc(BASS_MIDI_StreamGetEvent), ImpFunc(BASS_MIDI_StreamSetFonts),
       ImpFunc(BASS_MIDI_StreamGetChannel), ImpFunc(BASS_MIDI_GetVersion),
+      ImpFunc(BASS_FXGetParameters), ImpFunc(BASS_FXSetParameters),
 
 #ifdef _WIN32
       // BASSWASAPI
@@ -145,13 +147,16 @@ private:
   void EventsThread();
   void StatsThread();
 
-  bool isActive;
+  bool isActive = false;
 
   BASSSettings *_bassConfig = nullptr;
   SoundFontSystem *_sfSystem = nullptr;
   std::vector<BASS_MIDI_FONTEX> SoundFonts;
 
-  BASSThreadManager *thread_mgr;
+  BASSThreadManager *thread_mgr = nullptr;
+
+  HSTREAM bassmidi = 0;
+  HFX audioLimiter = 0;
 
   std::jthread _StatsThread;
 

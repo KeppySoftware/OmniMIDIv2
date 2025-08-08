@@ -6,34 +6,30 @@
 
 void ThreadFunc(OmniMIDI::BASSThreadManager::ThreadInfo *info);
 
-static size_t calc_render_size(uint32_t sample_rate, uint32_t buffer_ms) {
-  float val = (float)sample_rate * (float)buffer_ms / 1000.0;
+static size_t calc_render_size(uint32_t sample_rate, float buffer_ms) {
+  float val = (float)sample_rate * buffer_ms / 1000.0;
   val = fmax(val, 1.0);
   return (size_t)val;
 }
 
 OmniMIDI::BASSInstance::BASSInstance(BASSSettings *bassConfig,
-                                     uint32_t channels, bool decoding) {
-  DWORD flags = BASS_MIDI_DECAYEND | BASS_SAMPLE_FLOAT;
-
-  if (decoding)
-    flags |= BASS_STREAM_DECODE;
-  if (bassConfig->DisableEffects)
-    flags |= BASS_MIDI_NOFX;
-  if (bassConfig->FollowOverlaps)
-    flags |= BASS_MIDI_NOTEOFF1;
+                                     uint32_t channels) {
+  DWORD flags = BASS_MIDI_DECAYEND | BASS_SAMPLE_FLOAT | BASS_STREAM_DECODE |
+                (bassConfig->MonoRendering ? BASS_SAMPLE_MONO : 0) |
+                (bassConfig->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
+                (bassConfig->DisableEffects ? BASS_MIDI_NOFX : 0);
 
   stream = BASS_MIDI_StreamCreate(channels, flags, bassConfig->SampleRate);
   if (stream == 0) {
     throw BASS_ErrorGetCode();
   }
 
-  evbuf = (uint32_t *)malloc(bassConfig->EvBufSize * sizeof(uint32_t));
+  evbuf = (uint32_t *)malloc(bassConfig->InstanceEvBufSize * sizeof(uint32_t));
   if (!evbuf) {
     throw std::runtime_error("");
   }
   evbuf_len = 0;
-  evbuf_capacity = bassConfig->EvBufSize;
+  evbuf_capacity = bassConfig->InstanceEvBufSize;
 
   BASS_ChannelSetAttribute(stream, BASS_ATTRIB_BUFFER, 0);
   BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_VOICES,
@@ -68,12 +64,6 @@ uint64_t OmniMIDI::BASSInstance::GetVoiceCount() {
   float val;
   BASS_ChannelGetAttribute(stream, BASS_ATTRIB_MIDI_VOICES_ACTIVE, &val);
   return (uint64_t)val;
-}
-
-float OmniMIDI::BASSInstance::GetRenderingTime() {
-  float val;
-  BASS_ChannelGetAttribute(stream, BASS_ATTRIB_CPU, &val);
-  return val;
 }
 
 int OmniMIDI::BASSInstance::SetSoundFonts(
@@ -111,9 +101,9 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     throw std::runtime_error("Cannot start BASS");
 
   shared.num_threads = bassConfig->ThreadCount;
-  shared.num_instances = bassConfig->ExperimentalAudioMultiplier;
+  shared.num_instances = bassConfig->KeyboardDivisions * 16;
   uint32_t buffer_ms = bassConfig->AudioBuf;
-  kbdiv = (uint32_t)bassConfig->ExpMTKeyboardDiv;
+  kbdiv = (uint32_t)bassConfig->KeyboardDivisions;
 
   uint32_t buffer_len = (uint32_t)((float)sample_rate * (float)audio_channels *
                                    (float)buffer_ms / 1000.0);
@@ -128,7 +118,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
   shared.nps_insts = new NpsInstance[shared.num_instances];
 
   for (uint32_t i = 0; i < shared.num_instances; i++) {
-    shared.instances[i] = new BASSInstance(bassConfig, 1, true);
+    shared.instances[i] = new BASSInstance(bassConfig, 1);
 
     NpsInstance *newnpsi = &shared.nps_insts[i];
     newnpsi->nps = new NpsLimiter();
@@ -173,7 +163,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
   auto audio_pipe = [self = buffered](std::vector<float> &buffer) mutable {
     self->read(buffer);
   };
-  audio_player.SetUpStream(audio_pipe, render_size, bassConfig->LoudMax);
+  audio_player.SetUpStream(audio_pipe, render_size, bassConfig->AudioLimiter);
   audio_player.Start();
 
   Message("Finished.");
@@ -259,7 +249,7 @@ void OmniMIDI::BASSThreadManager::SendEvent(uint32_t event) {
   }
 
   case 0xF: {
-    for (uint32_t i = 0; i < channel * kbdiv; i++) {
+    for (uint32_t i = 0; i < shared.num_instances; i++) {
       BASSInstance *instance = shared.instances[i];
       NpsInstance *npsi = &shared.nps_insts[i];
 
@@ -290,7 +280,6 @@ void OmniMIDI::BASSThreadManager::ReadSamples(float *buffer,
     std::unique_lock<std::mutex> lck(shared.mutex);
 
     shared.active_voices = 0;
-    shared.render_time = 0.0;
 
     shared.should_exit = 0;
     shared.num_samples = num_samples;
@@ -312,7 +301,7 @@ void OmniMIDI::BASSThreadManager::ReadSamples(float *buffer,
   }
 
   ActiveVoices = shared.active_voices;
-  RenderTime = shared.render_time / (float)shared.num_instances;
+  RenderTime = buffered->get_buffer_stats().average_renderer_load() * 100.0f;
 }
 
 int OmniMIDI::BASSThreadManager::SetSoundFonts(
@@ -325,6 +314,13 @@ int OmniMIDI::BASSThreadManager::SetSoundFonts(
   }
 
   return 0;
+}
+
+void OmniMIDI::BASSThreadManager::ClearSoundFonts() {
+  std::vector<BASS_MIDI_FONTEX> empty;
+  for (uint32_t i = 0; i < shared.num_instances; i++) {
+    shared.instances[i]->SetSoundFonts(empty);
+  }
 }
 
 uint64_t OmniMIDI::BASSThreadManager::GetActiveVoices() { return ActiveVoices; }
@@ -352,7 +348,6 @@ void ThreadFunc(OmniMIDI::BASSThreadManager::ThreadInfo *info) {
     }
 
     uint64_t thread_active_voices = 0;
-    float thread_render_time = 0.0;
 
     for (uint32_t i = thread_idx; i < shared->num_instances;
          i += shared->num_threads) {
@@ -366,14 +361,12 @@ void ThreadFunc(OmniMIDI::BASSThreadManager::ThreadInfo *info) {
         printf("RE%d\n", BASS_ErrorGetCode());
       }
       thread_active_voices += instance->GetVoiceCount();
-      thread_render_time += instance->GetRenderingTime();
     }
 
     {
       std::unique_lock<std::mutex> lck(shared->mutex);
       shared->thread_is_working[thread_idx] = 0;
       shared->active_voices += thread_active_voices;
-      shared->render_time += thread_render_time;
       if (--shared->active_thread_count == 0) {
         shared->work_in_progress = 0;
         shared->work_done.notify_one();

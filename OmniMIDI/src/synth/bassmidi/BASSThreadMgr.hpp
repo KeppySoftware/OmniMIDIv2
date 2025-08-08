@@ -14,13 +14,12 @@
 namespace OmniMIDI {
 class BASSInstance {
 public:
-  BASSInstance(BASSSettings *bassConfig, uint32_t channels, bool decoding);
+  BASSInstance(BASSSettings *bassConfig, uint32_t channels);
   ~BASSInstance();
 
   void SendEvent(uint32_t event);
   int ReadSamples(float *buffer, size_t num_samples);
   uint64_t GetVoiceCount();
-  float GetRenderingTime();
 
   int SetSoundFonts(const std::vector<BASS_MIDI_FONTEX> &sfs);
   void SetDrums(bool isDrumsChan);
@@ -64,7 +63,6 @@ public:
     uint8_t *thread_is_working;
 
     uint64_t active_voices;
-    float render_time;
   };
 
   struct ThreadInfo {
@@ -79,6 +77,7 @@ public:
   void SendEvent(uint32_t event);
   void ReadSamples(float *buffer, size_t num_samples);
   int SetSoundFonts(const std::vector<BASS_MIDI_FONTEX> &sfs);
+  void ClearSoundFonts();
 
   uint64_t GetActiveVoices();
   float GetRenderingTime();
