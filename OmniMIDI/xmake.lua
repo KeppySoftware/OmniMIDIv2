@@ -139,7 +139,7 @@ target("libOmniMIDI")
 	
 	add_defines("OMNIMIDI_EXPORTS")
 	add_ldflags("-j")
-	add_cxflags("-Wall", "-Wdangling-else")
+	add_cxflags("-Wall", "-Wdangling-else", "-msse2")
 
 	add_packages("vcpkg::nlohmann-json", "vcpkg::portaudio")
 

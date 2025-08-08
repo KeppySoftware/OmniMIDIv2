@@ -24,7 +24,6 @@ public:
   void add_note();
 
   static inline bool should_send_for_vel_and_nps(uint8_t vel, uint64_t nps, uint64_t max_nps) {
-      if (max_nps == 0) return true; // Avoid division by zero
       return static_cast<uint64_t>(vel) * max_nps / 127 > nps;
   }
 

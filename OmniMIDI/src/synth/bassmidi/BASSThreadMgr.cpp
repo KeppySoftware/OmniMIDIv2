@@ -102,12 +102,12 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
 
   shared.num_threads = bassConfig->ThreadCount;
   shared.num_instances = bassConfig->KeyboardDivisions * 16;
-  uint32_t buffer_ms = bassConfig->AudioBuf;
+  float buffer_ms = bassConfig->AudioBuf;
   kbdiv = (uint32_t)bassConfig->KeyboardDivisions;
 
   uint32_t buffer_len = (uint32_t)((float)sample_rate * (float)audio_channels *
-                                   (float)buffer_ms / 1000.0);
-  buffer_len = buffer_len < 1 ? 1 : buffer_len;
+                                   buffer_ms / 1000.0);
+  buffer_len = buffer_len < 8 ? 8 : buffer_len;
 
   shared.instance_buffers =
       (float **)malloc(shared.num_instances * sizeof(float *));
