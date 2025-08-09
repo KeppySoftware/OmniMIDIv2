@@ -437,6 +437,8 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
 
   ShortEvents->ResetHeads();
 
+  StartDebugOutput();
+
   isActive = true;
 
   return true;
