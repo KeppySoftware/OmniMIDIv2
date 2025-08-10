@@ -15,6 +15,7 @@
 #ifdef _WIN32
 // Cooked player, let it cook...
 #include "../system/StreamPlayer.hpp"
+#include "../system/ShakraPipe.hpp"
 #endif
 
 typedef OmniMIDI::SynthModule* (*rInitModule)();

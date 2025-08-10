@@ -93,6 +93,8 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
 
   Message("Starting.");
 
+  audio_player.SetSampleRate(bassConfig->SampleRate);
+
   uint32_t sample_rate = audio_player.GetSampleRate();
   uint16_t audio_channels = audio_player.GetChannelCount();
 

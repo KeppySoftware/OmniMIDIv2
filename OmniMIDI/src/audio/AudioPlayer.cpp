@@ -80,6 +80,8 @@ OmniMIDI::MIDIAudioPlayer::~MIDIAudioPlayer() {
   delete limiter;
 }
 
+void OmniMIDI::MIDIAudioPlayer::SetSampleRate(uint32_t sampleRate) { sample_rate = sampleRate; }
+
 uint32_t OmniMIDI::MIDIAudioPlayer::GetSampleRate() { return sample_rate; }
 
 uint16_t OmniMIDI::MIDIAudioPlayer::GetChannelCount() { return channels; }

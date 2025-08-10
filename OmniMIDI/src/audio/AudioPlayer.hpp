@@ -62,6 +62,7 @@ public:
 
   void SetUpStream(AudioPipe audio_pipe, size_t render_size, bool limiter);
 
+  void SetSampleRate(uint32_t sampleRate);
   uint32_t GetSampleRate();
   uint16_t GetChannelCount();
 

@@ -1,7 +1,9 @@
 set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
-set_allowedplats("windows", "linux")
+add_repositories("xmake-repo https://github.com/xmake-io/xmake-repo.git")
+
+set_allowedplats("mingw", "linux")
 set_allowedmodes("debug", "release")
 set_allowedarchs("x86", "x64", "x86_64", "arm64")
 	
@@ -9,7 +11,7 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
-add_requires("vcpkg::nlohmann-json", "vcpkg::portaudio")
+add_requires("nlohmann_json", "portaudio")
 
 option("nonfree")
     set_default(false)
@@ -107,7 +109,7 @@ target("libOmniMIDI")
 	set_options("statsdev")
 	set_options("useclang")
 
-	if is_plat("windows") then
+	if is_plat("mingw") then
 		set_toolchains("mingw")
 	else 
 		if has_config("useclang") then
@@ -141,44 +143,39 @@ target("libOmniMIDI")
 	add_ldflags("-j")
 	add_cxflags("-Wall", "-Wdangling-else", "-msse2")
 
-	add_packages("vcpkg::nlohmann-json", "vcpkg::portaudio")
+	add_packages("nlohmann_json", "portaudio")
 
 	add_includedirs("inc")
-	add_files("src/*.cpp")
-	add_files("src/audio/*.cpp")
-	add_files("src/system/*.cpp")
-	add_files("src/synth/*.cpp")
-	add_files("src/synth/bassmidi/*.cpp")
-	add_files("src/synth/xsynth/*.cpp")
-	add_files("src/synth/fluidsynth/*.cpp")
-	add_files("src/synth/plugin/*.cpp")
+	add_linkdirs("lib")
+	add_files("src/**.cpp")
 
 	if not has_config("nonfree") then
 		remove_files("src/bass*.c*")
 	end
 
-	if is_plat("windows") then
+	if is_plat("mingw") then
 		-- Remove lib prefix
 		set_prefixname("")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("uuid", "shlwapi", "ole32", "user32", "shell32")
+
+		add_syslinks("shlwapi", "ole32", "user32", "shell32", "uuid")
 		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
 
 		if is_mode("debug") then 
 			add_syslinks("-l:libwinpthread.a")
 		end
 
-		remove_files("src/UnixEntry.cpp")
+		remove_files("src/system/UnixEntry.cpp")
 	else
 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 
 		-- ASIO and WASAPI not available under Linux/FreeBSD
-		remove_files("src/bassasio.cpp")
-		remove_files("src/basswasapi.cpp")
+		remove_files("src/synth/bassmidi/bassasio.cpp")
+		remove_files("src/synth/bassmidi/basswasapi.cpp")
 
 		-- Windows stuff
-		remove_files("src/WDM*.cpp")
-		remove_files("src/StreamPlayer.cpp")
+		remove_files("src/system/WDM*.cpp")
+		remove_files("src/system/StreamPlayer.cpp")
 	end
 target_end()
