@@ -1,17 +1,24 @@
 /*
-
-	OmniMIDI v15+ (Rewrite) for Win32/Linux
-
-	This file contains the required code to run the driver under both Windows and Linux
-
-*/
+ * SPDX-License-Identifier: MIT
+ *
+ * OmniMIDI
+ *
+ * Copyright (c) 2024 Keppy's Software
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the MIT License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MIT License for more details.
+ *
+ * You should have received a copy of the MIT License along with this
+ * program.  If not, see <https://opensource.org/license/mit/>.
+ */
 
 #ifndef _COMMON_H
 #define _COMMON_H
-
-// #ifdef __VSCODE_IDE__
-// #define _NONFREE
-// #endif
 
 #define MAX_PATH_LONG	            32767
 #define RANGE(value, minv, maxv)    ((value) >= minv && (value) <= maxv)

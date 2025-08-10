@@ -1,8 +1,28 @@
-#include "BufferedRenderer.hpp"
-#include <numeric>
-#include <chrono>
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * OmniMIDI
+ *
+ * Copyright (c) 2024 Keppy's Software
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the MIT License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MIT License for more details.
+ *
+ * You should have received a copy of the MIT License along with this
+ * program.  If not, see <https://opensource.org/license/mit/>.
+ */
 
-BufferedRendererStatsReader::BufferedRendererStatsReader(BufferedRendererStats stats)
+#include "BufferedRenderer.hpp"
+#include <chrono>
+#include <numeric>
+
+BufferedRendererStatsReader::BufferedRendererStatsReader(
+    BufferedRendererStats stats)
     : stats_(std::move(stats)) {}
 
 int64_t BufferedRendererStatsReader::samples() const {
@@ -26,7 +46,8 @@ double BufferedRendererStatsReader::average_renderer_load() const {
     if (stats_.render_time_queue->empty()) {
         return 0.0;
     }
-    double sum = std::accumulate(stats_.render_time_queue->begin(), stats_.render_time_queue->end(), 0.0);
+    double sum = std::accumulate(stats_.render_time_queue->begin(),
+                                 stats_.render_time_queue->end(), 0.0);
     return sum / stats_.render_time_queue->size();
 }
 
@@ -38,20 +59,22 @@ double BufferedRendererStatsReader::last_renderer_load() const {
     return stats_.render_time_queue->front();
 }
 
-
 // --- BufferedRenderer Implementation ---
 
-BufferedRenderer::BufferedRenderer(AudioPipe render_function, AudioStreamParams params, size_t initial_render_size)
+BufferedRenderer::BufferedRenderer(AudioPipe render_function,
+                                   AudioStreamParams params,
+                                   size_t initial_render_size)
     : stream_params_(params), audio_pipe_(std::move(render_function)) {
-    
+
     // Initialize the shared statistics
     stats_.samples = std::make_shared<std::atomic<int64_t>>(0);
     stats_.last_samples_after_read = std::make_shared<std::atomic<int64_t>>(0);
     stats_.last_request_samples = std::make_shared<std::atomic<int64_t>>(0);
-    stats_.render_size = std::make_shared<std::atomic<size_t>>(initial_render_size);
+    stats_.render_size =
+        std::make_shared<std::atomic<size_t>>(initial_render_size);
     stats_.render_time_queue = std::make_shared<std::deque<double>>();
     stats_.render_time_mutex = std::make_shared<std::shared_mutex>();
-    
+
     killed_ = std::make_shared<std::atomic<bool>>(false);
 
     // Start the rendering thread
@@ -66,7 +89,7 @@ BufferedRenderer::~BufferedRenderer() {
     }
 }
 
-void BufferedRenderer::read(std::vector<float>& dest) {
+void BufferedRenderer::read(std::vector<float> &dest) {
     std::fill(dest.begin(), dest.end(), 0.0f);
 
     stats_.samples->fetch_sub(dest.size(), std::memory_order_seq_cst);
@@ -77,28 +100,33 @@ void BufferedRenderer::read(std::vector<float>& dest) {
     // 1. Read from the remainder buffer first
     size_t to_copy_from_remainder = std::min(dest.size(), remainder_.size());
     if (to_copy_from_remainder > 0) {
-        std::copy(remainder_.begin(), remainder_.begin() + to_copy_from_remainder, dest.begin());
-        remainder_.erase(remainder_.begin(), remainder_.begin() + to_copy_from_remainder);
+        std::copy(remainder_.begin(),
+                  remainder_.begin() + to_copy_from_remainder, dest.begin());
+        remainder_.erase(remainder_.begin(),
+                         remainder_.begin() + to_copy_from_remainder);
         filled_count += to_copy_from_remainder;
     }
 
     // 2. Read from the queue until the destination is full
     while (filled_count < dest.size()) {
         std::vector<float> received_buf = receive_queue_.pop();
-        
+
         size_t needed = dest.size() - filled_count;
         size_t to_copy_from_new = std::min(needed, received_buf.size());
 
-        std::copy(received_buf.begin(), received_buf.begin() + to_copy_from_new, dest.begin() + filled_count);
+        std::copy(received_buf.begin(), received_buf.begin() + to_copy_from_new,
+                  dest.begin() + filled_count);
         filled_count += to_copy_from_new;
 
         // If there are leftover samples, save them as the new remainder
         if (to_copy_from_new < received_buf.size()) {
-            remainder_.assign(received_buf.begin() + to_copy_from_new, received_buf.end());
+            remainder_.assign(received_buf.begin() + to_copy_from_new,
+                              received_buf.end());
         }
     }
 
-    stats_.last_samples_after_read->store(stats_.samples->load(), std::memory_order_relaxed);
+    stats_.last_samples_after_read->store(stats_.samples->load(),
+                                          std::memory_order_relaxed);
 }
 
 void BufferedRenderer::set_render_size(size_t size) {
@@ -118,24 +146,28 @@ void BufferedRenderer::render_loop() {
         }
 
         // The expected render time per iteration, with a 10% buffer.
-        auto delay_micros = (1000000LL * size / stream_params_.sample_rate) * 90 / 100;
+        auto delay_micros =
+            (1000000LL * size / stream_params_.sample_rate) * 90 / 100;
         auto delay = std::chrono::microseconds(delay_micros);
 
         // If the render thread is too far ahead, wait a bit.
         while (!killed_->load(std::memory_order_relaxed)) {
-            auto current_samples = stats_.samples->load(std::memory_order_seq_cst);
-            auto last_requested = stats_.last_request_samples->load(std::memory_order_seq_cst);
+            auto current_samples =
+                stats_.samples->load(std::memory_order_seq_cst);
+            auto last_requested =
+                stats_.last_request_samples->load(std::memory_order_seq_cst);
             if (current_samples > last_requested * 110 / 100) {
                 std::this_thread::sleep_for(delay / 10);
             } else {
                 break;
             }
         }
-        
-        if (killed_->load(std::memory_order_relaxed)) break;
+
+        if (killed_->load(std::memory_order_relaxed))
+            break;
 
         auto start_time = std::chrono::steady_clock::now();
-        
+
         // Create the buffer and render samples into it
         std::vector<float> buffer(size * stream_params_.channels, 0.0f);
         audio_pipe_(buffer);
@@ -149,7 +181,7 @@ void BufferedRenderer::render_loop() {
             auto elapsed = std::chrono::steady_clock::now() - start_time;
             double elapsed_f64 = std::chrono::duration<double>(elapsed).count();
             double total_f64 = std::chrono::duration<double>(delay).count();
-            
+
             std::unique_lock<std::shared_mutex> lock(*stats_.render_time_mutex);
             stats_.render_time_queue->push_front(elapsed_f64 / total_f64);
             if (stats_.render_time_queue->size() > 100) {

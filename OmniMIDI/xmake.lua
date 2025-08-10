@@ -1,8 +1,6 @@
 set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
-add_repositories("xmake-repo https://github.com/xmake-io/xmake-repo.git")
-
 set_allowedplats("mingw", "linux")
 set_allowedmodes("debug", "release")
 set_allowedarchs("x86", "x64", "x86_64", "arm64")
@@ -16,107 +14,82 @@ add_requires("nlohmann_json", "portaudio")
 option("nonfree")
     set_default(false)
     set_showmenu(true)
-	-- Does not work???
-	-- add_defines("_NONFREE")
 
 option("statsdev")
 	set_default(false)
 	set_showmenu(true)
-	-- Does not work???
-	-- add_defines("_STATSDEV")
-
-option("useclang")
-    set_default(is_plat("linux"))
-    set_showmenu(true)
 
 -- Self-hosted MIDI out for Linux
--- target("OmniMIDI")		
--- 	if is_plat("windows") then 	
--- 		-- Dummy
--- 		set_enabled(false)	
--- 	else 	
--- 		set_options("nonfree")
--- 		set_options("statsdev")
--- 		set_options("useclang")
+target("OmniMIDI")		
+	if is_plat("mingw") then 	
+		-- N/A for Windows
+		set_enabled(false)	
+	else
+		set_kind("binary")
+		add_defines("OM_STANDALONE")
+		add_packages("nlohmann_json", "portaudio")
 
--- 		set_kind("binary")
+		-- Option definitions
+		set_options("nonfree")
+		set_options("statsdev")
 
--- 		if has_config("useclang") then
--- 			set_toolchains("clang")
--- 		else
--- 			set_toolchains("gcc")
--- 		end
+		if has_config("nonfree") then
+			add_defines("_NONFREE")
+		end
 
--- 		if has_config("nonfree") then
--- 			add_defines("_NONFREE")
--- 		end
+		if has_config("statsdev") then
+			add_defines("_STATSDEV")
+		end
 
--- 		if has_config("statsdev") then
--- 			add_defines("_STATSDEV")
--- 		end
+		-- Target setup
+		if is_mode("debug") then
+			add_defines("DEBUG")
+			add_defines("_DEBUG")
+			set_symbols("debug")
+			set_optimize("none")
+		else	
+			add_defines("NDEBUG")
+			set_symbols("hidden")
+			set_optimize("fastest")
+			set_strip("all")
+		end
 
--- 		if is_mode("debug") then
--- 			add_defines("DEBUG")
--- 			add_defines("_DEBUG")
--- 			set_symbols("debug")
--- 			set_optimize("none")
--- 		else	
--- 			add_defines("NDEBUG")
--- 			set_symbols("hidden")
--- 			set_optimize("fastest")
--- 			set_strip("all")
--- 		end
+		-- Sources
+		add_includedirs("inc")
+		add_files("src/**.cpp")
 
--- 		add_defines("OM_STANDALONE")
+		-- Compiler setup
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wall", "-msse2")
+		add_syslinks("asound")
+		add_shflags("-pie", "-Wl,-E", { force = true })
 
--- 		add_packages("vcpkg::nlohmann-json", "vcpkg::portaudio")
+		if not has_config("nonfree") then
+			remove_files("src/bass*.c*")
+		end
 
--- 		add_includedirs("inc")
--- 		add_files("src/*.cpp")
--- 		add_files("src/audio/*.cpp")
--- 		add_files("src/system/*.cpp")
--- 		add_files("src/synth/*.cpp")
--- 		add_files("src/synth/bassmidi/*.cpp")
--- 		add_files("src/synth/xsynth/*.cpp")
--- 		add_files("src/synth/fluidsynth/*.cpp")
--- 		add_files("src/synth/plugin/*.cpp")
+		-- ASIO and WASAPI not available under Linux/FreeBSD
+		remove_files("src/synth/bassmidi/bassasio.cpp")
+		remove_files("src/synth/bassmidi/basswasapi.cpp")
 
--- 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
--- 		add_syslinks("asound")
-
--- 		add_shflags("-pie", "-Wl,-E", { force = true })
-
--- 		if not has_config("nonfree") then
--- 			remove_files("src/bass*.c*")
--- 		end
-
--- 		-- ASIO and WASAPI not available under Linux/FreeBSD
--- 		remove_files("src/bassasio.cpp")
--- 		remove_files("src/basswasapi.cpp")
-
--- 		-- Windows stuff
--- 		remove_files("src/WDM*.cpp")
--- 		remove_files("src/StreamPlayer.cpp")
--- 	end
--- target_end()
+		-- Windows stuff
+		remove_files("src/system/WDM*.cpp")
+		remove_files("src/system/StreamPlayer.cpp")
+	end
+target_end()
 
 -- Actual lib (or user-mode driver, under Win32)
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
+	add_defines("OMNIMIDI_EXPORTS")
+	add_packages("nlohmann_json", "portaudio")
 
+	-- Option definitions
 	set_options("nonfree")
 	set_options("statsdev")
-	set_options("useclang")
 
 	if is_plat("mingw") then
 		set_toolchains("mingw")
-	else 
-		if has_config("useclang") then
-			set_toolchains("clang")
-		else
-			set_toolchains("gcc")
-		end
 	end
 
 	if has_config("nonfree") then
@@ -138,16 +111,15 @@ target("libOmniMIDI")
 		set_optimize("fastest")
 		set_strip("all")
 	end
-	
-	add_defines("OMNIMIDI_EXPORTS")
-	add_ldflags("-j")
-	add_cxflags("-Wall", "-Wdangling-else", "-msse2")
 
-	add_packages("nlohmann_json", "portaudio")
-
+	-- Sources
 	add_includedirs("inc")
 	add_linkdirs("lib")
 	add_files("src/**.cpp")
+
+	-- Compiler setup
+	add_ldflags("-j")
+	add_cxflags("-Wall", "-msse2")
 
 	if not has_config("nonfree") then
 		remove_files("src/bass*.c*")
