@@ -20,9 +20,20 @@
 #ifndef LIMITER_H
 #define LIMITER_H
 
+#include <cstdint>
 #include <stddef.h>
+#include <vector>
 
-typedef struct {
+namespace OmniMIDI {
+
+class Compressor {
+  public:
+    Compressor(float sample_rate, float threshold, float ratio, float attack_ms,
+               float release_ms, float lookahead_ms);
+    ~Compressor();
+    float process(float input);
+
+  private:
     float threshold;    // Threshold in linear amplitude
     float ratio;        // Compression ratio (e.g., 4.0 for 4:1)
     float attack_ms;    // Attack time in milliseconds
@@ -38,14 +49,19 @@ typedef struct {
     size_t buffer_size;
     size_t write_index;
     size_t read_index;
-} Compressor;
+};
 
-int compressor_create(Compressor *limiter, float sample_rate, float threshold,
-                      float ratio, float attack_ms, float release_ms,
-                      float lookahead_ms);
+class AudioLimiter {
+  private:
+    std::vector<Compressor *> compressors;
+    uint16_t num_channels;
 
-float compressor_process(Compressor *limiter, float input);
+  public:
+    AudioLimiter(uint16_t channels, uint32_t sample_rate);
+    ~AudioLimiter();
+    void process(std::vector<float> &samples);
+};
 
-void compressor_destroy(Compressor *limiter);
+} // namespace OmniMIDI
 
 #endif

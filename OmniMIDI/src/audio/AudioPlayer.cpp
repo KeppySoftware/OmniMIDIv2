@@ -60,30 +60,6 @@ static int paCallback(const void *inputBuffer, void *outputBuffer,
     return 0;
 }
 
-OmniMIDI::AudioLimiter::AudioLimiter(uint16_t channels, uint32_t sample_rate) {
-    num_channels = channels;
-    compressors = (Compressor *)malloc(channels * sizeof(Compressor));
-    for (uint16_t i = 0; i < channels; i++) {
-        if (!compressor_create(&compressors[i], sample_rate, 0.3, 1000.0, 10.0,
-                               50.0, 10.0))
-            throw std::runtime_error("Error initializing audio limiter");
-    }
-}
-
-OmniMIDI::AudioLimiter::~AudioLimiter() {
-    for (uint16_t i = 0; i < num_channels; i++) {
-        compressor_destroy(&compressors[i]);
-    }
-    free(compressors);
-}
-
-void OmniMIDI::AudioLimiter::process(std::vector<float> &samples) {
-    for (size_t i = 0; i < samples.size(); i++) {
-        samples[i] =
-            compressor_process(&compressors[i % num_channels], samples[i]);
-    }
-}
-
 OmniMIDI::MIDIAudioPlayer::MIDIAudioPlayer(ErrorSystem::Logger *PErr,
                                            uint32_t sample_rate,
                                            uint16_t channels,
@@ -107,7 +83,7 @@ OmniMIDI::MIDIAudioPlayer::MIDIAudioPlayer(ErrorSystem::Logger *PErr,
     Message("Found audio output device: ID%d", outputParameters.device);
 
     const PaDeviceInfo *devInfo = Pa_GetDeviceInfo(outputParameters.device);
-    outputParameters.channelCount = devInfo->maxOutputChannels;
+    outputParameters.channelCount = std::min(devInfo->maxOutputChannels, 2);
     outputParameters.sampleFormat = paFloat32;
     outputParameters.suggestedLatency = devInfo->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
@@ -115,7 +91,7 @@ OmniMIDI::MIDIAudioPlayer::MIDIAudioPlayer(ErrorSystem::Logger *PErr,
     arg.audio_pipe = audio_pipe;
     arg.limiter = NULL;
     arg.render_channels = channels;
-    arg.device_channels = devInfo->maxOutputChannels;
+    arg.device_channels = outputParameters.channelCount;
     if (enable_limiter) {
         arg.limiter = new AudioLimiter(channels, sample_rate);
     }

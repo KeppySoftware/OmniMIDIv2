@@ -28,16 +28,6 @@
 #include <portaudio.h>
 
 namespace OmniMIDI {
-class AudioLimiter {
-  private:
-    Compressor *compressors;
-    uint16_t num_channels;
-
-  public:
-    AudioLimiter(uint16_t channels, uint32_t sample_rate);
-    ~AudioLimiter();
-    void process(std::vector<float> &samples);
-};
 
 class MIDIAudioPlayer {
   public:
