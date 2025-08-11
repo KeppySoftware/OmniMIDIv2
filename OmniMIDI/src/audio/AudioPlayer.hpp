@@ -25,7 +25,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
-#include <portaudio.h>
+#include <miniaudio.h>
 
 namespace OmniMIDI {
 
@@ -48,8 +48,8 @@ class MIDIAudioPlayer {
   private:
     ErrorSystem::Logger *ErrLog = nullptr;
 
-    PaStreamParameters outputParameters;
-    PaStream *stream = nullptr;
+    ma_device device;
+
     AudioPlayerArgument arg;
 };
 } // namespace OmniMIDI

@@ -127,8 +127,9 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     if (bassConfig->ThreadCount == 0 ||
         bassConfig->ThreadCount > shared.num_instances) {
         shared.num_threads = shared.num_instances;
-    } 
-    else shared.num_threads = bassConfig->ThreadCount;
+    } else {
+        shared.num_threads = bassConfig->ThreadCount;
+    }
 
     float buffer_ms = bassConfig->AudioBuf;
     kbdiv = (uint32_t)bassConfig->KeyboardDivisions;
@@ -137,15 +138,14 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     if (!BASS_Init(0, sample_rate, 0, NULL, NULL))
         throw std::runtime_error("Cannot start BASS");
 
-    uint32_t buffer_len =
-        (uint32_t)((float)sample_rate * (float)audio_channels * buffer_ms /
-                   1000.0);
-    buffer_len = buffer_len < 8 ? 8 : buffer_len;
+    size_t render_size = calc_render_size(sample_rate, buffer_ms);
+    size_t buffer_len = render_size * (size_t)audio_channels;
 
     shared.instance_buffers =
         (float **)malloc(shared.num_instances * sizeof(float *));
 
-    Message("Creating %d BASSMIDI streams", shared.num_instances);
+    Message("Creating %d BASSMIDI streams. Allocated buffer len: %zu",
+            shared.num_instances, buffer_len);
 
     shared.instances = new BASSInstance *[shared.num_instances];
 
@@ -180,7 +180,6 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     }
 
     AudioStreamParams stream_params{sample_rate, audio_channels};
-    size_t render_size = calc_render_size(sample_rate, buffer_ms);
     auto render_func = [self = this](std::vector<float> &buffer) mutable {
         self->ReadSamples(buffer.data(), buffer.size());
     };
@@ -204,6 +203,7 @@ OmniMIDI::BASSThreadManager::~BASSThreadManager() {
     Message("Stopping BASSThreadManager");
 
     delete audio_player;
+    delete buffered;
 
     {
         std::unique_lock<std::mutex> lck(shared.mutex);
@@ -230,7 +230,6 @@ OmniMIDI::BASSThreadManager::~BASSThreadManager() {
 
     free(shared.instance_buffers);
     delete shared.thread_is_working;
-    delete buffered;
 
     // delete threads;
 
@@ -322,7 +321,7 @@ void OmniMIDI::BASSThreadManager::ReadSamples(float *buffer,
     }
 
     ActiveVoices = shared.active_voices;
-    RenderTime = buffered->get_buffer_stats().average_renderer_load() * 100.0f;
+    RenderTime = buffered->average_renderer_load() * 100.0f;
 }
 
 int OmniMIDI::BASSThreadManager::SetSoundFonts(

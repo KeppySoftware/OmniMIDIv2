@@ -20,13 +20,34 @@ BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
 
     reloadASIODevices();
 #endif
-    connect(ui->globalVoiceLimit, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
-    connect(ui->mtKbDivs, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
+    connect(ui->voiceLimit, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
+    connect(ui->kbDiv, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
+    connect(ui->threading, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::toggleMtOptions);
 }
 
 void BASSMIDISettings::updateMTValues() {
-    ui->mtVLthread->setText(QString::number(ui->globalVoiceLimit->value()));
-    ui->mtVLtotal->setText(QString::number(ui->globalVoiceLimit->value() * ui->mtKbDivs->value() * 16));
+    ui->mtVLtotal->setText(QString::number(ui->voiceLimit->value() * ui->kbDiv->value() * 16));
+}
+
+void BASSMIDISettings::toggleMtOptions() {
+    bool mt_enabled;
+
+    switch (ui->threading->currentIndex()) {
+    case BASSConfig::SingleThread:
+    case BASSConfig::Standard:
+        mt_enabled = false;
+        break;
+
+    case BASSConfig::Multithreaded:
+        mt_enabled = true;
+        break;
+    }
+
+    ui->multithreading->setEnabled(mt_enabled);
+    ui->linuxAudio->setEnabled(!mt_enabled);
+    ui->windowsAudio->setEnabled(!mt_enabled);
+    ui->bitDepth->setEnabled(!mt_enabled);
+    ui->audioEngine->setEnabled(!mt_enabled);
 }
 
 #ifdef _WIN32
@@ -59,19 +80,25 @@ void BASSMIDISettings::showWinAudioSettings(int idx) {
 }
 
 void BASSMIDISettings::loadSettings() {
-    ui->evBufSize->setValue(m_cfg->EvBufSize);
-    ui->renderTimeLimit->setValue(m_cfg->RenderTimeLimit);
+    ui->threading->setCurrentIndex(m_cfg->Threading);
+    ui->kbDiv->setValue(m_cfg->KeyboardDivisions);
+    ui->threadCount->setValue(m_cfg->ThreadCount);
+    ui->maxInstanceNps->setValue(m_cfg->MaxInstanceNPS);
+    ui->instanceEvBufSize->setValue(m_cfg->InstanceEvBufSize);
+
     ui->sampleRate->setRate(m_cfg->SampleRate);
-    ui->globalVoiceLimit->setValue(m_cfg->VoiceLimit);
+    ui->voiceLimit->setValue(m_cfg->VoiceLimit);
+    ui->evBufSize->setValue(m_cfg->GlobalEvBufSize);
+    ui->renderTimeLimit->setValue(m_cfg->RenderTimeLimit);
+
     ui->followOverlaps->setCheckState(CCS(m_cfg->FollowOverlaps));
-    ui->audioLimiter->setCheckState(CCS(m_cfg->LoudMax));
-    ui->asyncMode->setCheckState(CCS(m_cfg->AsyncMode));
-    ui->monoRendering->setCheckState(CCS(m_cfg->MonoRendering));
-    ui->oneThreadMode->setCheckState(CCS(m_cfg->OneThreadMode));
-    ui->disableEffects->setCheckState(CCS(m_cfg->DisableEffects));
-    ui->mtKbDivs->setValue(m_cfg->ExpMTKeyboardDiv);
-    ui->multithreading->setChecked(m_cfg->ExperimentalMultiThreaded);
+    ui->audioLimiter->setCheckState(CCS(m_cfg->AudioLimiter));
     ui->bitDepth->setCurrentIndex(m_cfg->FloatRendering ? 0 : 1);
+    ui->monoRendering->setCheckState(CCS(m_cfg->MonoRendering));
+    ui->disableEffects->setCheckState(CCS(m_cfg->DisableEffects));
+
+    toggleMtOptions();
+
 #if defined(__linux__)
     ui->audioBuffer->setValue(m_cfg->AudioBuf);
     ui->bufPeriod->setValue(m_cfg->BufPeriod);
@@ -97,19 +124,33 @@ void BASSMIDISettings::loadSettings() {
 }
 
 void BASSMIDISettings::storeSettings() {
-    m_cfg->EvBufSize = ui->evBufSize->value();
-    m_cfg->RenderTimeLimit = ui->renderTimeLimit->value();
+    switch (ui->threading->currentIndex()) {
+    case 0:
+        m_cfg->Threading = BASSConfig::SingleThread;
+        break;
+    case 2:
+        m_cfg->Threading = BASSConfig::Multithreaded;
+        break;
+    default:
+        m_cfg->Threading = BASSConfig::Standard;
+        break;
+    }
+    m_cfg->KeyboardDivisions = ui->kbDiv->value();
+    m_cfg->ThreadCount = ui->threadCount->value();
+    m_cfg->MaxInstanceNPS = ui->maxInstanceNps->value();
+    m_cfg->InstanceEvBufSize = ui->instanceEvBufSize->value();
+
     m_cfg->SampleRate = ui->sampleRate->getRate();
-    m_cfg->VoiceLimit = ui->globalVoiceLimit->value();
+    m_cfg->VoiceLimit = ui->voiceLimit->value();
+    m_cfg->GlobalEvBufSize = ui->evBufSize->value();
+    m_cfg->RenderTimeLimit = ui->renderTimeLimit->value();
+
     m_cfg->FollowOverlaps = ui->followOverlaps->isChecked();
-    m_cfg->LoudMax = ui->audioLimiter->isChecked();
-    m_cfg->AsyncMode = ui->asyncMode->isChecked();
-    m_cfg->MonoRendering = ui->monoRendering->isChecked();
-    m_cfg->OneThreadMode = ui->oneThreadMode->isChecked();
-    m_cfg->DisableEffects = ui->disableEffects->isChecked();
-    m_cfg->ExpMTKeyboardDiv = ui->mtKbDivs->value();
-    m_cfg->ExperimentalMultiThreaded = ui->multithreading->isChecked();
+    m_cfg->AudioLimiter = ui->audioLimiter->isChecked();
     m_cfg->FloatRendering = ui->bitDepth->currentIndex() == 0;
+    m_cfg->MonoRendering = ui->monoRendering->isChecked();
+    m_cfg->DisableEffects = ui->disableEffects->isChecked();
+
 #if defined(__linux__)
     m_cfg->BufPeriod = ui->bufPeriod->value();
     m_cfg->AudioBuf = ui->audioBuffer->value();

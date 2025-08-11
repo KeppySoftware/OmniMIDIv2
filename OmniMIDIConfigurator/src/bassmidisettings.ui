@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>613</width>
-    <height>945</height>
+    <height>956</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -20,6 +20,324 @@
    <string>Form</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="setupTab">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="title">
+      <string>Concurrency Setup</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QWidget" name="horizontalWidget" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QWidget" name="gridWidget" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
+        </property>
+        <layout class="QGridLayout" name="gridLayout">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item row="0" column="2">
+          <widget class="QComboBox" name="threading">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="currentIndex">
+            <number>1</number>
+           </property>
+           <item>
+            <property name="text">
+             <string>Singlethreaded</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Standard</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Multithreaded</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Threading Mode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="pushButton_2">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;- &lt;span style=&quot; font-weight:700;&quot;&gt;Singlethreaded&lt;/span&gt; mode will force the rendering and the events processing to happen on the same thread.&lt;/p&gt;&lt;p&gt;- &lt;span style=&quot; font-weight:700;&quot;&gt;Standard&lt;/span&gt; mode will allow the rendering and the events processing to run in two different threads asynchronously.&lt;/p&gt;&lt;p&gt;- &lt;span style=&quot; font-weight:700;&quot;&gt;Multithreaded&lt;/span&gt; mode will create multiple instances of BASSMIDI and split the rendering in threads according to the parameters set below.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="multithreading">
+        <property name="title">
+         <string>Multithreading Options</string>
+        </property>
+        <property name="checkable">
+         <bool>false</bool>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="2">
+          <widget class="QSpinBox" name="kbDiv">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>128</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_18">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Keyboard Division Factor</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="mtVLtotal">
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="pushButton_4">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The audio rendering of the various BASSMIDI instances will be split between this amount of threads. Use 0 for OmniMIDI to automatically determine the number of threads to achieve the best possible performance.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="pushButton_6">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;OmniMIDI will split the synthesizer operation into multiple BASSMIDI instances. Each of the 16 MIDI channels will be split in the given amount of instances to speed up event processing and allow for higher voice limits. So the number of instances is calculated as such: (16 x keyb.div.factor)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="1">
+          <widget class="QPushButton" name="pushButton_3">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To change the voice limit please see the corresponding setting in &amp;quot;Synthesizer Setup&amp;quot;. The voice limit will be set per instance and the total limit will only be reached when maxing out the voices in every instance.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QSpinBox" name="threadCount">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1024</number>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="0">
+          <widget class="QWidget" name="horizontalWidget" native="true">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="label_9">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Total Voice Limit (approx.)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QSpinBox" name="maxInstanceNps">
+           <property name="maximum">
+            <number>1073741824</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_17">
+           <property name="text">
+            <string>Thread Count</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Max NPS per Instance</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="pushButton_5">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This sets the maximum Notes Per Second that will be processed by a single BASSMIDI instance. When the NPS limit is reached, notes with higher velocities will be prioritized. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_19">
+           <property name="text">
+            <string>Instance Event Buffer Size</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QPushButton" name="pushButton_7">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This amount of DWORDs (4 bytes) will be allocated for each BASSMIDI instance. If the buffer is too small it might cause the event processing to slow down, but it will not cause any events to be skipped. This is different from the Global Event Buffer (see the &amp;quot;Synthesizer Setup&amp;quot; section).&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QSpinBox" name="instanceEvBufSize">
+           <property name="maximum">
+            <number>1073741824</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
    <item>
     <widget class="QGroupBox" name="audioOutputTab">
      <property name="sizePolicy">
@@ -56,19 +374,6 @@
          <property name="spacing">
           <number>0</number>
          </property>
-         <item row="0" column="1">
-          <widget class="QSpinBox" name="bufPeriod">
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>999999999</number>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0">
           <widget class="QLabel" name="label_16">
            <property name="sizePolicy">
@@ -79,6 +384,35 @@
            </property>
            <property name="text">
             <string>Output Device Update Period (samples)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QSpinBox" name="bufPeriod">
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximum">
+            <number>1073741824</number>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QPushButton" name="pushButton_10">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The device update period determines how often data is generated and placed in an output device's buffer. A shorter period allows a smaller buffer and lower latency but may use more CPU than a longer period. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset theme="help-about"/>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -192,7 +526,7 @@
             <item row="2" column="1">
              <widget class="QSpinBox" name="asioChunksDivision">
               <property name="maximum">
-               <number>999999999</number>
+               <number>1073741824</number>
               </property>
              </widget>
             </item>
@@ -391,30 +725,10 @@
          <property name="bottomMargin">
           <number>0</number>
          </property>
-         <item row="2" column="0">
-          <widget class="QLabel" name="label_5">
-           <property name="text">
-            <string>Audio Bit Depth</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_4">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Sample Rate (Hz)</string>
-           </property>
-          </widget>
-         </item>
          <item row="3" column="0">
-          <widget class="QCheckBox" name="asyncMode">
+          <widget class="QCheckBox" name="audioLimiter">
            <property name="text">
-            <string>Process MIDI events asynchronously</string>
+            <string>Enable audio compressor</string>
            </property>
           </widget>
          </item>
@@ -444,13 +758,6 @@
            </item>
           </widget>
          </item>
-         <item row="4" column="0">
-          <widget class="QCheckBox" name="audioLimiter">
-           <property name="text">
-            <string>Enable audio limiter</string>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="0">
           <widget class="QLabel" name="label">
            <property name="sizePolicy">
@@ -460,12 +767,35 @@
             </sizepolicy>
            </property>
            <property name="text">
-            <string>Output Audio Buffer (ms)</string>
+            <string>Render Audio Buffer (ms)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Sample Rate (Hz)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="SampleRateSelector" name="sampleRate"/>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>Audio Bit Depth</string>
            </property>
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QSpinBox" name="audioBuffer">
+          <widget class="QDoubleSpinBox" name="audioBuffer">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
              <horstretch>0</horstretch>
@@ -478,13 +808,13 @@
              <height>0</height>
             </size>
            </property>
+           <property name="decimals">
+            <number>2</number>
+           </property>
            <property name="maximum">
-            <number>999999999</number>
+            <double>1000.000000000000000</double>
            </property>
           </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="SampleRateSelector" name="sampleRate"/>
          </item>
         </layout>
        </widget>
@@ -493,7 +823,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="audioSetupTab">
+    <widget class="QGroupBox" name="synttSetupTab">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
        <horstretch>0</horstretch>
@@ -501,27 +831,26 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Audio Setup</string>
+      <string>Synthesizer Setup</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_8">
-        <property name="text">
-         <string>Maximum Rendering Time (Percentage, set to 0% to disable)</string>
+      <item row="2" column="2">
+       <widget class="QSpinBox" name="evBufSize">
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>0</height>
+         </size>
         </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QSpinBox" name="renderTimeLimit">
         <property name="maximum">
-         <number>100</number>
+         <number>999999999</number>
         </property>
        </widget>
       </item>
-      <item row="3" column="0">
-       <widget class="QCheckBox" name="disableEffects">
+      <item row="5" column="0">
+       <widget class="QCheckBox" name="monoRendering">
         <property name="text">
-         <string>Disable audio effects (reverb and chorus)</string>
+         <string>Disable stereo rendering</string>
         </property>
        </widget>
       </item>
@@ -538,8 +867,22 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QSpinBox" name="globalVoiceLimit">
+      <item row="3" column="0">
+       <widget class="QCheckBox" name="disableEffects">
+        <property name="text">
+         <string>Disable audio effects (reverb and chorus)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Event Buffer Size</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QSpinBox" name="voiceLimit">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
           <horstretch>0</horstretch>
@@ -564,202 +907,62 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
-       <widget class="QCheckBox" name="monoRendering">
+      <item row="1" column="2">
+       <widget class="QSpinBox" name="renderTimeLimit">
+        <property name="maximum">
+         <number>100</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_8">
         <property name="text">
-         <string>Disable stereo rendering</string>
+         <string>Maximum Rendering Time (%)</string>
         </property>
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QSpinBox" name="evBufSize">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
+       <widget class="QPushButton" name="pushButton_8">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;This amount of DWORDs (4 bytes) will be allocated for buffering MIDI events to be sent to BASSMIDI. If the buffer is too small and the synth cannot process the events quickly enough, some events might be skipped.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
-        <property name="maximum">
-         <number>999999999</number>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Event Buffer Size (bytes) [Advanced]</string>
+         <string/>
         </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="mutithreadingTab">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="title">
-      <string>Multithreading</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QCheckBox" name="oneThreadMode">
-        <property name="text">
-         <string>Run everything on the same thread</string>
+        <property name="icon">
+         <iconset theme="help-about"/>
         </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QGroupBox" name="multithreading">
-        <property name="title">
-         <string>Enable experimental multithreading</string>
-        </property>
-        <property name="checkable">
+        <property name="flat">
          <bool>true</bool>
         </property>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="0">
-          <widget class="QWidget" name="horizontalWidget" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="label_3">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Keyboard Division Factor</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_2">
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;When multithreading is enabled, OmniMIDI will create by default one thread per MIDI channel (16 threads). This factor will devide the 128 keys of the MIDI keyboard into chunks for each one of which, a thread will be created. For example when setting to 4, the amount of threads will be 16 x 4 = 64 threads. For the best results, this should be a power of 2.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset theme="help-about"/>
-              </property>
-              <property name="flat">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QSpinBox" name="mtKbDivs">
-           <property name="minimumSize">
-            <size>
-             <width>150</width>
-             <height>0</height>
-            </size>
-           </property>
-           <property name="maximum">
-            <number>128</number>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_7">
-           <property name="text">
-            <string>Voice Limit Per Thread</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="mtVLthread">
-           <property name="text">
-            <string>0</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QLabel" name="mtVLtotal">
-           <property name="text">
-            <string>0</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
-          <widget class="QWidget" name="horizontalWidget" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout_6">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="label_9">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>Total Voice Limit (approx.)</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="pushButton_3">
-              <property name="toolTip">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;To change the voice limit please see the corresponding setting in &amp;quot;Audio Setup&amp;quot;. The voice limit will be set per thread and the total limit will only be reached when maxing out the voices in every thread.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset theme="help-about"/>
-              </property>
-              <property name="flat">
-               <bool>true</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </item>
-        </layout>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QPushButton" name="pushButton_9">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;0 = Automatic, over 100 = Limit waiting for samples to load but do not kill voices.&lt;/p&gt;&lt;p&gt;It is not strictly the CPU usage that is measured, but rather how timely the stream is able to render data. For example, a limit of 50% would mean that the rendering would need to be at least 2x real-time speed. When the limit is exceeded (unless the limit is over 100), BASSMIDI will begin killing voices, starting with the most quiet. The voice limit will also be reduced temporarily to prevent the killed voices all immediately being replaced by new ones. &lt;/p&gt;&lt;p&gt;When the CPU usage is limited, BASSMIDI will also limit how long it waits for samples to load. If the required amount of data cannot be loaded in time then a sample will be silenced until it is available and the stream will continue playing other samples as normal in the meantime. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset theme="help-about"/>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer">
+    <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Policy::MinimumExpanding</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>

@@ -19,29 +19,26 @@
 
 #include "BufferedRenderer.hpp"
 #include <chrono>
+#include <mutex>
 #include <numeric>
 
-BufferedRendererStatsReader::BufferedRendererStatsReader(
-    BufferedRendererStats stats)
-    : stats_(std::move(stats)) {}
-
-int64_t BufferedRendererStatsReader::samples() const {
+int64_t BufferedRenderer::samples() const {
     return stats_.samples->load(std::memory_order_relaxed);
 }
 
-int64_t BufferedRendererStatsReader::last_samples_after_read() const {
+int64_t BufferedRenderer::last_samples_after_read() const {
     return stats_.last_samples_after_read->load(std::memory_order_relaxed);
 }
 
-int64_t BufferedRendererStatsReader::last_request_samples() const {
+int64_t BufferedRenderer::last_request_samples() const {
     return stats_.last_request_samples->load(std::memory_order_relaxed);
 }
 
-size_t BufferedRendererStatsReader::render_size() const {
+size_t BufferedRenderer::render_size() const {
     return stats_.render_size->load(std::memory_order_relaxed);
 }
 
-double BufferedRendererStatsReader::average_renderer_load() const {
+double BufferedRenderer::average_renderer_load() const {
     std::shared_lock<std::shared_mutex> lock(*stats_.render_time_mutex);
     if (stats_.render_time_queue->empty()) {
         return 0.0;
@@ -51,7 +48,7 @@ double BufferedRendererStatsReader::average_renderer_load() const {
     return sum / stats_.render_time_queue->size();
 }
 
-double BufferedRendererStatsReader::last_renderer_load() const {
+double BufferedRenderer::last_renderer_load() const {
     std::shared_lock<std::shared_mutex> lock(*stats_.render_time_mutex);
     if (stats_.render_time_queue->empty()) {
         return 0.0;
@@ -109,7 +106,12 @@ void BufferedRenderer::read(std::vector<float> &dest) {
 
     // 2. Read from the queue until the destination is full
     while (filled_count < dest.size()) {
-        std::vector<float> received_buf = receive_queue_.pop();
+        if (receive_queue_.empty()) {
+            break;
+        }
+
+        std::vector<float> received_buf = std::move(receive_queue_.front());
+        receive_queue_.pop();
 
         size_t needed = dest.size() - filled_count;
         size_t to_copy_from_new = std::min(needed, received_buf.size());
@@ -131,10 +133,6 @@ void BufferedRenderer::read(std::vector<float> &dest) {
 
 void BufferedRenderer::set_render_size(size_t size) {
     stats_.render_size->store(size, std::memory_order_seq_cst);
-}
-
-BufferedRendererStatsReader BufferedRenderer::get_buffer_stats() const {
-    return BufferedRendererStatsReader(stats_);
 }
 
 void BufferedRenderer::render_loop() {

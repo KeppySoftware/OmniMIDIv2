@@ -25,11 +25,9 @@
 // Written by arduano
 
 #include <atomic>
-#include <condition_variable>
 #include <deque>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <queue>
 #include <shared_mutex>
 #include <thread>
@@ -37,58 +35,42 @@
 
 #include "../Common.hpp"
 
-template <typename T> class ThreadSafeQueue {
-  public:
-    void push(T value) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        queue_.push(std::move(value));
-        cond_var_.notify_one();
-    }
-
-    T pop() {
-        std::unique_lock<std::mutex> lock(mutex_);
-        cond_var_.wait(lock, [this] { return !queue_.empty(); });
-        T value = std::move(queue_.front());
-        queue_.pop();
-        return value;
-    }
-
-    bool try_pop(T &value) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (queue_.empty()) {
-            return false;
-        }
-        value = std::move(queue_.front());
-        queue_.pop();
-        return true;
-    }
-
-    bool empty() const {
-        std::lock_guard<std::mutex> lock(mutex_);
-        return queue_.empty();
-    }
+class BufferedRenderer {
+    using AudioPipe = std::function<void(std::vector<float> &)>;
 
   private:
-    mutable std::mutex mutex_;
-    std::queue<T> queue_;
-    std::condition_variable cond_var_;
-};
+    struct BufferedRendererStats {
+        std::shared_ptr<std::atomic<int64_t>> samples;
+        std::shared_ptr<std::atomic<int64_t>> last_samples_after_read;
+        std::shared_ptr<std::atomic<int64_t>> last_request_samples;
+        std::shared_ptr<std::deque<double>> render_time_queue;
+        std::shared_ptr<std::shared_mutex> render_time_mutex;
+        std::shared_ptr<std::atomic<size_t>> render_size;
+    };
 
-class BufferedRenderer;
-class BufferedRendererStatsReader;
+    void render_loop();
 
-struct BufferedRendererStats {
-    std::shared_ptr<std::atomic<int64_t>> samples;
-    std::shared_ptr<std::atomic<int64_t>> last_samples_after_read;
-    std::shared_ptr<std::atomic<int64_t>> last_request_samples;
-    std::shared_ptr<std::deque<double>> render_time_queue;
-    std::shared_ptr<std::shared_mutex> render_time_mutex;
-    std::shared_ptr<std::atomic<size_t>> render_size;
-};
+    BufferedRendererStats stats_;
+    std::queue<std::vector<float>> receive_queue_;
+    std::vector<float> remainder_;
+    std::shared_ptr<std::atomic<bool>> killed_;
+    std::thread render_thread_;
+    AudioStreamParams stream_params_;
+    AudioPipe audio_pipe_;
 
-class BufferedRendererStatsReader {
   public:
-    explicit BufferedRendererStatsReader(BufferedRendererStats stats);
+    BufferedRenderer(AudioPipe render_function, AudioStreamParams params,
+                     size_t initial_render_size);
+
+    ~BufferedRenderer();
+
+    BufferedRenderer(const BufferedRenderer &) = delete;
+    BufferedRenderer &operator=(const BufferedRenderer &) = delete;
+    BufferedRenderer(BufferedRenderer &&) = delete;
+    BufferedRenderer &operator=(BufferedRenderer &&) = delete;
+
+    void read(std::vector<float> &dest);
+    void set_render_size(size_t size);
 
     // The number of samples currently buffered.
     int64_t samples() const;
@@ -107,40 +89,6 @@ class BufferedRendererStatsReader {
 
     // The most recent renderer load (0.0 to 1.0).
     double last_renderer_load() const;
-
-  private:
-    BufferedRendererStats stats_;
-};
-
-class BufferedRenderer {
-  public:
-    using AudioPipe = std::function<void(std::vector<float> &)>;
-
-    BufferedRenderer(AudioPipe render_function, AudioStreamParams params,
-                     size_t initial_render_size);
-
-    ~BufferedRenderer();
-
-    BufferedRenderer(const BufferedRenderer &) = delete;
-    BufferedRenderer &operator=(const BufferedRenderer &) = delete;
-    BufferedRenderer(BufferedRenderer &&) = delete;
-    BufferedRenderer &operator=(BufferedRenderer &&) = delete;
-
-    void read(std::vector<float> &dest);
-    void set_render_size(size_t size);
-
-    BufferedRendererStatsReader get_buffer_stats() const;
-
-  private:
-    void render_loop();
-
-    BufferedRendererStats stats_;
-    ThreadSafeQueue<std::vector<float>> receive_queue_;
-    std::vector<float> remainder_;
-    std::shared_ptr<std::atomic<bool>> killed_;
-    std::thread render_thread_;
-    AudioStreamParams stream_params_;
-    AudioPipe audio_pipe_;
 };
 
 #endif // BUFFERED_RENDERER_H

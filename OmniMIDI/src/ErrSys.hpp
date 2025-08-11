@@ -4,7 +4,7 @@
  * OmniMIDI
  *
  * Copyright (c) 2024 Keppy's Software
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the MIT License.
  *
@@ -27,9 +27,10 @@
 #endif
 
 #if defined(_WIN32)
+#include <windows.h>
+
 #include <psapi.h>
 #include <tchar.h>
-#include <windows.h>
 #else
 #include <stdarg.h>
 #endif

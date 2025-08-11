@@ -25,7 +25,7 @@
        <bool>true</bool>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="soundfonts">
        <attribute name="title">
@@ -418,6 +418,13 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QCheckBox" name="debugMode">
+             <property name="text">
+              <string>Show Debug Information</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
         </item>
@@ -563,8 +570,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>746</width>
-             <height>466</height>
+             <width>738</width>
+             <height>446</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_7"/>
@@ -1060,7 +1067,7 @@
      <x>0</x>
      <y>0</y>
      <width>780</width>
-     <height>20</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuOmniMIDI">

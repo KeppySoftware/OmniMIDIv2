@@ -30,6 +30,7 @@
 #define MAX_WAIT 10000
 
 #include <windows.h>
+
 #include <mmeapi.h>
 #include "WDMDrv.hpp"
 #include "../ErrSys.hpp"

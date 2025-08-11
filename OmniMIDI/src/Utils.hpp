@@ -28,14 +28,14 @@
 #include <string>
 
 #ifdef _WIN32
+#include <windows.h>
+
 #include <cassert>
 #include <guiddef.h>
 #include <strsafe.h>
-#include <windows.h>
-
 #include <shlobj.h>
 
-#define TYPE % s
+#define TYPE %s
 #define TYPENO TYPE
 #define LIBSUFF ".dll"
 #else

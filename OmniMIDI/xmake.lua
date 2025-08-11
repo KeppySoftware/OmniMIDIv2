@@ -9,7 +9,7 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
-add_requires("nlohmann_json", "portaudio")
+add_requires("nlohmann_json", "miniaudio")
 
 option("nonfree")
     set_default(false)
@@ -27,7 +27,7 @@ target("OmniMIDI")
 	else
 		set_kind("binary")
 		add_defines("OM_STANDALONE")
-		add_packages("nlohmann_json", "portaudio")
+		add_packages("nlohmann_json", "miniaudio")
 
 		-- Option definitions
 		set_options("nonfree")
@@ -82,7 +82,7 @@ target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
 	add_defines("OMNIMIDI_EXPORTS")
-	add_packages("nlohmann_json", "portaudio")
+	add_packages("nlohmann_json", "miniaudio")
 
 	-- Option definitions
 	set_options("nonfree")

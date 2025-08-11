@@ -49,7 +49,7 @@ enum BASSMultithreadingType {
 
 class BASSSettings : public SettingsModule {
   public:
-    uint64_t GlobalEvBufSize = 32768;
+    uint64_t GlobalEvBufSize = 65536;
     uint32_t RenderTimeLimit = 95;
 
     bool FollowOverlaps = false;
@@ -60,9 +60,9 @@ class BASSSettings : public SettingsModule {
 
     BASSMultithreadingType Threading = Standard;
     uint8_t KeyboardDivisions = 4;
-    uint32_t ThreadCount = 4;
+    uint32_t ThreadCount = 0;
     uint64_t MaxInstanceNPS = 10000;
-    uint64_t InstanceEvBufSize = 2048;
+    uint64_t InstanceEvBufSize = 8192;
 
     int32_t AudioEngine = (int)DEFAULT_ENGINE;
     float AudioBuf = 10.0f;

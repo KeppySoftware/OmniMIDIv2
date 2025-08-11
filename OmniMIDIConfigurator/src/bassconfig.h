@@ -8,6 +8,12 @@
 class BASSConfig : public SynthConfig
 {
 public:
+    enum BASSMultithreadingType {
+        SingleThread = 0,
+        Standard = 1,
+        Multithreaded = 2
+    };
+
     BASSConfig(OMConfig *omconfig);
 
     void load() override;
@@ -17,12 +23,26 @@ public:
         return "BASSSynth";
     }
 
-    uint64_t EvBufSize = 32768;
-    uint32_t RenderTimeLimit = 95;
     uint32_t SampleRate = 48000;
     uint32_t VoiceLimit = 1024;
+
+    uint64_t GlobalEvBufSize = 65536;
+    uint32_t RenderTimeLimit = 95;
+
+    bool FollowOverlaps = false;
+    bool AudioLimiter = false;
+    bool FloatRendering = true;
+    bool MonoRendering = false;
+    bool DisableEffects = false;
+
+    BASSMultithreadingType Threading = Standard;
+    uint8_t KeyboardDivisions = 4;
+    uint32_t ThreadCount = 0;
+    uint64_t MaxInstanceNPS = 10000;
+    uint64_t InstanceEvBufSize = 8192;
+
     int32_t AudioEngine = 0;
-    uint32_t AudioBuf = 10;
+    float AudioBuf = 10.0f;
 #ifndef _WIN32
     uint32_t BufPeriod = 480;
 #else
@@ -36,17 +56,6 @@ public:
     std::string ASIOLCh = "0";
     std::string ASIORCh = "0";
 #endif
-
-    bool FollowOverlaps = false;
-    bool LoudMax = false;
-    bool AsyncMode = true;
-    bool FloatRendering = true;
-    bool MonoRendering = false;
-    bool OneThreadMode = false;
-    bool DisableEffects = false;
-
-    uint8_t ExpMTKeyboardDiv = 4;
-    bool ExperimentalMultiThreaded = false;
 
 private:
     json m_cfg;
