@@ -101,7 +101,7 @@ OmniMIDI::MIDIAudioPlayer::MIDIAudioPlayer(ErrorSystem::Logger *PErr,
             sample_rate, outputParameters.channelCount, channels);
 
     err = Pa_OpenStream(&stream, NULL, &outputParameters, (double)sample_rate,
-                        paFramesPerBufferUnspecified, paClipOff, paCallback,
+                        paFramesPerBufferUnspecified, enable_limiter ? paClipOff : 0, paCallback,
                         &arg);
     if (err != paNoError) {
         throw std::runtime_error(Pa_GetErrorText(err));

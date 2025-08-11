@@ -127,9 +127,8 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     if (bassConfig->ThreadCount == 0 ||
         bassConfig->ThreadCount > shared.num_instances) {
         shared.num_threads = shared.num_instances;
-    } else {
-        shared.num_threads = bassConfig->ThreadCount;
-    }
+    } 
+    else shared.num_threads = bassConfig->ThreadCount;
 
     float buffer_ms = bassConfig->AudioBuf;
     kbdiv = (uint32_t)bassConfig->KeyboardDivisions;
