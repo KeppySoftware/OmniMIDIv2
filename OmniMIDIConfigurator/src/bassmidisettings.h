@@ -19,6 +19,7 @@ public:
     void updateMTValues();
     void toggleMtOptions();
     void showWinAudioSettings(int idx);
+    void setAudioBufferVal();
     void loadSettings() override;
     void storeSettings() override;
     QWidget *getWidget() override;

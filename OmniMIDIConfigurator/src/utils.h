@@ -3,6 +3,10 @@
 
 #include <filesystem>
 
+#ifdef _WIN32
+#include <vector>
+#endif
+
 #define CCS(b) b ? Qt::CheckState::Checked : Qt::CheckState::Unchecked
 
 #define FATAL_ERROR_TITLE   "OmniMIDI | Fatal Error"

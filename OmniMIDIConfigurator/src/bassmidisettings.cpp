@@ -19,7 +19,10 @@ BASSMIDISettings::BASSMIDISettings(QWidget *parent, BASSConfig *config)
     connect(ui->asioReload, &QPushButton::pressed, this, &BASSMIDISettings::reloadASIODevices);
 
     reloadASIODevices();
+
+    connect(ui->audioEngine, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::setAudioBufferVal);
 #endif
+    connect(ui->threading, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::setAudioBufferVal);
     connect(ui->voiceLimit, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
     connect(ui->kbDiv, &QSpinBox::valueChanged, this, &BASSMIDISettings::updateMTValues);
     connect(ui->threading, &QComboBox::currentIndexChanged, this, &BASSMIDISettings::toggleMtOptions);
@@ -79,6 +82,14 @@ void BASSMIDISettings::showWinAudioSettings(int idx) {
     }
 }
 
+void BASSMIDISettings::setAudioBufferVal() {
+    if (ui->threading->currentIndex() != 2
+        && ui->audioEngine->currentIndex() == 1) // WASAPI
+        ui->audioBuffer->setValue(m_cfg->WASAPIBuf);
+    else // Internal
+        ui->audioBuffer->setValue(m_cfg->AudioBuf);
+}
+
 void BASSMIDISettings::loadSettings() {
     ui->threading->setCurrentIndex(m_cfg->Threading);
     ui->kbDiv->setValue(m_cfg->KeyboardDivisions);
@@ -105,10 +116,6 @@ void BASSMIDISettings::loadSettings() {
 #elif defined(_WIN32)
     ui->audioEngine->setCurrentIndex(m_cfg->AudioEngine);
     showWinAudioSettings(m_cfg->AudioEngine);
-    if (m_cfg->AudioEngine == 1) // WASAPI
-        ui->audioBuffer->setValue(m_cfg->WASAPIBuf);
-    else // Internal
-        ui->audioBuffer->setValue(m_cfg->AudioBuf);
     ui->streamDirectFeed->setCheckState(CCS(m_cfg->StreamDirectFeed));
     ui->asioChunksDivision->setValue(m_cfg->ASIOChunksDivision);
     ui->asioLCh->setValue(std::stoi(m_cfg->ASIOLCh));
@@ -121,6 +128,8 @@ void BASSMIDISettings::loadSettings() {
         storeSettings();
     }
 #endif
+
+    setAudioBufferVal();
 }
 
 void BASSMIDISettings::storeSettings() {
@@ -156,7 +165,8 @@ void BASSMIDISettings::storeSettings() {
     m_cfg->AudioBuf = ui->audioBuffer->value();
 #elif defined(_WIN32)
     m_cfg->AudioEngine = ui->audioEngine->currentIndex();
-    if (m_cfg->AudioEngine == 1)
+    if (ui->threading->currentIndex() != 2
+        && ui->audioEngine->currentIndex() == 1)
         m_cfg->WASAPIBuf = ui->audioBuffer->value();
     else
         m_cfg->AudioBuf = ui->audioBuffer->value();
