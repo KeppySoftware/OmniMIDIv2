@@ -106,12 +106,14 @@ void BufferedRenderer::read(std::vector<float> &dest) {
 
     // 2. Read from the queue until the destination is full
     while (filled_count < dest.size()) {
-        if (receive_queue_.empty()) {
-            break;
-        }
+        std::vector<float> received_buf;
 
-        std::vector<float> received_buf = std::move(receive_queue_.front());
-        receive_queue_.pop();
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            queue_cond.wait(lock, [this] { return !receive_queue_.empty(); });
+            received_buf = std::move(receive_queue_.front());
+            receive_queue_.pop();
+        }
 
         size_t needed = dest.size() - filled_count;
         size_t to_copy_from_new = std::min(needed, received_buf.size());
@@ -172,7 +174,12 @@ void BufferedRenderer::render_loop() {
 
         // Send the rendered samples to the main thread
         stats_.samples->fetch_add(buffer.size(), std::memory_order_seq_cst);
-        receive_queue_.push(std::move(buffer));
+
+        {
+            std::unique_lock<std::mutex> lock(queue_mutex);
+            receive_queue_.push(std::move(buffer));
+            queue_cond.notify_one();
+        }
 
         // Record the render time statistic
         {

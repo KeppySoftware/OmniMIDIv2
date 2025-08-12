@@ -25,6 +25,7 @@
 // Written by arduano
 
 #include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -52,6 +53,8 @@ class BufferedRenderer {
 
     BufferedRendererStats stats_;
     std::queue<std::vector<float>> receive_queue_;
+    std::mutex queue_mutex;
+    std::condition_variable queue_cond;
     std::vector<float> remainder_;
     std::shared_ptr<std::atomic<bool>> killed_;
     std::thread render_thread_;
