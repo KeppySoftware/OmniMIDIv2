@@ -74,10 +74,8 @@ OmniMIDI::BASSInstance::~BASSInstance() {
 void OmniMIDI::BASSInstance::SendEvent(uint32_t event) {
     std::unique_lock<std::mutex> lck(evbuf_mutex);
 
-    if (evbuf_len == evbuf_capacity) {
-        lck.unlock();
+    if (evbuf_len == evbuf_capacity)
         FlushEvents();
-    }
 
     evbuf[evbuf_len++] = event;
 }
@@ -177,7 +175,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     shared.instances = new BASSInstance *[shared.num_instances];
 
     for (uint32_t i = 0; i < shared.num_instances; i++) {
-        shared.instances[i] = new BASSInstance(bassConfig, 1);
+        shared.instances[i] = new BASSInstance(ErrLog, bassConfig, 1);
         shared.instance_buffers[i] = new float[buffer_len] { };
     }
 

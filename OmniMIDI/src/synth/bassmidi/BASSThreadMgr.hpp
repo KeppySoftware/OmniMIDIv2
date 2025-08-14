@@ -26,6 +26,7 @@
 #include "../../audio/BufferedRenderer.hpp"
 #include "../../audio/NpsLimiter.hpp"
 #include "BASSSettings.hpp"
+#include "BASSInstance.hpp"
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
 #include <condition_variable>
@@ -33,31 +34,6 @@
 #include <thread>
 
 namespace OmniMIDI {
-class BASSInstance {
-  public:
-    BASSInstance(BASSSettings *bassConfig, uint32_t channels);
-    ~BASSInstance();
-
-    void SendEvent(uint32_t event);
-    int ReadSamples(float *buffer, size_t num_samples);
-    uint64_t GetVoiceCount();
-
-    int SetSoundFonts(const std::vector<BASS_MIDI_FONTEX> &sfs);
-    void SetDrums(bool isDrumsChan);
-    void ResetStream(uint8_t bmType);
-
-  private:
-    void FlushEvents();
-
-    uint32_t *evbuf;
-    uint32_t evbuf_len;
-    uint32_t evbuf_capacity;
-
-    std::mutex evbuf_mutex;
-
-    HSTREAM stream;
-};
-
 class BASSThreadManager {
   public:
     struct ThreadSharedInfo {

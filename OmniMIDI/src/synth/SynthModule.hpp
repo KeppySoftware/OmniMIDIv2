@@ -395,7 +395,7 @@ class SynthModule {
     SettingsModule *_synthConfig = nullptr;
     std::vector<OmniMIDI::SoundFont> *_sfVec = nullptr;
 
-    std::jthread *_AudThread = nullptr;
+    std::jthread _AudThread;
     std::jthread _EvtThread;
     std::jthread _SinEvtThread;
     std::jthread _LogThread;

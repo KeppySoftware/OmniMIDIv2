@@ -153,7 +153,8 @@ class BASSSynth : public SynthModule {
     bool ClearFuncs();
     size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
-    void EventsThread();
+    void RenderingThread();
+    void ProcessingThread();
     void StatsThread();
 
     bool isActive = false;
@@ -163,9 +164,7 @@ class BASSSynth : public SynthModule {
     std::vector<BASS_MIDI_FONTEX> SoundFonts;
 
     BASSThreadManager *thread_mgr = nullptr;
-
-    HSTREAM bassmidi = 0;
-    HFX audioLimiter = 0;
+    BASSInstance *standard_instance = nullptr;
 
     std::jthread _StatsThread;
 
