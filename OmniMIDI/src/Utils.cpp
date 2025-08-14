@@ -4,7 +4,7 @@
  * OmniMIDI
  *
  * Copyright (c) 2024 Keppy's Software
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the MIT License.
  *
@@ -19,9 +19,11 @@
 
 #include "Utils.hpp"
 #include "Common.hpp"
+#include <chrono>
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <math.h>
 #include <thread>
 
 namespace fs = std::filesystem;
@@ -523,4 +525,35 @@ bool OMShared::Funcs::OpenFile(std::string filePath) {
 #endif
 
     return false;
+}
+
+void OMShared::Funcs::PreciseSleep(int64_t microseconds) {
+    using namespace std;
+    using namespace std::chrono;
+
+    static double estimate = 5000.0;
+    static double mean = 5000.0;
+    static double m2 = 0;
+    static int64_t count = 1;
+
+    while (microseconds > estimate) {
+        auto start = high_resolution_clock::now();
+        this_thread::sleep_for(milliseconds(1));
+        auto end = high_resolution_clock::now();
+
+        auto observed = (end - start).count();
+        microseconds -= observed;
+
+        ++count;
+        double delta = observed - mean;
+        mean += delta / count;
+        m2 += delta * (observed - mean);
+        double stddev = sqrt(m2 / (count - 1));
+        estimate = mean + stddev;
+    }
+
+    // spin lock
+    auto start = high_resolution_clock::now();
+    while ((high_resolution_clock::now() - start).count() < microseconds)
+        ;
 }

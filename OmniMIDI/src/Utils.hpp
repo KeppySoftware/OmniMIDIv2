@@ -4,7 +4,7 @@
  * OmniMIDI
  *
  * Copyright (c) 2024 Keppy's Software
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the MIT License.
  *
@@ -32,8 +32,8 @@
 
 #include <cassert>
 #include <guiddef.h>
-#include <strsafe.h>
 #include <shlobj.h>
+#include <strsafe.h>
 
 #define TYPE %s
 #define TYPENO TYPE
@@ -158,6 +158,7 @@ class Funcs {
     Funcs();
     ~Funcs();
 
+    static void PreciseSleep(int64_t microseconds);
     void MicroSleep(int64_t v);
     uint32_t QuerySystemTime(int64_t *v);
 

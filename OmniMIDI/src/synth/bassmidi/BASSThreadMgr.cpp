@@ -74,8 +74,10 @@ OmniMIDI::BASSInstance::~BASSInstance() {
 void OmniMIDI::BASSInstance::SendEvent(uint32_t event) {
     std::unique_lock<std::mutex> lck(evbuf_mutex);
 
-    if (evbuf_len == evbuf_capacity)
+    if (evbuf_len == evbuf_capacity) {
+        lck.unlock();
         FlushEvents();
+    }
 
     evbuf[evbuf_len++] = event;
 }

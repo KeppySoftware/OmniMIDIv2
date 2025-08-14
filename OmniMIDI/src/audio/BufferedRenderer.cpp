@@ -18,6 +18,7 @@
  */
 
 #include "BufferedRenderer.hpp"
+#include "../Utils.hpp"
 #include <chrono>
 #include <mutex>
 #include <numeric>
@@ -166,7 +167,7 @@ void BufferedRenderer::render_loop() {
         if (killed_->load(std::memory_order_relaxed))
             break;
 
-        auto start_time = std::chrono::steady_clock::now();
+        auto start_time = std::chrono::high_resolution_clock::now();
 
         // Create the buffer and render samples into it
         std::vector<float> buffer(size * stream_params_.channels, 0.0f);
@@ -183,7 +184,8 @@ void BufferedRenderer::render_loop() {
 
         // Record the render time statistic
         {
-            auto elapsed = std::chrono::steady_clock::now() - start_time;
+            auto elapsed =
+                std::chrono::high_resolution_clock::now() - start_time;
             double elapsed_f64 = std::chrono::duration<double>(elapsed).count();
             double total_f64 = std::chrono::duration<double>(delay).count();
 
@@ -196,9 +198,9 @@ void BufferedRenderer::render_loop() {
 
         // Sleep until the next iteration is due
         auto end_time = start_time + delay;
-        auto now = std::chrono::steady_clock::now();
+        auto now = std::chrono::high_resolution_clock::now();
         if (end_time > now) {
-            std::this_thread::sleep_for(end_time - now);
+            OMShared::Funcs::PreciseSleep((end_time - now).count());
         }
     }
 }
