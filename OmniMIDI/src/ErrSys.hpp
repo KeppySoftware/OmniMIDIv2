@@ -21,6 +21,7 @@
 #define _ERRSYS_H
 
 #include <mutex>
+#include <iostream>
 
 #if !defined(_MSC_VER)
 #define __func__ __FUNCTION__

@@ -38,10 +38,11 @@ class BASSInstance {
     bool SendDirectEvent(uint32_t chan, uint32_t evt, uint32_t param);
     void FlushEvents();
 
+    uint32_t GetHandle();
     void UpdateStream(uint32_t ms);
     int ReadSamples(float *buffer, size_t num_samples);
 
-    uint64_t GetVoiceCount();
+    uint64_t GetActiveVoices();
     float GetRenderingTime();
 
     int SetSoundFonts(const std::vector<BASS_MIDI_FONTEX> &sfs);
@@ -49,6 +50,9 @@ class BASSInstance {
     void ResetStream(uint8_t bmType);
 
   private:
+    uint32_t chanLimit;
+    
+    bool decodeMode;
     bool singleInstance;
 
     ErrorSystem::Logger *ErrLog = nullptr;

@@ -54,7 +54,6 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     float buffer_ms = bassConfig->AudioBuf;
     kbdiv = (uint32_t)bassConfig->KeyboardDivisions;
 
-    BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
     if (!BASS_Init(0, sample_rate, 0, NULL, NULL))
         throw std::runtime_error("Cannot start BASS");
 
@@ -297,8 +296,8 @@ void ThreadFunc(OmniMIDI::BASSThreadManager::ThreadInfo *info) {
             memset(shared->instance_buffers[i], 0,
                    shared->num_samples * sizeof(float));
             instance->ReadSamples(shared->instance_buffers[i],
-                                  shared->num_samples);
-            thread_active_voices += instance->GetVoiceCount();
+                                  shared->num_samples * sizeof(float));
+            thread_active_voices += instance->GetActiveVoices();
         }
 
         {

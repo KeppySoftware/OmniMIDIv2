@@ -34,15 +34,11 @@
 #define BASE_IMPORTS 38
 
 #if defined(_WIN32)
-
 #include "bass/bassasio.h"
 #include "bass/basswasapi.h"
 #define ADD_IMPORTS 32
-
 #else
-
 #define ADD_IMPORTS 0
-
 #endif
 
 #define FINAL_IMPORTS (BASE_IMPORTS + ADD_IMPORTS)
@@ -152,6 +148,15 @@ class BASSSynth : public SynthModule {
     bool LoadFuncs();
     bool ClearFuncs();
     size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
+
+#ifdef _WIN32
+    static DWORD CALLBACK AudioProcesser(void*, DWORD, BASSSynth*);
+    static DWORD CALLBACK AudioEvProcesser(void*, DWORD, BASSSynth*);
+    static DWORD CALLBACK WasapiProc(void*, DWORD, void*);
+    static DWORD CALLBACK WasapiEvProc(void*, DWORD, void*);
+    static DWORD CALLBACK AsioProc(int, DWORD, void*, DWORD, void*);
+    static DWORD CALLBACK AsioEvProc(int, DWORD, void*, DWORD, void*);
+#endif
 
     void RenderingThread();
     void ProcessingThread();

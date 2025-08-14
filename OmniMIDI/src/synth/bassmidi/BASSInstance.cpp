@@ -23,48 +23,24 @@ OmniMIDI::BASSInstance::BASSInstance(ErrorSystem::Logger *pErr,
                                      BASSSettings *bassConfig,
                                      uint32_t channels) {
     bool mtMode = bassConfig->Threading == Multithreaded;
-    
-    uint32_t deviceFlags =
-                  (bassConfig->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
-    
-    uint32_t streamFlags = BASS_MIDI_DECAYEND | BASS_SAMPLE_FLOAT |
-                  (mtMode ? BASS_STREAM_DECODE : 0) |
-                  (bassConfig->MonoRendering ? BASS_SAMPLE_MONO : 0) |
-                  (bassConfig->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
-                  (bassConfig->DisableEffects ? BASS_MIDI_NOFX : 0);
 
-    
     ErrLog = pErr;
+    chanLimit = channels - 1;
+    decodeMode = mtMode || bassConfig->AudioEngine != Internal;
     singleInstance = !mtMode;
     audioLimiter = 0;
     evbuf_len = 0;
     evbuf_capacity = mtMode ? bassConfig->GlobalEvBufSize : bassConfig->InstanceEvBufSize;
 
-    // This isn't under BASSThreadMgr, initialize BASS
-    if (!mtMode) {
-        BASS_SetConfig(BASS_CONFIG_DEV_NONSTOP, 1);
-        BASS_SetConfig(BASS_CONFIG_BUFFER, 0);
-        BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
-        BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-
-#if !defined(_WIN32)
-        // Only Linux and macOS can do this
-        BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, bassConfig->BufPeriod * -1);
-#else
-        BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, bassConfig->AudioBuf);
-#endif
-        BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, bassConfig->AudioBuf);
-
-        if (!BASS_Init(-1, bassConfig->SampleRate, deviceFlags, NULL, NULL)) {
-            throw BASS_ErrorGetCode();
-        }
-    }
-
+    uint32_t streamFlags = BASS_MIDI_DECAYEND | BASS_SAMPLE_FLOAT |
+                  (decodeMode ? BASS_STREAM_DECODE : 0) |
+                  (bassConfig->Threading == Standard ? BASS_MIDI_ASYNC : 0) |
+                  (bassConfig->MonoRendering ? BASS_SAMPLE_MONO : 0) |
+                  (bassConfig->FollowOverlaps ? BASS_MIDI_NOTEOFF1 : 0) |
+                  (bassConfig->DisableEffects ? BASS_MIDI_NOFX : 0);
+ 
     stream = BASS_MIDI_StreamCreate(channels, streamFlags, bassConfig->SampleRate);
     if (stream == 0) {
-        if (singleInstance)
-            BASS_Free();
-
         throw BASS_ErrorGetCode();
     }
 
@@ -90,9 +66,7 @@ OmniMIDI::BASSInstance::BASSInstance(ErrorSystem::Logger *pErr,
                     stream, BASS_ATTRIB_MIDI_QUEUE_ASYNC,
                     (float)evbuf_capacity * sizeof(uint32_t))) {
                 BASS_StreamFree(stream);
-                BASS_Free();
-                
-                Error("Failed to set async buffer size!", true);
+                throw std::runtime_error("Failed to set async buffer size!");
             }
         }
 
@@ -107,10 +81,11 @@ OmniMIDI::BASSInstance::BASSInstance(ErrorSystem::Logger *pErr,
             Message("BASS audio limiter enabled.");
         }
 
-        if (!BASS_ChannelPlay(stream, false)) {
-            BASS_StreamFree(stream);
-            BASS_Free();
-            throw BASS_ErrorGetCode();
+        if (bassConfig->AudioEngine == Internal) {
+            if (!BASS_ChannelPlay(stream, false)) {
+                BASS_StreamFree(stream);
+                throw BASS_ErrorGetCode();
+            }
         }
 
         Message("BASS stream is now playing.");
@@ -119,9 +94,11 @@ OmniMIDI::BASSInstance::BASSInstance(ErrorSystem::Logger *pErr,
 
 OmniMIDI::BASSInstance::~BASSInstance() {
     delete[] evbuf;
-    BASS_StreamFree(stream);
+
     if (singleInstance)
-        BASS_Free();
+        BASS_ChannelStop(stream);
+
+    BASS_StreamFree(stream);
 }
 
 void OmniMIDI::BASSInstance::SendEvent(uint32_t event) {
@@ -139,19 +116,25 @@ bool OmniMIDI::BASSInstance::SendDirectEvent(uint32_t chan, uint32_t evt, uint32
     return BASS_MIDI_StreamEvent(stream, chan, evt, param);
 }
 
-void OmniMIDI::BASSInstance::UpdateStream(uint32_t ms) {
+uint32_t OmniMIDI::BASSInstance::GetHandle() { return stream; }
+
+void OmniMIDI::BASSInstance::UpdateStream(uint32_t ms) { 
+    if (decodeMode) return;
     BASS_ChannelUpdate(stream, ms);
-}
+ }
 
 int OmniMIDI::BASSInstance::ReadSamples(float *buffer, size_t num_samples) {
     FlushEvents();
-    return BASS_ChannelGetData(stream, buffer, num_samples * sizeof(float));
+    return BASS_ChannelGetData(stream, buffer, num_samples);
 }
 
-uint64_t OmniMIDI::BASSInstance::GetVoiceCount() {
-    float val;
-    BASS_ChannelGetAttribute(stream, BASS_ATTRIB_MIDI_VOICES_ACTIVE, &val);
-    return (uint64_t)val;
+uint64_t OmniMIDI::BASSInstance::GetActiveVoices() {
+    uint64_t val = 0;
+    for (int i = 0; i <= chanLimit; ++i) {
+        int temp = BASS_MIDI_StreamGetEvent(stream, i, MIDI_EVENT_VOICES);
+        if (temp != -1) val += temp;
+    }
+    return val;
 }
 
 float OmniMIDI::BASSInstance::GetRenderingTime() {
