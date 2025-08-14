@@ -22,6 +22,7 @@
 #include "fluidsynth/FluidSynth.hpp"
 #include "plugin/PluginSynth.hpp"
 #include "xsynth/XSynthM.hpp"
+#include <chrono>
 
 #ifdef _WIN32
 OmniMIDI::SynthHost::SynthHost(WinDriver::DriverCallback *dcasrc, HMODULE mod,
@@ -89,6 +90,82 @@ OmniMIDI::SynthHost::~SynthHost() {
         delete _SHSettings;
 
     Message("SynthHost deleted.");
+}
+
+void OmniMIDI::SynthHost::SetEventOverrides(const OmniMIDI::HostSettings::OverrideSettings &overrides) {
+    std::lock_guard<std::mutex> lock(_hostMutex);
+    _SHSettings->SetEventOverrides(overrides);
+    Message("Event overrides updated. Enabled: %s", overrides.enabled ? "true" : "false");
+}
+
+const OmniMIDI::HostSettings::OverrideSettings& OmniMIDI::SynthHost::GetEventOverrides() const {
+    std::lock_guard<std::mutex> lock(const_cast<std::mutex&>(_hostMutex));
+    return _SHSettings->GetEventOverrides();
+}
+
+bool OmniMIDI::SynthHost::ProcessEventOverrides(uint8_t &status, uint8_t &param1, uint8_t &param2) {
+    const auto& eventOverrides = _SHSettings->GetEventOverrides();
+    
+    if (!eventOverrides.enabled) {
+        return true;
+    }
+
+    uint8_t eventType = status & 0xF0;
+    uint8_t channel = status & 0x0F;
+
+    if (eventOverrides.ignoredChannels.find(channel) != eventOverrides.ignoredChannels.end()) {
+        return false;
+    }
+
+    if (eventOverrides.ignoredEventTypes.find(eventType) != eventOverrides.ignoredEventTypes.end()) {
+        return false;
+    }
+
+    auto overrideIt = eventOverrides.eventTypeOverrides.find(eventType);
+    if (overrideIt != eventOverrides.eventTypeOverrides.end()) {
+        const OmniMIDI::HostSettings::EventOverride &override = overrideIt->second;
+        
+        if (override.ignore) {
+            return false;
+        }
+
+        if (override.modifyChannel) {
+            status = (status & 0xF0) | (override.targetChannel & 0x0F);
+        }
+
+        if ((override.modifyVelocity || override.setFixedVelocity) && (eventType == 0x90 || eventType == 0x80)) {
+            if (override.setFixedVelocity) {
+                param2 = override.fixedVelocityValue;
+            } else if (override.modifyVelocity) {
+                param2 = (param2 * override.velocityMultiplier) / 100;
+                if (param2 > 127) param2 = 127;
+            }
+        }
+
+        if (override.modifyNoteLength && eventType == 0x90 && param2 > 0) {
+            uint32_t noteKey = (channel << 8) | param1;
+            _noteOnTimes[noteKey] = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count();
+            
+            if (override.forcedNoteLengthMs > 0) {
+                Utils.MicroSleep(SLEEPVAL(override.forcedNoteLengthMs * 1000));
+                Synth->PlayShortEvent(0x80 | channel, param1, 0);
+            }
+        }
+    }
+
+    if (eventOverrides.globalNoteLengthOverride && eventType == 0x90 && param2 > 0) {
+        uint32_t noteKey = (channel << 8) | param1;
+        _noteOnTimes[noteKey] = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()).count();
+        
+        if (eventOverrides.globalForcedNoteLengthMs > 0) {
+            Utils.MicroSleep(SLEEPVAL(eventOverrides.globalForcedNoteLengthMs * 1000));
+            Synth->PlayShortEvent(0x80 | channel, param1, 0);
+        }
+    }
+
+    return true;
 }
 
 void OmniMIDI::SynthHost::HostHealthCheck() {
@@ -315,12 +392,21 @@ uint64_t OmniMIDI::SynthHost::GetActiveVoices() {
 }
 
 void OmniMIDI::SynthHost::PlayShortEvent(uint32_t ev) {
-    Synth->PlayShortEvent(ev);
+    uint8_t status = (ev >> 0) & 0xFF;
+    uint8_t param1 = (ev >> 8) & 0xFF;
+    uint8_t param2 = (ev >> 16) & 0xFF;
+    
+    if (ProcessEventOverrides(status, param1, param2)) {
+        uint32_t processedEvent = status | (param1 << 8) | (param2 << 16);
+        Synth->PlayShortEvent(processedEvent);
+    }
 }
 
 void OmniMIDI::SynthHost::PlayShortEvent(uint8_t status, uint8_t param1,
                                          uint8_t param2) {
-    Synth->PlayShortEvent(status, param1, param2);
+    if (ProcessEventOverrides(status, param1, param2)) {
+        Synth->PlayShortEvent(status, param1, param2);
+    }
 }
 
 OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char *ev,
@@ -721,9 +807,13 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char *ev,
                                     checksum);
 
                                 for (uint8_t i = 0; i < pseWriteHead; i++) {
-                                    Synth->PlayShortEvent(params[i].status,
-                                                          params[i].param1,
-                                                          params[i].param2);
+                                    uint8_t status = params[i].status;
+                                    uint8_t param1 = params[i].param1;
+                                    uint8_t param2 = params[i].param2;
+                                    
+                                    if (ProcessEventOverrides(status, param1, param2)) {
+                                        Synth->PlayShortEvent(status, param1, param2);
+                                    }
                                 }
 
                                 addrBlock = ev[readHead];
@@ -780,11 +870,17 @@ OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char *ev,
         case SystemMessageEnd:
             break;
 
-        default:
-            Synth->PlayShortEvent(ev[readHead], ev[readHead + 1],
-                                  ev[readHead + 2]);
+        default: {
+            uint8_t status = ev[readHead];
+            uint8_t param1 = ev[readHead + 1];
+            uint8_t param2 = ev[readHead + 2];
+            
+            if (ProcessEventOverrides(status, param1, param2)) {
+                Synth->PlayShortEvent(status, param1, param2);
+            }
             readHead += 3;
             continue;
+        }
         }
     }
 
