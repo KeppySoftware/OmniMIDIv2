@@ -44,7 +44,7 @@ class BASSInstance {
 
     int SetSoundFonts(const std::vector<BASS_MIDI_FONTEX> &sfs);
     void SetDrums(bool isDrumsChan);
-    void ResetStream();
+    void ResetStream(uint8_t bmType);
 
   private:
     void FlushEvents();

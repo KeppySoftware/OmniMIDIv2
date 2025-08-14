@@ -157,25 +157,16 @@ void OmniMIDI::BASSSynth::EventsThread() {
             } else {
                 Utils.MicroSleep(SLEEPVAL(1));
             }
-
-            if (_bassConfig->Threading == SingleThread) {
-                float voices;
-                BASS_ChannelGetAttribute(bassmidi, BASS_ATTRIB_CPU,
-                                         &RenderingTime);
-                BASS_ChannelGetAttribute(
-                    bassmidi, BASS_ATTRIB_MIDI_VOICES_ACTIVE, &voices);
-                ActiveVoices = (uint64_t)voices;
-            }
         }
         break;
 
     case Multithreaded:
         while (IsSynthInitialized()) {
-            if (ShortEvents->NewEventsAvailable()) {
-                thread_mgr->SendEvent(ShortEvents->Read());
-            } else {
-                Utils.MicroSleep(SLEEPVAL(1));
+            if (!ShortEvents->NewEventsAvailable()) {
+                Utils.MicroSleep(SLEEPVAL(1));              
             }
+
+            thread_mgr->SendEvent(ShortEvents->Read());
         }
         break;
     }
@@ -398,9 +389,9 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
         BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_VOICES,
                                  (float)_bassConfig->VoiceLimit);
 
-        BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_SRC, 0.0);
+        BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_SRC, 0);
 
-        BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_KILL, 1.0);
+        BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_KILL, 1);
 
         BASS_ChannelSetAttribute(bassmidi, BASS_ATTRIB_MIDI_CPU,
                                  (float)_bassConfig->RenderTimeLimit);
@@ -411,6 +402,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
                     (float)_bassConfig->GlobalEvBufSize * sizeof(uint32_t))) {
                 BASS_StreamFree(bassmidi);
                 BASS_Free();
+                
                 Error("Failed to set async buffer size!", true);
             }
         }
@@ -418,11 +410,11 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
         if (_bassConfig->FloatRendering && _bassConfig->AudioLimiter) {
             BASS_BFX_COMPRESSOR2 compressor;
 
-            audioLimiter =
-                BASS_ChannelSetFX(bassmidi, BASS_FX_BFX_COMPRESSOR2, 0);
+            audioLimiter = BASS_ChannelSetFX(bassmidi, BASS_FX_BFX_COMPRESSOR2, 0);
 
             BASS_FXGetParameters(audioLimiter, &compressor);
             BASS_FXSetParameters(audioLimiter, &compressor);
+
             Message("BASS audio limiter enabled.");
         }
 
@@ -455,14 +447,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
     }
     Message("Event thread started.");
 
-    if (_bassConfig->Threading != SingleThread) {
-        _StatsThread = std::jthread(&BASSSynth::StatsThread, this);
-        if (!_StatsThread.joinable()) {
-            Error("_StatsThread failed. (ID: %x)", true, _StatsThread.get_id());
-            return false;
-        }
-        Message("Stats thread started.");
+    _StatsThread = std::jthread(&BASSSynth::StatsThread, this);
+    if (!_StatsThread.joinable()) {
+        Error("_StatsThread failed. (ID: %x)", true, _StatsThread.get_id());
+        return false;
     }
+    Message("Stats thread started.");
 
     ShortEvents->ResetHeads();
 
@@ -484,7 +474,7 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
         Message("_EvtThread freed.");
     }
 
-    if (_bassConfig->Threading != SingleThread && _StatsThread.joinable()) {
+    if (_StatsThread.joinable()) {
         _StatsThread.join();
         Message("_StatsThread freed.");
     }

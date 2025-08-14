@@ -46,11 +46,11 @@ OmniMIDI::BASSInstance::BASSInstance(BASSSettings *bassConfig,
         throw BASS_ErrorGetCode();
     }
 
-    evbuf =
-        (uint32_t *)malloc(bassConfig->InstanceEvBufSize * sizeof(uint32_t));
+    evbuf = new uint32_t[bassConfig->InstanceEvBufSize] { };
     if (!evbuf) {
         throw std::runtime_error("");
     }
+
     evbuf_len = 0;
     evbuf_capacity = bassConfig->InstanceEvBufSize;
 
@@ -58,16 +58,16 @@ OmniMIDI::BASSInstance::BASSInstance(BASSSettings *bassConfig,
     BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_VOICES,
                              (float)bassConfig->VoiceLimit);
 
-    BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_SRC, 0.0);
+    BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_SRC, 0);
 
-    BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_KILL, 1.0);
+    BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_KILL, 1);
 
     BASS_ChannelSetAttribute(stream, BASS_ATTRIB_MIDI_CPU,
                              (float)bassConfig->RenderTimeLimit);
 }
 
 OmniMIDI::BASSInstance::~BASSInstance() {
-    free(evbuf);
+    delete[] evbuf;
     BASS_StreamFree(stream);
 }
 
@@ -101,8 +101,33 @@ void OmniMIDI::BASSInstance::SetDrums(bool isDrumsChan) {
     BASS_MIDI_StreamEvent(stream, 0, MIDI_EVENT_DEFDRUMS, (float)isDrumsChan);
 }
 
-void OmniMIDI::BASSInstance::ResetStream() {
-    BASS_MIDI_StreamEvent(stream, 0, MIDI_EVENT_SYSTEM, MIDI_SYSTEM_DEFAULT);
+void OmniMIDI::BASSInstance::ResetStream(uint8_t type) {
+    uint32_t bmType = 0;
+
+    switch (type) {
+		case 0x01:
+            bmType = MIDI_SYSTEM_GS;
+            break;
+
+        case 0x02:
+            bmType = MIDI_SYSTEM_GM1;
+            break;
+
+        case 0x03:
+            bmType = MIDI_SYSTEM_GM2;
+            break;
+
+        case 0x04:
+            bmType = MIDI_SYSTEM_XG;
+            break;
+
+        default:
+            bmType = MIDI_SYSTEM_DEFAULT;
+            break;
+    }
+
+    FlushEvents();
+    BASS_MIDI_StreamEvent(stream, 0, MIDI_EVENT_SYSTEMEX, bmType);
 }
 
 void OmniMIDI::BASSInstance::FlushEvents() {
@@ -111,6 +136,7 @@ void OmniMIDI::BASSInstance::FlushEvents() {
     BASS_MIDI_StreamEvents(stream,
                            BASS_MIDI_EVENTS_RAW | BASS_MIDI_EVENTS_NORSTATUS,
                            evbuf, evbuf_len * sizeof(uint32_t));
+          
     evbuf_len = 0;
 }
 
@@ -141,8 +167,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     size_t render_size = calc_render_size(sample_rate, buffer_ms);
     size_t buffer_len = render_size * (size_t)audio_channels;
 
-    shared.instance_buffers =
-        (float **)malloc(shared.num_instances * sizeof(float *));
+    shared.instance_buffers = new float*[shared.num_instances] { };
 
     Message("Creating %d BASSMIDI streams. Allocated buffer len: %zu",
             shared.num_instances, buffer_len);
@@ -151,8 +176,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
 
     for (uint32_t i = 0; i < shared.num_instances; i++) {
         shared.instances[i] = new BASSInstance(bassConfig, 1);
-        shared.instance_buffers[i] =
-            (float *)malloc(buffer_len * sizeof(float));
+        shared.instance_buffers[i] = new float[buffer_len] { };
     }
 
     shared.nps =
@@ -222,13 +246,13 @@ OmniMIDI::BASSThreadManager::~BASSThreadManager() {
 
     for (uint32_t i = 0; i < shared.num_instances; i++) {
         delete shared.instances[i];
-        free(shared.instance_buffers[i]);
+        delete[] shared.instance_buffers[i];
     }
 
     delete shared.instances;
     delete shared.nps;
 
-    free(shared.instance_buffers);
+    delete[] shared.instance_buffers;
     delete shared.thread_is_working;
 
     // delete threads;
@@ -270,10 +294,13 @@ void OmniMIDI::BASSThreadManager::SendEvent(uint32_t event) {
     }
 
     case 0xF: { // System
-        if (head == 0xFF) {
+        if (head == SystemReset) {
+            ev = event & 0xFFFFF0;
+            const uint32_t type = (ev >> 8) & 0xFF;
+
             shared.nps->reset();
             for (uint32_t i = 0; i < shared.num_instances; i++) {
-                shared.instances[i]->ResetStream();
+                shared.instances[i]->ResetStream(type);
             }
         } else {
             for (uint32_t i = 0; i < shared.num_instances; i++) {

@@ -75,16 +75,16 @@ OmniMIDI::MIDIAudioPlayer::MIDIAudioPlayer(ErrorSystem::Logger *PErr,
 
     ma_device_start(&device);
 
-    Message("PortAudio initialization complete");
+    Message("MIDIAudioPlayer stream initialized.");
 }
 
 OmniMIDI::MIDIAudioPlayer::~MIDIAudioPlayer() {
-    Message("Closing PortAudio stream");
+    Message("Closing MIDIAudioPlayer stream");
 
     ma_device_uninit(&device);
 
     if (arg.limiter)
         delete arg.limiter;
 
-    Message("Audio player cleanup complete");
+    Message("MIDIAudioPlayer cleanup complete");
 }
