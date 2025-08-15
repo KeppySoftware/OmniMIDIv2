@@ -25,10 +25,8 @@
 #include "../../audio/AudioPlayer.hpp"
 #include "../../audio/BufferedRenderer.hpp"
 #include "../../audio/NpsLimiter.hpp"
-#include "BASSSettings.hpp"
 #include "BASSInstance.hpp"
-#include "bass/bass.h"
-#include "bass/bassmidi.h"
+#include "BASSSettings.hpp"
 #include <condition_variable>
 #include <mutex>
 #include <thread>

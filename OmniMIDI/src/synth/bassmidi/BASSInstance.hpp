@@ -17,30 +17,26 @@
  * program.  If not, see <https://opensource.org/license/mit/>.
  */
 
-#include "../../audio/AudioPlayer.hpp"
-#include "../../audio/BufferedRenderer.hpp"
-#include "../../audio/NpsLimiter.hpp"
 #include "BASSSettings.hpp"
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
-#include "bass/bass_fx.h"
-#include <condition_variable>
 #include <mutex>
-#include <thread>
 
 namespace OmniMIDI {
 class BASSInstance {
   public:
-    BASSInstance(ErrorSystem::Logger *pErr, BASSSettings *bassConfig, uint32_t channels);
+    BASSInstance(ErrorSystem::Logger *pErr, BASSSettings *bassConfig,
+                 uint32_t channels);
     ~BASSInstance();
 
     void SendEvent(uint32_t event);
     bool SendDirectEvent(uint32_t chan, uint32_t evt, uint32_t param);
     void FlushEvents();
+    void FlushEventBuffer();
 
     uint32_t GetHandle();
     void UpdateStream(uint32_t ms);
-    int ReadSamples(float *buffer, size_t num_samples);
+    int ReadData(void *buffer, size_t size);
 
     uint64_t GetActiveVoices();
     float GetRenderingTime();
@@ -50,10 +46,7 @@ class BASSInstance {
     void ResetStream(uint8_t bmType);
 
   private:
-    uint32_t chanLimit;
-    
-    bool decodeMode;
-    bool singleInstance;
+    uint32_t num_channels;
 
     ErrorSystem::Logger *ErrLog = nullptr;
 
@@ -66,4 +59,4 @@ class BASSInstance {
     HSTREAM stream;
     HFX audioLimiter;
 };
-}
+} // namespace OmniMIDI

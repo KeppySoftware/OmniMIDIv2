@@ -60,7 +60,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
     size_t render_size = calc_render_size(sample_rate, buffer_ms);
     size_t buffer_len = render_size * (size_t)audio_channels;
 
-    shared.instance_buffers = new float*[shared.num_instances] { };
+    shared.instance_buffers = new float *[shared.num_instances] {};
 
     Message("Creating %d BASSMIDI streams. Allocated buffer len: %zu",
             shared.num_instances, buffer_len);
@@ -69,7 +69,7 @@ OmniMIDI::BASSThreadManager::BASSThreadManager(ErrorSystem::Logger *PErr,
 
     for (uint32_t i = 0; i < shared.num_instances; i++) {
         shared.instances[i] = new BASSInstance(ErrLog, bassConfig, 1);
-        shared.instance_buffers[i] = new float[buffer_len] { };
+        shared.instance_buffers[i] = new float[buffer_len]{};
     }
 
     shared.nps =
@@ -295,8 +295,8 @@ void ThreadFunc(OmniMIDI::BASSThreadManager::ThreadInfo *info) {
 
             memset(shared->instance_buffers[i], 0,
                    shared->num_samples * sizeof(float));
-            instance->ReadSamples(shared->instance_buffers[i],
-                                  shared->num_samples * sizeof(float));
+            instance->ReadData(shared->instance_buffers[i],
+                               shared->num_samples * sizeof(float));
             thread_active_voices += instance->GetActiveVoices();
         }
 

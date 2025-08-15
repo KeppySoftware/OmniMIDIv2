@@ -150,12 +150,12 @@ class BASSSynth : public SynthModule {
     size_t LibImportsSize = sizeof(LibImports) / sizeof(LibImports[0]);
 
 #ifdef _WIN32
-    static DWORD CALLBACK AudioProcesser(void*, DWORD, BASSSynth*);
-    static DWORD CALLBACK AudioEvProcesser(void*, DWORD, BASSSynth*);
-    static DWORD CALLBACK WasapiProc(void*, DWORD, void*);
-    static DWORD CALLBACK WasapiEvProc(void*, DWORD, void*);
-    static DWORD CALLBACK AsioProc(int, DWORD, void*, DWORD, void*);
-    static DWORD CALLBACK AsioEvProc(int, DWORD, void*, DWORD, void*);
+    static DWORD CALLBACK AudioProcesser(void *, DWORD, BASSSynth *);
+    static DWORD CALLBACK AudioEvProcesser(void *, DWORD, BASSSynth *);
+    static DWORD CALLBACK WasapiProc(void *, DWORD, void *);
+    static DWORD CALLBACK WasapiEvProc(void *, DWORD, void *);
+    static DWORD CALLBACK AsioProc(int, DWORD, void *, DWORD, void *);
+    static DWORD CALLBACK AsioEvProc(int, DWORD, void *, DWORD, void *);
 #endif
 
     void RenderingThread();

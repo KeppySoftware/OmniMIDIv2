@@ -21,7 +21,6 @@
 
 #include "BASSSettings.hpp"
 #include "bass/bass.h"
-#include "bass/bass_fx.h"
 #include "bass/bassmidi.h"
 #include <cstdint>
 
@@ -37,37 +36,44 @@ OmniMIDI::BASSSynth::BASSSynth(ErrorSystem::Logger *PErr) : SynthModule(PErr) {
 OmniMIDI::BASSSynth::~BASSSynth() { delete _sfSystem; }
 
 #if defined(_WIN32)
-DWORD CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void* buffer, DWORD length, BASSSynth* me) {
-    BASSInstance* bass = me->standard_instance;
-    auto i = bass->ReadSamples((float*)buffer, length);
-	return i;
+DWORD CALLBACK OmniMIDI::BASSSynth::AudioProcesser(void *buffer, DWORD length,
+                                                   BASSSynth *me) {
+    BASSInstance *bass = me->standard_instance;
+    auto i = bass->ReadData((float *)buffer, length);
+    return i;
 }
 
-DWORD CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void* buffer, DWORD length, BASSSynth* me) {
-    BASSInstance* bass = me->standard_instance;
-    BaseEvBuf_t* evbuf = me->ShortEvents;
-    
-    do bass->SendEvent(evbuf->Read());
+DWORD CALLBACK OmniMIDI::BASSSynth::AudioEvProcesser(void *buffer, DWORD length,
+                                                     BASSSynth *me) {
+    BASSInstance *bass = me->standard_instance;
+    BaseEvBuf_t *evbuf = me->ShortEvents;
+
+    do
+        bass->SendEvent(evbuf->Read());
     while (evbuf->NewEventsAvailable());
     bass->FlushEvents();
 
-	return AudioProcesser(buffer, length, me);
+    return AudioProcesser(buffer, length, me);
 }
 
-DWORD CALLBACK OmniMIDI::BASSSynth::WasapiProc(void* buffer, DWORD length, void* user) {
-	return AudioProcesser(buffer, length, (BASSSynth*)user);
+DWORD CALLBACK OmniMIDI::BASSSynth::WasapiProc(void *buffer, DWORD length,
+                                               void *user) {
+    return AudioProcesser(buffer, length, (BASSSynth *)user);
 }
 
-DWORD CALLBACK OmniMIDI::BASSSynth::WasapiEvProc(void* buffer, DWORD length, void* user) {
-	return AudioEvProcesser(buffer, length, (BASSSynth*)user);
+DWORD CALLBACK OmniMIDI::BASSSynth::WasapiEvProc(void *buffer, DWORD length,
+                                                 void *user) {
+    return AudioEvProcesser(buffer, length, (BASSSynth *)user);
 }
 
-DWORD CALLBACK OmniMIDI::BASSSynth::AsioProc(int, DWORD, void* buffer, DWORD length, void* user) {
-	return AudioProcesser(buffer, length, (BASSSynth*)user);
+DWORD CALLBACK OmniMIDI::BASSSynth::AsioProc(int, DWORD, void *buffer,
+                                             DWORD length, void *user) {
+    return AudioProcesser(buffer, length, (BASSSynth *)user);
 }
 
-DWORD CALLBACK OmniMIDI::BASSSynth::AsioEvProc(int, DWORD, void* buffer, DWORD length, void* user) {
-	return AudioEvProcesser(buffer, length, (BASSSynth*)user);
+DWORD CALLBACK OmniMIDI::BASSSynth::AsioEvProc(int, DWORD, void *buffer,
+                                               DWORD length, void *user) {
+    return AudioEvProcesser(buffer, length, (BASSSynth *)user);
 }
 #endif
 
@@ -176,11 +182,13 @@ bool OmniMIDI::BASSSynth::ClearFuncs() {
 
 void OmniMIDI::BASSSynth::RenderingThread() {
     int32_t sleepRate = -1;
-	uint32_t updRate = 1;
+    uint32_t updRate = 1;
 
 #ifndef _WIN32
-	// Linux/macOS don't, so let's do the math ourselves
-	sleepRate = (int32_t)(((double)_bassConfig->BufPeriod / (double)_bassConfig->SampleRate) * 10000000.0);
+    // Linux/macOS don't, so let's do the math ourselves
+    sleepRate = (int32_t)(((double)_bassConfig->BufPeriod /
+                           (double)_bassConfig->SampleRate) *
+                          10000000.0);
 #endif
 
     // Spin while waiting for the stream to go online
@@ -192,8 +200,9 @@ void OmniMIDI::BASSSynth::RenderingThread() {
     switch (_bassConfig->Threading) {
     case SingleThread:
         while (IsSynthInitialized()) {
-            do standard_instance->SendEvent(ShortEvents->Read());
-	        while (ShortEvents->NewEventsAvailable());
+            do
+                standard_instance->SendEvent(ShortEvents->Read());
+            while (ShortEvents->NewEventsAvailable());
 
             standard_instance->FlushEvents();
             standard_instance->UpdateStream(updRate);
@@ -223,8 +232,9 @@ void OmniMIDI::BASSSynth::ProcessingThread() {
     switch (_bassConfig->Threading) {
     case Standard:
         while (IsSynthInitialized()) {
-            do standard_instance->SendEvent(ShortEvents->Read());
-	        while (ShortEvents->NewEventsAvailable());
+            do
+                standard_instance->SendEvent(ShortEvents->Read());
+            while (ShortEvents->NewEventsAvailable());
 
             standard_instance->FlushEvents();
             Utils.MicroSleep(SLEEPVAL(1));
@@ -233,8 +243,9 @@ void OmniMIDI::BASSSynth::ProcessingThread() {
 
     case Multithreaded:
         while (IsSynthInitialized()) {
-            do thread_mgr->SendEvent(ShortEvents->Read());
-	        while (ShortEvents->NewEventsAvailable());
+            do
+                thread_mgr->SendEvent(ShortEvents->Read());
+            while (ShortEvents->NewEventsAvailable());
 
             Utils.MicroSleep(SLEEPVAL(1));
         }
@@ -393,7 +404,9 @@ void OmniMIDI::BASSSynth::LoadSoundFonts() {
     switch (_bassConfig->Threading) {
     case SingleThread:
     case Standard:
-        err = standard_instance->SetSoundFonts(SoundFonts) == false;
+        if (!standard_instance->SetSoundFonts(SoundFonts)) {
+            err = BASS_ErrorGetCode();
+        }
         break;
 
     case Multithreaded:
@@ -410,201 +423,265 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
     if (isActive)
         return true;
 
-    Message("Starting BASSMIDI.");
-
     switch (_bassConfig->Threading) {
     case SingleThread:
     case Standard: {
-         try {
-            uint32_t deviceFlags = 0;
-            uint32_t output = 0;
-
-            switch (_bassConfig->AudioEngine) {
-                case Internal: {
-                    deviceFlags = (_bassConfig->MonoRendering ? BASS_DEVICE_MONO : BASS_DEVICE_STEREO);
-    
-                    BASS_SetConfig(BASS_CONFIG_DEV_NONSTOP, 1);
-                    BASS_SetConfig(BASS_CONFIG_BUFFER, 0);
-                    BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
-                    BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-
+        BASS_SetConfig(BASS_CONFIG_DEV_NONSTOP, 1);
+        BASS_SetConfig(BASS_CONFIG_BUFFER, 0);
+        BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 0);
+        BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
+        BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, _bassConfig->AudioBuf);
 #if !defined(_WIN32)
-                    // Only Linux and macOS can do this
-                    BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, _bassConfig->BufPeriod * -1);
+        // Only Linux and macOS can do this
+        BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, _bassConfig->BufPeriod * -1);
 #else
-                    BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, _bassConfig->AudioBuf);
+        BASS_SetConfig(BASS_CONFIG_DEV_PERIOD, _bassConfig->AudioBuf);
 #endif
-                    BASS_SetConfig(BASS_CONFIG_DEV_BUFFER, _bassConfig->AudioBuf);
 
-                    _AudThread = std::jthread(&BASSSynth::RenderingThread, this);
-                    if (!_AudThread.joinable()) {
-                        Error("_AudThread failed. (ID: %x)", true, _AudThread.get_id());
-                        return false;
-                    }
-                    Message("Rendering thread started.");
+        uint32_t deviceFlags =
+            (_bassConfig->MonoRendering ? BASS_DEVICE_MONO
+                                        : BASS_DEVICE_STEREO);
+        int device = _bassConfig->AudioEngine == Internal ? -1 : 0;
+        if (!BASS_Init(device, _bassConfig->SampleRate, deviceFlags, NULL,
+                       NULL)) {
+            Error("Error Initializing BASS: %d", true, BASS_ErrorGetCode());
+            return false;
+        }
+        Message("Initialized BASS.");
 
-                    break;
-                }
+        try {
+            standard_instance = new BASSInstance(ErrLog, _bassConfig, 16);
+        } catch (std::exception &e) {
+            Error("Failed to initialize BASSMIDI: %s", true, e.what());
+            return false;
+        }
+        Message("Created BASSMIDI stream.");
+
+        switch (_bassConfig->AudioEngine) {
+        case Internal: {
+            _AudThread = std::jthread(&BASSSynth::RenderingThread, this);
+            if (!_AudThread.joinable()) {
+                Error("_AudThread failed. (ID: %x)", true, _AudThread.get_id());
+                BASS_Free();
+                return false;
+            }
+            Message("Rendering thread started.");
+
+            break;
+        }
 
 #if defined(_WIN32)
-                case WASAPI:
-                {
-                    auto proc = _bassConfig->Threading == SingleThread ? &BASSSynth::WasapiEvProc : &BASSSynth::WasapiProc;
+        case WASAPI: {
+            auto proc = _bassConfig->Threading == SingleThread
+                            ? &BASSSynth::WasapiEvProc
+                            : &BASSSynth::WasapiProc;
 
-                    if (!BASS_Init(0, _bassConfig->SampleRate, 0, 0, 0)) {
-                        throw BASS_ErrorGetCode();
-                    }
-
-                    standard_instance = new BASSInstance(ErrLog, _bassConfig, 16);
-
-                    if (!BASS_WASAPI_Init(-1, _bassConfig->SampleRate, 
-                                         _bassConfig->MonoRendering ? 1 : 2, 
-                                         ((_bassConfig->Threading == Standard) ? BASS_WASAPI_ASYNC : 0) | 
-                                         BASS_WASAPI_EVENT, _bassConfig->WASAPIBuf / 1000.0f, 0, proc, this)) {
-                        throw BASS_ErrorGetCode();
-                    }
-
-                    if (!BASS_WASAPI_Start()) {
-                        throw BASS_ErrorGetCode();
-                    }
-
-                    Message("wasapiDev %d >> devFreq %d", -1, _bassConfig->SampleRate);
-                    break;
-                }
-
-                case ASIO:
-                {
-                    auto proc = _bassConfig->Threading == SingleThread ? &BASSSynth::AsioEvProc : &BASSSynth::AsioProc;
-
-                    BASS_ASIO_INFO asioInfo = BASS_ASIO_INFO();
-                    BASS_ASIO_DEVICEINFO devInfo = BASS_ASIO_DEVICEINFO();
-                    BASS_ASIO_CHANNELINFO chInfo = BASS_ASIO_CHANNELINFO();
-
-                    double devFreq = 0.0;
-                    bool noFreqChange = false;
-                    bool asioCheck = false;
-                    uint32_t asioCount = 0, asioDev = 0;
-
-                    int32_t leftChID = -1, rightChID = -1;
-                    const char* lCh = _bassConfig->ASIOLCh.c_str();
-                    const char* rCh = _bassConfig->ASIORCh.c_str();
-                    const char* dev = _bassConfig->ASIODevice.c_str();
-                    
-                    Message("Available ASIO devices:");
-                    // Get the amount of ASIO devices available
-                    for (; BASS_ASIO_GetDeviceInfo(asioCount, &devInfo); asioCount++) {
-                        Message("%s", devInfo.name);
-
-                        // Return the correct ID when found
-                        if (strcmp(dev, devInfo.name) == 0)
-                            asioDev = asioCount;
-                    }
-
-                    if (asioCount < 1) throw std::runtime_error("No ASIO devices available!");
-                    else Message("Detected %d ASIO devices.", asioCount);
-
-                    if (!BASS_ASIO_Init(asioDev, BASS_ASIO_THREAD | BASS_ASIO_JOINORDER)) {
-                        throw BASS_ASIO_ErrorGetCode();
-                    }
-
-                    if (BASS_ASIO_GetInfo(&asioInfo)) {
-                        Message("ASIO device: %s (CurBuf %d, Min %d, Max %d, Gran %d, OutChans %d)",
-                            asioInfo.name, asioInfo.bufpref, asioInfo.bufmin, asioInfo.bufmax, asioInfo.bufgran, asioInfo.outputs);
-                    }
-
-                    if (!BASS_ASIO_SetRate(_bassConfig->SampleRate)) {
-                        Message("BASS_ASIO_SetRate failed, falling back to BASS_ASIO_ChannelSetRate... BASSERR: %d", BASS_ErrorGetCode());
-                        if (!BASS_ASIO_ChannelSetRate(0, 0, _bassConfig->SampleRate)) {
-                            Message("BASS_ASIO_ChannelSetRate failed as well, BASSERR: %d... This ASIO device does not want OmniMIDI to change its output frequency.", BASS_ErrorGetCode());
-                            noFreqChange = true;
-                        }
-                    }
-
-                    Message("Available ASIO channels (Total: %d):", asioInfo.outputs);
-                    for (uint32_t curSrcCh = 0; curSrcCh < asioInfo.outputs; curSrcCh++) {
-                        BASS_ASIO_ChannelGetInfo(0, curSrcCh, &chInfo);
-
-                        Message("Checking ASIO dev %s...", chInfo.name);
-
-                        // Return the correct ID when found
-                        if (strcmp(lCh, chInfo.name) == 0) {
-                            leftChID = curSrcCh;
-                            Message("%s >> This channel matches what the user requested for the left channel! (ID: %d)", chInfo.name, leftChID);
-                        }
-
-                        if (strcmp(rCh, chInfo.name) == 0) {
-                            rightChID = curSrcCh;
-                            Message("%s >> This channel matches what the user requested for the right channel! (ID: %d)",  chInfo.name, rightChID);
-                        }
-
-                        if (leftChID != -1 && rightChID != -1)
-                            break;
-                    }
-
-                    if (leftChID == -1 && rightChID == -1) {
-                        leftChID = 0;
-                        rightChID = 1;
-                        Message("No ASIO output channels found, defaulting to CH%d for left and CH%d for right.", leftChID, rightChID);
-                    }
-
-                    if (noFreqChange) {
-                        devFreq = BASS_ASIO_GetRate();
-                        Message("BASS_ASIO_GetRate >> %dHz", devFreq);
-
-                        if (devFreq == -1) {
-                            throw BASS_ASIO_ErrorGetCode();
-                        }
-
-                        _bassConfig->SampleRate = devFreq;
-                    }
-
-                    if (!BASS_Init(0, _bassConfig->SampleRate, 0, 0, 0)) {
-                        throw BASS_ErrorGetCode();
-                    }
-
-                    standard_instance = new BASSInstance(ErrLog, _bassConfig, 16);
-
-                    if (!noFreqChange && !BASS_ASIO_SetRate(_bassConfig->SampleRate))
-                        Message("BASS_ASIO_SetRate encountered an error.");
-
-                    if (_bassConfig->StreamDirectFeed) asioCheck = BASS_ASIO_ChannelEnableBASS(0, leftChID, standard_instance->GetHandle(), 0);
-                    else asioCheck = BASS_ASIO_ChannelEnable(0, leftChID, proc, this);
-                    if (!asioCheck) {
-                        throw BASS_ASIO_ErrorGetCode();
-                    }
-
-                    if (_bassConfig->StreamDirectFeed) Message("ASIO direct feed enabled.");
-                    else Message("AsioProc allocated.");
-
-                    Message("Channel %d set to %dHz and enabled.", leftChID, _bassConfig->SampleRate);
-
-                    if (_bassConfig->MonoRendering) asioCheck = BASS_ASIO_ChannelEnableMirror(rightChID, 0, leftChID);
-                    else asioCheck = BASS_ASIO_ChannelJoin(0, rightChID, leftChID);
-                    if (!asioCheck) {
-                        throw BASS_ASIO_ErrorGetCode();
-                    }
-                   
-                    if (_bassConfig->MonoRendering) Message("Channel %d mirrored to %d for mono rendering. (F%d)", leftChID, rightChID, _bassConfig->MonoRendering);
-                    else Message("Channel %d joined to %d for stereo rendering. (F%d)", rightChID, leftChID, _bassConfig->MonoRendering);
-
-                    if (!BASS_ASIO_Start(0, 0)) {
-                        throw BASS_ASIO_ErrorGetCode();
-                    }			
-                    
-                    BASS_ASIO_ChannelSetFormat(0, leftChID, BASS_ASIO_FORMAT_FLOAT | BASS_ASIO_FORMAT_DITHER);
-                    BASS_ASIO_ChannelSetRate(0, leftChID, _bassConfig->SampleRate);
-
-                    Message("asioDev %d >> chL %d, chR %d - asioFreq %d", asioDev, leftChID, rightChID, _bassConfig->SampleRate);
-                    
-                    break;
-                }
-#endif
-
-                default:
-                    throw std::runtime_error("Unsupported audio engine!");
+            if (!BASS_WASAPI_Init(
+                    -1, _bassConfig->SampleRate,
+                    _bassConfig->MonoRendering ? 1 : 2,
+                    ((_bassConfig->Threading == Standard) ? BASS_WASAPI_ASYNC
+                                                          : 0) |
+                        BASS_WASAPI_EVENT,
+                    _bassConfig->WASAPIBuf / 1000.0f, 0, proc, this)) {
+                Error("Failed to initialize WASAPI: %d", true,
+                      BASS_ErrorGetCode());
+                BASS_Free();
+                return false;
             }
-        } catch (const std::exception &e) {
-            Error("BASSInstance intialization failed: %s", 0, e.what());
+
+            if (!BASS_WASAPI_Start()) {
+                Error("Failed to start WASAPI: %d", true, BASS_ErrorGetCode());
+                BASS_WASAPI_Free();
+                BASS_Free();
+                return false;
+            }
+
+            Message("wasapiDev %d >> devFreq %d", -1, _bassConfig->SampleRate);
+            break;
+        }
+
+        case ASIO: {
+            auto proc = _bassConfig->Threading == SingleThread
+                            ? &BASSSynth::AsioEvProc
+                            : &BASSSynth::AsioProc;
+
+            BASS_ASIO_INFO asioInfo = BASS_ASIO_INFO();
+            BASS_ASIO_DEVICEINFO devInfo = BASS_ASIO_DEVICEINFO();
+            BASS_ASIO_CHANNELINFO chInfo = BASS_ASIO_CHANNELINFO();
+
+            double devFreq = 0.0;
+            bool noFreqChange = false;
+            bool asioCheck = false;
+            uint32_t asioCount = 0, asioDev = 0;
+
+            int32_t leftChID = -1, rightChID = -1;
+            const char *lCh = _bassConfig->ASIOLCh.c_str();
+            const char *rCh = _bassConfig->ASIORCh.c_str();
+            const char *dev = _bassConfig->ASIODevice.c_str();
+
+            Message("Available ASIO devices:");
+            // Get the amount of ASIO devices available
+            for (; BASS_ASIO_GetDeviceInfo(asioCount, &devInfo); asioCount++) {
+                Message("%s", devInfo.name);
+
+                // Return the correct ID when found
+                if (strcmp(dev, devInfo.name) == 0)
+                    asioDev = asioCount;
+            }
+
+            if (asioCount < 1) {
+                Error("No ASIO devices available", true);
+                BASS_ASIO_Free();
+                BASS_Free();
+                return false;
+            } else {
+                Message("Detected %d ASIO devices.", asioCount);
+            }
+
+            if (!BASS_ASIO_Init(asioDev,
+                                BASS_ASIO_THREAD | BASS_ASIO_JOINORDER)) {
+                Error("Failed initialize ASIO: %d", true,
+                      BASS_ASIO_ErrorGetCode());
+                BASS_Free();
+                return false;
+            }
+
+            if (BASS_ASIO_GetInfo(&asioInfo)) {
+                Message("ASIO device: %s (CurBuf %d, Min %d, Max %d, Gran %d, "
+                        "OutChans %d)",
+                        asioInfo.name, asioInfo.bufpref, asioInfo.bufmin,
+                        asioInfo.bufmax, asioInfo.bufgran, asioInfo.outputs);
+            }
+
+            if (!BASS_ASIO_SetRate(_bassConfig->SampleRate)) {
+                Message("BASS_ASIO_SetRate failed, falling back to "
+                        "BASS_ASIO_ChannelSetRate... BASSERR: %d",
+                        BASS_ErrorGetCode());
+                if (!BASS_ASIO_ChannelSetRate(0, 0, _bassConfig->SampleRate)) {
+                    Message("BASS_ASIO_ChannelSetRate failed as well, BASSERR: "
+                            "%d... This ASIO device does not want OmniMIDI to "
+                            "change its output frequency.",
+                            BASS_ErrorGetCode());
+                    noFreqChange = true;
+                }
+            }
+
+            Message("Available ASIO channels (Total: %d):", asioInfo.outputs);
+            for (uint32_t curSrcCh = 0; curSrcCh < asioInfo.outputs;
+                 curSrcCh++) {
+                BASS_ASIO_ChannelGetInfo(0, curSrcCh, &chInfo);
+
+                Message("Checking ASIO dev %s...", chInfo.name);
+
+                // Return the correct ID when found
+                if (strcmp(lCh, chInfo.name) == 0) {
+                    leftChID = curSrcCh;
+                    Message("%s >> This channel matches what the user "
+                            "requested for the left channel! (ID: %d)",
+                            chInfo.name, leftChID);
+                }
+
+                if (strcmp(rCh, chInfo.name) == 0) {
+                    rightChID = curSrcCh;
+                    Message("%s >> This channel matches what the user "
+                            "requested for the right channel! (ID: %d)",
+                            chInfo.name, rightChID);
+                }
+
+                if (leftChID != -1 && rightChID != -1)
+                    break;
+            }
+
+            if (leftChID == -1 && rightChID == -1) {
+                leftChID = 0;
+                rightChID = 1;
+                Message("No ASIO output channels found, defaulting to CH%d for "
+                        "left and CH%d for right.",
+                        leftChID, rightChID);
+            }
+
+            if (noFreqChange) {
+                devFreq = BASS_ASIO_GetRate();
+
+                if (devFreq == -1) {
+                    Error("Failed to read the sample rate from the ASIO "
+                          "device: %d",
+                          true, BASS_ASIO_ErrorGetCode());
+                    BASS_ASIO_Free();
+                    BASS_Free();
+                    return false;
+                }
+
+                Message("BASS_ASIO_GetRate >> %dHz", devFreq);
+                _bassConfig->SampleRate = devFreq;
+            }
+
+            if (!noFreqChange && !BASS_ASIO_SetRate(_bassConfig->SampleRate))
+                Message("BASS_ASIO_SetRate encountered an error.");
+
+            if (_bassConfig->StreamDirectFeed)
+                asioCheck = BASS_ASIO_ChannelEnableBASS(
+                    0, leftChID, standard_instance->GetHandle(), 0);
+            else
+                asioCheck = BASS_ASIO_ChannelEnable(0, leftChID, proc, this);
+            if (!asioCheck) {
+                Error("Failed to enable ASIO stream: %d", true,
+                      BASS_ASIO_ErrorGetCode());
+                BASS_ASIO_Free();
+                BASS_Free();
+                return false;
+            }
+
+            if (_bassConfig->StreamDirectFeed)
+                Message("ASIO direct feed enabled.");
+            else
+                Message("AsioProc allocated.");
+
+            Message("Channel %d set to %dHz and enabled.", leftChID,
+                    _bassConfig->SampleRate);
+
+            if (_bassConfig->MonoRendering)
+                asioCheck =
+                    BASS_ASIO_ChannelEnableMirror(rightChID, 0, leftChID);
+            else
+                asioCheck = BASS_ASIO_ChannelJoin(0, rightChID, leftChID);
+            if (!asioCheck) {
+                Error("Failed to set up ASIO audio channels: %d", true,
+                      BASS_ASIO_ErrorGetCode());
+                BASS_ASIO_Free();
+                BASS_Free();
+                return false;
+            }
+
+            if (_bassConfig->MonoRendering)
+                Message("Channel %d mirrored to %d for mono rendering. (F%d)",
+                        leftChID, rightChID, _bassConfig->MonoRendering);
+            else
+                Message("Channel %d joined to %d for stereo rendering. (F%d)",
+                        rightChID, leftChID, _bassConfig->MonoRendering);
+
+            if (!BASS_ASIO_Start(0, 0)) {
+                Error("Failed to start ASIO: %d", true,
+                      BASS_ASIO_ErrorGetCode());
+                BASS_ASIO_Free();
+                BASS_Free();
+                return false;
+            }
+
+            BASS_ASIO_ChannelSetFormat(
+                0, leftChID, BASS_ASIO_FORMAT_FLOAT | BASS_ASIO_FORMAT_DITHER);
+            BASS_ASIO_ChannelSetRate(0, leftChID, _bassConfig->SampleRate);
+
+            Message("asioDev %d >> chL %d, chR %d - asioFreq %d", asioDev,
+                    leftChID, rightChID, _bassConfig->SampleRate);
+
+            break;
+        }
+#endif
+        default:
+            Error("Unsupposed audio engine", true);
+            delete standard_instance;
+            BASS_Free();
             return false;
         }
         break;
@@ -614,7 +691,7 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
         try {
             thread_mgr = new BASSThreadManager(ErrLog, _bassConfig);
         } catch (const std::exception &e) {
-            Error("BASSThreadManager intialization failed: %s", 0, e.what());
+            Error("BASSThreadManager intialization failed: %s", true, e.what());
             return false;
         }
         break;
@@ -627,6 +704,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
     _EvtThread = std::jthread(&BASSSynth::ProcessingThread, this);
     if (!_EvtThread.joinable()) {
         Error("_EvtThread failed. (ID: %x)", true, _EvtThread.get_id());
+        if (thread_mgr)
+            delete thread_mgr;
+        if (standard_instance) {
+            delete standard_instance;
+            BASS_Free();
+        }
         return false;
     }
     Message("Processing thread started.");
@@ -634,6 +717,12 @@ bool OmniMIDI::BASSSynth::StartSynthModule() {
     _StatsThread = std::jthread(&BASSSynth::StatsThread, this);
     if (!_StatsThread.joinable()) {
         Error("_StatsThread failed. (ID: %x)", true, _StatsThread.get_id());
+        if (thread_mgr)
+            delete thread_mgr;
+        if (standard_instance) {
+            delete standard_instance;
+            BASS_Free();
+        }
         return false;
     }
     Message("Stats thread started.");
@@ -669,36 +758,28 @@ bool OmniMIDI::BASSSynth::StopSynthModule() {
     switch (_bassConfig->Threading) {
     case SingleThread:
     case Standard:
-        switch (_bassConfig->AudioEngine) {
-            case Internal:
-                break;
-
 #if defined(_WIN32)
-            case WASAPI:
-                BASS_WASAPI_Stop(true);
-                BASS_WASAPI_Free();
+        switch (_bassConfig->AudioEngine) {
+        case WASAPI:
+            BASS_WASAPI_Stop(true);
+            BASS_WASAPI_Free();
 
-                // why do I have to do it myself
-                BASS_WASAPI_SetNotify(nullptr, nullptr);
+            // why do I have to do it myself
+            BASS_WASAPI_SetNotify(nullptr, nullptr);
 
-                Message("BASSWASAPI freed.");
-                break;
+            Message("BASSWASAPI freed.");
+            break;
 
-            case ASIO:
-                BASS_ASIO_Stop();
-                BASS_ASIO_Free();
-                Utils.MicroSleep(-5000000);
-                Message("BASSASIO freed.");
-                break;
-#endif
+        case ASIO:
+            BASS_ASIO_Stop();
+            BASS_ASIO_Free();
+            Utils.MicroSleep(-5000000);
+            Message("BASSASIO freed.");
+            break;
         }
+#endif
 
         delete standard_instance;
-
-        if (BFlaLibHandle) {
-            BASS_PluginFree(BFlaLibHandle);
-            Message("BASSFLAC freed.");
-        }
 
         BASS_Free();
         Message("Deleted BASSMIDI instance.");
@@ -826,9 +907,10 @@ OmniMIDI::SynthResult OmniMIDI::BASSSynth::TalkToSynthDirectly(uint32_t evt,
 
     if (standard_instance == nullptr)
         return NotInitialized;
-    
-    return standard_instance->SendDirectEvent(chan, evt, param) ? Ok
-                                                             : InvalidParameter;
+
+    return standard_instance->SendDirectEvent(chan, evt, param)
+               ? Ok
+               : InvalidParameter;
 }
 
 #endif
