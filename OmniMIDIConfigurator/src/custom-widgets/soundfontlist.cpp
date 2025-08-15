@@ -52,16 +52,24 @@ void SoundFontList::paintEvent(QPaintEvent *e) {
 }
 
 void SoundFontList::removeInvalid() {
+    std::vector<QTreeWidgetItem *> toRem;
+
     int count = this->topLevelItemCount();
     for (int i = 0; i < count; i++) {
         auto item = this->topLevelItem(i);
         auto path = item->text(1).toStdString();
         // ToDo: Maybe also check if the file is valid here
         if (!std::filesystem::exists(path)) {
-            this->removeItemWidget(item, 0);
-            delete item;
-            --i;
+            toRem.push_back(item);
         }
+    }
+
+    bool modified = !toRem.empty();
+    for (auto item : toRem) {
+        delete this->takeTopLevelItem(this->indexOfTopLevelItem(item));
+    }
+    if (modified) {
+        this->saveData();
     }
 }
 

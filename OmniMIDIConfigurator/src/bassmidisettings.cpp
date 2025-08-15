@@ -83,10 +83,12 @@ void BASSMIDISettings::showWinAudioSettings(int idx) {
 }
 
 void BASSMIDISettings::setAudioBufferVal() {
+#if defined(WIN32)
     if (ui->threading->currentIndex() != 2
         && ui->audioEngine->currentIndex() == 1) // WASAPI
         ui->audioBuffer->setValue(m_cfg->WASAPIBuf);
     else // Internal
+#endif
         ui->audioBuffer->setValue(m_cfg->AudioBuf);
 }
 
