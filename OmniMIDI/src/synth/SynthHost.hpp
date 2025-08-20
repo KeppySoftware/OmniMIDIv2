@@ -29,6 +29,9 @@
 #include "../system/StreamPlayer.hpp"
 #endif
 
+#include <unordered_map>
+#include <unordered_set>
+
 typedef OmniMIDI::SynthModule *(*rInitModule)();
 typedef void (*rStopModule)();
 
@@ -43,6 +46,8 @@ class SynthHost {
     std::jthread _HealthThread;
     HostSettings *_SHSettings = nullptr;
     std::mutex _hostMutex;
+    
+    std::unordered_map<uint32_t, uint64_t> _noteOnTimes;
 
 #ifdef _WIN32
     // From driver lib
@@ -87,6 +92,11 @@ class SynthHost {
 #endif
 
     void HostHealthCheck();
+
+    // Events overrides system
+    void SetEventOverrides(const OmniMIDI::HostSettings::OverrideSettings &overrides);
+    const OmniMIDI::HostSettings::OverrideSettings& GetEventOverrides() const;
+    bool ProcessEventOverrides(uint8_t &status, uint8_t &param1, uint8_t &param2);
 
     // Event handling system
     void PlayShortEvent(uint32_t ev);
