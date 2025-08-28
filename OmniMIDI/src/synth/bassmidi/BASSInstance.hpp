@@ -21,6 +21,7 @@
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
 #include <mutex>
+#include <vector>
 
 namespace OmniMIDI {
 class BASSInstance {
