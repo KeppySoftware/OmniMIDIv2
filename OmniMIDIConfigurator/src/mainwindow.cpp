@@ -62,6 +62,10 @@ MainWindow::MainWindow(QWidget *parent)
         m_cfg.KDMAPIEnabled = ui->allowKdmapi->isChecked();
         storeConfig();
     });
+    connect(ui->debugMode, &QCheckBox::checkStateChanged, this, [this]() {
+        m_cfg.DebugMode = ui->debugMode->isChecked();
+        storeConfig();
+    });
     connect(ui->enginePath, &QLineEdit::textChanged, this, [this](const QString &s) {
         m_cfg.CustomRenderer = s.toStdString();
         storeConfig();
@@ -94,6 +98,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::loadSettingsToUI() {
     ui->engineSelector->setCurrentIndex(m_cfg.Renderer);
     ui->allowKdmapi->setCheckState(CCS(m_cfg.KDMAPIEnabled));
+    ui->debugMode->setCheckState(CCS(m_cfg.DebugMode));
     ui->enginePath->setText(QString::fromStdString(m_cfg.CustomRenderer));
 }
 

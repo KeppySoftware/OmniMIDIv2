@@ -17,7 +17,9 @@ public:
     explicit BASSMIDISettings(QWidget *parent = nullptr, BASSConfig *config = nullptr);
     ~BASSMIDISettings();
     void updateMTValues();
+    void toggleMtOptions();
     void showWinAudioSettings(int idx);
+    void setAudioBufferVal();
     void loadSettings() override;
     void storeSettings() override;
     QWidget *getWidget() override;

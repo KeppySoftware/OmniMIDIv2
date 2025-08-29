@@ -9,20 +9,21 @@ void BASSConfig::load() {
     if (m_cfg.is_null()) return;
 
     try {
-        EvBufSize = m_cfg.value("EvBufSize", EvBufSize);
+        GlobalEvBufSize = m_cfg.value("GlobalEvBufSize", GlobalEvBufSize);
         RenderTimeLimit = m_cfg.value("RenderTimeLimit", RenderTimeLimit);
         SampleRate = m_cfg.value("SampleRate", SampleRate);
         VoiceLimit = m_cfg.value("VoiceLimit", VoiceLimit);
-        AudioEngine = m_cfg.value("AudioEngine", AudioEngine);
         FollowOverlaps = m_cfg.value("FollowOverlaps", FollowOverlaps);
-        LoudMax = m_cfg.value("LoudMax", LoudMax);
-        AsyncMode = m_cfg.value("AsyncMode", AsyncMode);
+        AudioLimiter = m_cfg.value("AudioLimiter", AudioLimiter);
         FloatRendering = m_cfg.value("FloatRendering", FloatRendering);
         MonoRendering = m_cfg.value("MonoRendering", MonoRendering);
-        OneThreadMode = m_cfg.value("OneThreadMode", OneThreadMode);
         DisableEffects = m_cfg.value("DisableEffects", DisableEffects);
-        ExpMTKeyboardDiv = m_cfg.value("ExpMTKeyboardDiv", ExpMTKeyboardDiv);
-        ExperimentalMultiThreaded = m_cfg.value("ExperimentalMultiThreaded", ExperimentalMultiThreaded);
+        Threading = m_cfg.value("Threading", Threading);
+        KeyboardDivisions = m_cfg.value("KeyboardDivisions", KeyboardDivisions);
+        ThreadCount = m_cfg.value("ThreadCount", ThreadCount);
+        MaxInstanceNPS = m_cfg.value("MaxInstanceNPS", MaxInstanceNPS);
+        InstanceEvBufSize = m_cfg.value("InstanceEvBufSize", InstanceEvBufSize);
+        AudioEngine = m_cfg.value("AudioEngine", AudioEngine);
         AudioBuf = m_cfg.value("AudioBuf", AudioBuf);
 #if defined(__linux__)
         BufPeriod = m_cfg.value("BufPeriod", BufPeriod);
@@ -46,20 +47,21 @@ void BASSConfig::store() {
     }
 
 
-    m_cfg["EvBufSize"] = EvBufSize;
-    m_cfg["RenderTimeLimit"] = RenderTimeLimit;
     m_cfg["SampleRate"] = SampleRate;
     m_cfg["VoiceLimit"] = VoiceLimit;
-    m_cfg["AudioEngine"] = AudioEngine;
+    m_cfg["GlobalEvBufSize"] = GlobalEvBufSize;
+    m_cfg["RenderTimeLimit"] = RenderTimeLimit;
     m_cfg["FollowOverlaps"] = FollowOverlaps;
-    m_cfg["LoudMax"] = LoudMax;
-    m_cfg["AsyncMode"] = AsyncMode;
+    m_cfg["AudioLimiter"] = AudioLimiter;
     m_cfg["FloatRendering"] = FloatRendering;
     m_cfg["MonoRendering"] = MonoRendering;
-    m_cfg["OneThreadMode"] = OneThreadMode;
     m_cfg["DisableEffects"] = DisableEffects;
-    m_cfg["ExpMTKeyboardDiv"] = ExpMTKeyboardDiv;
-    m_cfg["ExperimentalMultiThreaded"] = ExperimentalMultiThreaded;
+    m_cfg["Threading"] = Threading;
+    m_cfg["KeyboardDivisions"] = KeyboardDivisions;
+    m_cfg["ThreadCount"] = ThreadCount;
+    m_cfg["MaxInstanceNPS"] = MaxInstanceNPS;
+    m_cfg["InstanceEvBufSize"] = InstanceEvBufSize;
+    m_cfg["AudioEngine"] = AudioEngine;
     m_cfg["AudioBuf"] = AudioBuf;
 #if defined(__linux__)
     m_cfg["BufPeriod"] = BufPeriod;

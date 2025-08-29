@@ -1,7 +1,7 @@
 set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
-set_allowedplats("windows", "linux")
+set_allowedplats("mingw", "linux")
 set_allowedmodes("debug", "release")
 set_allowedarchs("x86", "x64", "x86_64", "arm64")
 	
@@ -9,39 +9,29 @@ add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
 set_runtimes("stdc++_static")
 
+add_requires("nlohmann_json", "miniaudio")
+
 option("nonfree")
     set_default(false)
     set_showmenu(true)
-	-- Does not work???
-	-- add_defines("_NONFREE")
 
 option("statsdev")
 	set_default(false)
 	set_showmenu(true)
-	-- Does not work???
-	-- add_defines("_STATSDEV")
-
-option("useclang")
-    set_default(is_plat("linux"))
-    set_showmenu(true)
 
 -- Self-hosted MIDI out for Linux
 target("OmniMIDI")		
-	if is_plat("windows") then 	
-		-- Dummy
+	if is_plat("mingw") then 	
+		-- N/A for Windows
 		set_enabled(false)	
-	else 	
+	else
+		set_kind("binary")
+		add_defines("OM_STANDALONE")
+		add_packages("nlohmann_json", "miniaudio")
+
+		-- Option definitions
 		set_options("nonfree")
 		set_options("statsdev")
-		set_options("useclang")
-
-		set_kind("binary")
-
-		if has_config("useclang") then
-			set_toolchains("clang")
-		else
-			set_toolchains("gcc")
-		end
 
 		if has_config("nonfree") then
 			add_defines("_NONFREE")
@@ -51,6 +41,7 @@ target("OmniMIDI")
 			add_defines("_STATSDEV")
 		end
 
+		-- Target setup
 		if is_mode("debug") then
 			add_defines("DEBUG")
 			add_defines("_DEBUG")
@@ -63,14 +54,13 @@ target("OmniMIDI")
 			set_strip("all")
 		end
 
-		add_defines("OM_STANDALONE")
-
+		-- Sources
 		add_includedirs("inc")
-		add_files("src/*.cpp")
+		add_files("src/**.cpp")
 
-		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wdangling-else")
+		-- Compiler setup
+		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden", "-Wall", "-msse2")
 		add_syslinks("asound")
-
 		add_shflags("-pie", "-Wl,-E", { force = true })
 
 		if not has_config("nonfree") then
@@ -78,12 +68,12 @@ target("OmniMIDI")
 		end
 
 		-- ASIO and WASAPI not available under Linux/FreeBSD
-		remove_files("src/bassasio.cpp")
-		remove_files("src/basswasapi.cpp")
+		remove_files("src/synth/bassmidi/bassasio.cpp")
+		remove_files("src/synth/bassmidi/basswasapi.cpp")
 
 		-- Windows stuff
-		remove_files("src/WDM*.cpp")
-		remove_files("src/StreamPlayer.cpp")
+		remove_files("src/system/WDM*.cpp")
+		remove_files("src/system/StreamPlayer.cpp")
 	end
 target_end()
 
@@ -91,19 +81,15 @@ target_end()
 target("libOmniMIDI")
 	set_kind("shared")
 	set_basename("OmniMIDI")
+	add_defines("OMNIMIDI_EXPORTS")
+	add_packages("nlohmann_json", "miniaudio")
 
+	-- Option definitions
 	set_options("nonfree")
 	set_options("statsdev")
-	set_options("useclang")
 
-	if is_plat("windows") then
+	if is_plat("mingw") then
 		set_toolchains("mingw")
-	else 
-		if has_config("useclang") then
-			set_toolchains("clang")
-		else
-			set_toolchains("gcc")
-		end
 	end
 
 	if has_config("nonfree") then
@@ -125,40 +111,43 @@ target("libOmniMIDI")
 		set_optimize("fastest")
 		set_strip("all")
 	end
-	
-	add_defines("OMNIMIDI_EXPORTS")
-	add_ldflags("-j")
-	add_cxflags("-Wall", "-Wdangling-else")
 
+	-- Sources
 	add_includedirs("inc")
-	add_files("src/*.cpp")
+	add_linkdirs("lib")
+	add_files("src/**.cpp")
+
+	-- Compiler setup
+	add_ldflags("-j")
+	add_cxflags("-Wall", "-msse2")
 
 	if not has_config("nonfree") then
 		remove_files("src/bass*.c*")
 	end
 
-	if is_plat("windows") then
+	if is_plat("mingw") then
 		-- Remove lib prefix
 		set_prefixname("")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
-		add_syslinks("uuid", "shlwapi", "ole32", "user32", "shell32")
+
+		add_syslinks("shlwapi", "ole32", "user32", "shell32", "uuid")
 		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
 
 		if is_mode("debug") then 
 			add_syslinks("-l:libwinpthread.a")
 		end
 
-		remove_files("src/UnixEntry.cpp")
+		remove_files("src/system/UnixEntry.cpp")
 	else
 		add_cxflags("-fvisibility=hidden", "-fvisibility-inlines-hidden")
 
 		-- ASIO and WASAPI not available under Linux/FreeBSD
-		remove_files("src/bassasio.cpp")
-		remove_files("src/basswasapi.cpp")
+		remove_files("src/synth/bassmidi/bassasio.cpp")
+		remove_files("src/synth/bassmidi/basswasapi.cpp")
 
 		-- Windows stuff
-		remove_files("src/WDM*.cpp")
-		remove_files("src/StreamPlayer.cpp")
+		remove_files("src/system/WDM*.cpp")
+		remove_files("src/system/StreamPlayer.cpp")
 	end
 target_end()
