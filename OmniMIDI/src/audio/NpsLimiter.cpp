@@ -89,6 +89,9 @@ void OmniMIDI::NpsLimiter::ChannelNpsLimiter::add_note() {
 }
 
 bool OmniMIDI::NpsLimiter::note_on(uint32_t channel, uint8_t key, uint8_t vel) {
+    if (key > 127)
+        return false;
+
     ChannelNpsLimiter *ch = &channels_[channel];
     uint64_t curr_nps = ch->calculate_nps();
 
@@ -106,6 +109,9 @@ void OmniMIDI::NpsLimiter::ChannelNpsLimiter::reset() {
 }
 
 bool OmniMIDI::NpsLimiter::note_off(uint32_t channel, uint8_t key) {
+    if (key > 127)
+        return false;
+
     ChannelNpsLimiter *ch = &channels_[channel];
     if (ch->missed_notes_[key] > 0) {
         ch->missed_notes_[key]--;

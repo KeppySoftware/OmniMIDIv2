@@ -392,21 +392,25 @@ uint64_t OmniMIDI::SynthHost::GetActiveVoices() {
 }
 
 void OmniMIDI::SynthHost::PlayShortEvent(uint32_t ev) {
-    uint8_t status = (ev >> 0) & 0xFF;
-    uint8_t param1 = (ev >> 8) & 0xFF;
-    uint8_t param2 = (ev >> 16) & 0xFF;
+    // uint8_t status = (ev >> 0) & 0xFF;
+    // uint8_t param1 = (ev >> 8) & 0xFF;
+    // uint8_t param2 = (ev >> 16) & 0xFF;
     
-    if (ProcessEventOverrides(status, param1, param2)) {
-        uint32_t processedEvent = status | (param1 << 8) | (param2 << 16);
-        Synth->PlayShortEvent(processedEvent);
-    }
+    // if (ProcessEventOverrides(status, param1, param2)) {
+    //     uint32_t processedEvent = status | (param1 << 8) | (param2 << 16);
+    //     Synth->PlayShortEvent(processedEvent);
+    // }
+
+    Synth->PlayShortEvent(ev);
 }
 
 void OmniMIDI::SynthHost::PlayShortEvent(uint8_t status, uint8_t param1,
                                          uint8_t param2) {
-    if (ProcessEventOverrides(status, param1, param2)) {
-        Synth->PlayShortEvent(status, param1, param2);
-    }
+    // if (ProcessEventOverrides(status, param1, param2)) {
+    //     Synth->PlayShortEvent(status, param1, param2);
+    // }
+
+    Synth->PlayShortEvent(status, param1, param2);
 }
 
 OmniMIDI::SynthResult OmniMIDI::SynthHost::PlayLongEvent(char *ev,
