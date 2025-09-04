@@ -122,7 +122,8 @@ target("libOmniMIDI")
 	add_cxflags("-Wall", "-msse2")
 
 	if not has_config("nonfree") then
-		remove_files("src/bass*.c*")
+		remove_files("src/synth/bassmidi/bass*.c*")
+		remove_files("src/synth/bassmidi/BASS*.c*")
 	end
 
 	if is_plat("mingw") then
