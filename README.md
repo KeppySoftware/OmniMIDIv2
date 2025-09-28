@@ -49,8 +49,9 @@ This guide will help you set up your environment and compile OmniMIDI v2 from so
 
 ### Prerequisites
 
+- A computer
 - [Xmake](https://xmake.io/#/home)
-- A GCC C++ compiler (MinGW or Clang)
+- A GCC C++ compiler (Mingw or Clang)
 - Git
 
 ### Steps
@@ -61,7 +62,10 @@ This guide will help you set up your environment and compile OmniMIDI v2 from so
 
 2. **Download the compiler**
 
-   Download either **MinGW** or **Clang**, then extract and place it somewhere accessible (e.g., `F:\Compilers\MinGW`)
+   **For Windows**: Download either **Mingw** or **Clang**, then extract and place it somewhere accessible (e.g., `F:\Compilers\mingw64`), then add it to the `PATH`.<br>
+   Make sure to get both **i686** and **AMD64** versions of the compiler, and **ARM64** too if you're planning on compiling for *non-x86* CPUs.<br>
+   OmniMIDIv2's Win32 compile process is tested against [w64devkit by skeeto](https://github.com/skeeto/w64devkit).<br><br>
+   **For Linux**: Install **GCC** or **Clang** using the package manager for your distro.
 
 3. **Clone the repo**
 
@@ -79,15 +83,17 @@ This guide will help you set up your environment and compile OmniMIDI v2 from so
    cd OmniMIDI
    ```
 
-   Then prepare the project for the compile process, and compile it.<br>
+   Then prepare the project for the compile process, and compile it.
+   
    Set `--plat=<plat>` to `mingw` for Windows, otherwise `linux` for Linux.<br>
+   Set `--arch=<arch>` to one of the following supported platforms: `i386`, `x86_64`, `arm64`<br>
    To compile with BASS support, append `--nonfree=y` at the end:
 
    ```sh
-   xmake f -m release --plat=<plat> --sdk=<pathtosdk>
+   xmake f -m release --plat=<plat> --arch=<arch>
    ```
 
-   This should make xmake download all the required dependencies. Press `Y` when prompted.
+   This should make xmake download all the required dependencies. Press `Y` when prompted.<br>
 
 5. **Compile the project**
 
@@ -99,9 +105,26 @@ This guide will help you set up your environment and compile OmniMIDI v2 from so
 
    The compiled library will be in the `./build` folder.
 
-6. **Test the build**
+6. **__(EXTRA)__ Winelib for Wine support**
 
-   Test the build against something that can use it (WinMM under Win32, ALSAMIDI under Linux, KDMAPI for both).
+   If you want to use OmniMIDIv2 Linux on a Win32 app, you'll need to compile the KDMAPI Winelib shim too.
+
+   Go to the winelib folder:
+   ```sh
+   cd winelib
+   ```
+
+   Then run the compile process:
+   ```sh
+   ./compile.sh
+   ```
+
+   You'll get a file called **OmniMIDI.dll**.<br>
+   Put this file next to the Win32 app you want to run through Wine, together with libOmniMIDI.so and the required synth libraries.
+
+7. **Test the build**
+
+   Test the build against something that can use it (WinMM under Win32, ALSAMIDI/winelib under Linux, KDMAPI for both).
 
    If you're under Linux, and you want to test the newly created build against a KDMAPI test app, remember to export the build's directory as a valid library loading path, by calling `export LD_LIBRARY_PATH=$PWD` in the terminal.
 

@@ -3,7 +3,7 @@ set_project("OmniMIDIv2")
 
 set_allowedplats("mingw", "linux")
 set_allowedmodes("debug", "release")
-set_allowedarchs("x86", "x64", "x86_64", "arm64")
+set_allowedarchs("i386", "x86_64", "arm64")
 	
 add_rules("mode.release", "mode.debug")
 set_languages("clatest", "cxx2a", "c++20")
@@ -132,12 +132,8 @@ target("libOmniMIDI")
 		add_cxxflags("clang::-fexperimental-library", { force = true })
 		add_shflags("-static-libgcc", { force = true })
 
-		add_syslinks("shlwapi", "ole32", "user32", "shell32", "uuid")
-		add_defines("_WIN32", "_WIN32_WINNT=0x6000")
-
-		if is_mode("debug") then 
-			add_syslinks("-l:libwinpthread.a")
-		end
+		add_syslinks("shlwapi", "ole32", "user32", "shell32", "uuid", "-l:libwinpthread.a")
+		add_defines("_WIN32", "_WIN32_WINNT=0x0501")
 
 		remove_files("src/system/UnixEntry.cpp")
 	else
