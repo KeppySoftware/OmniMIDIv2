@@ -20,7 +20,6 @@
 #ifdef _NONFREE
 
 #include "BASSSettings.hpp"
-#include "../../ErrSys.hpp"
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
 #include <mutex>
