@@ -58,7 +58,7 @@ This guide will help you set up your environment and compile OmniMIDI v2 from so
 
 1. **Install Xmake**
 
-   You can install Xmake by following its online guide: https://xmake.io/mirror/guide/installation.html
+   You can install Xmake by following its online guide: https://xmake.io/guide/quick-start.html#installation
 
 2. **Download the compiler**
 
