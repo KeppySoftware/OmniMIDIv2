@@ -16,7 +16,7 @@
  * You should have received a copy of the MIT License along with this
  * program.  If not, see <https://opensource.org/license/mit/>.
  */
-
+#ifdef _NONFREE
 #include "BASSInstance.hpp"
 #include "bass/bass_fx.h"
 #include "bass/bassmidi.h"
@@ -202,3 +202,4 @@ void OmniMIDI::BASSInstance::FlushEvents() {
 
     evbuf_len = 0;
 }
+#endif

@@ -17,6 +17,8 @@
  * program.  If not, see <https://opensource.org/license/mit/>.
  */
 
+#ifdef _NONFREE
+
 #include "BASSSettings.hpp"
 #include "bass/bass.h"
 #include "bass/bassmidi.h"
@@ -61,3 +63,4 @@ class BASSInstance {
     HFX audioLimiter;
 };
 } // namespace OmniMIDI
+#endif
