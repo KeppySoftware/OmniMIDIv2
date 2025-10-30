@@ -1,7 +1,7 @@
 set_xmakever("2.9.5")
 set_project("OmniMIDIv2")
 
-set_allowedplats("mingw", "linux")
+set_allowedplats("mingw", "linux", "bsd")
 set_allowedmodes("debug", "release")
 set_allowedarchs("i386", "x86_64", "arm64")
 	
