@@ -67,7 +67,7 @@
     //  Microsoft 
     #define EXPORT			        __declspec(dllexport)
     #define IMPORT			        __declspec(dllimport)
-#elif defined(__gnu_linux__) || (defined(__FreeBSD_kernel__ ) && defined(__GLIBC__))
+#elif defined(__gnu_linux__) || defined(__FreeBSD__) || (defined(__FreeBSD_kernel__ ) && defined(__GLIBC__))
     //  GCC
     #define EXPORT			        __attribute__((visibility("default")))
     #define IMPORT
